@@ -36,7 +36,9 @@ func main() {
 	flags.StringVar(&osName, "os", "", "os for patch")
 	flags.StringVar(&archName, "arch", "", "arch for patch")
 	flags.StringVar(&plugin, "plugin", "", "plugin for patch")
-	flags.Parse(os.Args[1:])
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		panic(err)
+	}
 	args := flags.Args()
 	if len(args) == 1 && args[0] == "patch" {
 		// Patch metadata
@@ -60,7 +62,7 @@ func main() {
 		panic(err)
 	}
 	// Write metadata
-	err = os.MkdirAll(filepath.Dir(output), 0o755)
+	err = os.MkdirAll(filepath.Dir(output), 0o750)
 	if err != nil {
 		panic(err)
 	}
@@ -93,7 +95,7 @@ func patchMeta(meta *Metadata, plugin, osName, archName string) error {
 	if archive == nil {
 		return fmt.Errorf("archive not found")
 	}
-	f, err := os.Open(plugin)
+	f, err := os.Open(plugin) //nolint:gosec // The plugin path comes from flags and is controlled by admin
 	if err != nil {
 		return err
 	}
@@ -108,7 +110,7 @@ func patchMeta(meta *Metadata, plugin, osName, archName string) error {
 }
 
 func readMeta() (*Metadata, error) {
-	f, err := os.Open(output)
+	f, err := os.Open(output) //nolint:gosec // Output path is controlled by admin configuration
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +124,7 @@ func readMeta() (*Metadata, error) {
 }
 
 func readConfig() (*ReleaserConfig, error) {
-	f, err := os.Open(configFile)
+	f, err := os.Open(configFile) //nolint:gosec // Config file path is controlled by admin configuration
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +204,7 @@ func osArchList(goos string) []string {
 }
 
 func writeMetadata(metadata *Metadata) error {
-	f, err := os.Create(output)
+	f, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // Output path is controlled by admin configuration
 	if err != nil {
 		return err
 	}

@@ -29,15 +29,22 @@ func (action *PluginContentAction) RenderContent(ctx context.Context, dataCtx pl
 	if action.PluginAction.Meta != nil {
 		contentMap[definitions.BlockKindMeta] = action.PluginAction.Meta.AsPluginData()
 	}
-	docData := dataCtx[definitions.BlockKindDocument]
+
+	// Create a clone of the data context to avoid modifying the original
+	localDataCtx := dataCtx.Clone()
+
+	docData := localDataCtx[definitions.BlockKindDocument]
 	docData.(plugindata.Map)[definitions.BlockKindContent] = doc.AsData()
-	dataCtx[definitions.BlockKindDocument] = docData
-	dataCtx[definitions.BlockKindContent] = contentMap
-	diag := ApplyVars(ctx, action.Vars, dataCtx)
+	localDataCtx[definitions.BlockKindDocument] = docData
+	localDataCtx[definitions.BlockKindContent] = contentMap
+
+	// Now apply the vars from the content block itself
+	diag := ApplyVars(ctx, action.Vars, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
-	isIncluded, diag := dataspec.EvalAttr(ctx, action.IsIncluded, dataCtx)
+
+	isIncluded, diag := dataspec.EvalAttr(ctx, action.IsIncluded, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
@@ -46,13 +53,13 @@ func (action *PluginContentAction) RenderContent(ctx context.Context, dataCtx pl
 		return
 	}
 	if len(action.RequiredVars) > 0 {
-		diag = verifyRequiredVars(dataCtx, action.RequiredVars, action.Source.Block)
+		diag = verifyRequiredVars(localDataCtx, action.RequiredVars, action.Source.Block)
 		if diags.Extend(diag) {
 			return
 		}
 	}
 
-	evaluatedBlock, diag := dataspec.EvalBlockCopy(ctx, action.Args, dataCtx)
+	evaluatedBlock, diag := dataspec.EvalBlockCopy(ctx, action.Args, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
@@ -60,7 +67,7 @@ func (action *PluginContentAction) RenderContent(ctx context.Context, dataCtx pl
 	res, diag := action.Provider.Execute(ctx, &plugin.ProvideContentParams{
 		Config:      action.Config,
 		Args:        evaluatedBlock,
-		DataContext: dataCtx,
+		DataContext: localDataCtx,
 		ContentID:   contentID,
 	})
 	if diags.Extend(diag) {
@@ -71,7 +78,14 @@ func (action *PluginContentAction) RenderContent(ctx context.Context, dataCtx pl
 			Index: contentID,
 		}
 	}
-	parent.Add(res.Content, res.Location)
+	if err := parent.Add(res.Content, res.Location); err != nil {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to add content",
+			Detail:   fmt.Sprintf("Failed to add content: %s", err),
+		})
+		return
+	}
 	return
 }
 

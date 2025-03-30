@@ -44,12 +44,18 @@ func NewClient(name, binaryPath string, logger *slog.Logger) (p *plugin.Schema, 
 	}
 	raw, err := rpcClient.Dispense(name)
 	if err != nil {
-		rpcClient.Close()
+		closeErr := rpcClient.Close()
+		if closeErr != nil {
+			logger.Warn("failed to close RPC client after dispense error", "err", closeErr)
+		}
 		return nil, nil, fmt.Errorf("failed to dispense plugin: %w", err)
 	}
 	plg, ok := raw.(*plugin.Schema)
 	if !ok {
-		rpcClient.Close()
+		closeErr := rpcClient.Close()
+		if closeErr != nil {
+			logger.Warn("failed to close RPC client after type assertion error", "err", closeErr)
+		}
 		return nil, nil, fmt.Errorf("unexpected plugin type: %T", raw)
 	}
 	return plg, rpcClient.Close, nil

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"text/template"
 
@@ -111,13 +112,23 @@ func renderText(ctx context.Context, cli AzureOpenAIClient, cfg, args *dataspec.
 	params.DeploymentName = to.Ptr(cfg.GetAttrVal("deployment_name").AsString())
 
 	maxTokens, _ := args.GetAttrVal("max_tokens").AsBigFloat().Int64()
-	params.MaxTokens = to.Ptr(int32(maxTokens))
+	if maxTokens > 0 {
+		if maxTokens > math.MaxInt32 {
+			maxTokens = math.MaxInt32
+		}
+		params.MaxTokens = to.Ptr(int32(maxTokens)) //nolint:gosec // G115: safe conversion, range checked
+	}
 
 	temperature, _ := args.GetAttrVal("temperature").AsBigFloat().Float32()
 	params.Temperature = to.Ptr(temperature)
 
 	completionsCount, _ := args.GetAttrVal("completions_count").AsBigFloat().Int64()
-	params.N = to.Ptr(int32(completionsCount))
+	if completionsCount > 0 {
+		if completionsCount > math.MaxInt32 {
+			completionsCount = math.MaxInt32
+		}
+		params.N = to.Ptr(int32(completionsCount)) //nolint:gosec // G115: safe conversion, range checked
+	}
 
 	topPAttr := args.GetAttrVal("top_p")
 	if !topPAttr.IsNull() {

@@ -89,7 +89,7 @@ func SetupOtelp(ctx context.Context, otelpURL, version string) (shutdown func(co
 }
 
 func createReportDir(dir string) (string, error) {
-	err := os.MkdirAll(dir, 0o755)
+	err := os.MkdirAll(dir, 0o750)
 	if err != nil {
 		return "", err
 	}
@@ -102,7 +102,7 @@ func createReportDir(dir string) (string, error) {
 			path += "_" + strconv.Itoa(i)
 		}
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			err := os.Mkdir(path, 0o755)
+			err := os.Mkdir(path, 0o750)
 			if err != nil {
 				return "", err
 			}
@@ -137,7 +137,7 @@ func SetupStdout(ctx context.Context, debugDir, version string) (shutdown func(c
 	if err != nil {
 		return nil, err
 	}
-	logFile, err := os.Create(filepath.Join(dir, "logs.json"))
+	logFile, err := os.Create(filepath.Join(dir, "logs.json")) //nolint:gosec // Safe file path construction in a controlled directory
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func SetupStdout(ctx context.Context, debugDir, version string) (shutdown func(c
 		log.WithResource(resource),
 	)
 	global.SetLoggerProvider(logProvider)
-	traceFile, err := os.Create(filepath.Join(dir, "traces.json"))
+	traceFile, err := os.Create(filepath.Join(dir, "traces.json")) //nolint:gosec // Safe file path construction in a controlled directory
 	if err != nil {
 		handleErr(err)
 		return
@@ -182,7 +182,7 @@ func SetupStdout(ctx context.Context, debugDir, version string) (shutdown func(c
 		trace.WithResource(resource),
 	)
 	otel.SetTracerProvider(traceProvider)
-	metricFile, err := os.Create(filepath.Join(dir, "metrics.json"))
+	metricFile, err := os.Create(filepath.Join(dir, "metrics.json")) //nolint:gosec // Safe file path construction in a controlled directory
 	if err != nil {
 		handleErr(err)
 		return

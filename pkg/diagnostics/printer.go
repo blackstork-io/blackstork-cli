@@ -34,7 +34,15 @@ func PrintDiags(output io.Writer, diags []*hcl.Diagnostic, fileMap map[string]*h
 		}
 	}()
 
-	diagWriter := hcl.NewDiagnosticTextWriter(bufWr, fileMap, uint(width), colorize)
+	// Convert width to uint safely to avoid potential overflow
+	var diagWidth uint
+	if width > 0 {
+		diagWidth = uint(width)
+	} else {
+		diagWidth = 80 // Default width
+	}
+
+	diagWriter := hcl.NewDiagnosticTextWriter(bufWr, fileMap, diagWidth, colorize)
 
 	for _, diag := range diags {
 		if _, isRepeated := GetExtra[repeatedError](diag); isRepeated {

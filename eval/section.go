@@ -49,12 +49,35 @@ func (block *Section) PrepareData(ctx context.Context, dataCtx plugindata.Map, d
 }
 
 func (block *Section) Unwrap(ctx context.Context, dataCtx plugindata.Map) (include bool, children []*Content, diags diagnostics.Diag) {
-	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, dataCtx)
+	// Clone dataCtx to avoid modifying the parent context when applying vars
+	// but only for the purpose of evaluating is_included
+	localDataCtx := maps.Clone(dataCtx)
+
+	// Apply vars before evaluating is_included condition to make section vars available
+	if block.vars != nil && !block.vars.Empty() {
+		diag := ApplyVars(ctx, block.vars, localDataCtx)
+		if diags.Extend(diag) {
+			return
+		}
+	}
+
+	// Evaluate is_included with the section vars in the local context
+	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
 	if isIncluded.IsNull() || !plugindata.IsTruthy(*plugindata.Encapsulated.MustFromCty(isIncluded)) {
 		return
+	}
+
+	// For the original dataCtx, we also need to apply the vars now so they're available
+	// to child content, but this is done in the original context which will properly scope
+	// the variables according to the tests
+	if block.vars != nil && !block.vars.Empty() {
+		diag := ApplyVars(ctx, block.vars, dataCtx)
+		if diags.Extend(diag) {
+			return
+		}
 	}
 
 	children, diag = UnwrapDynamicContent(ctx, block.children, dataCtx)
@@ -84,16 +107,35 @@ func (block *Section) RenderContent(ctx context.Context, dataCtx plugindata.Map,
 		}
 	}
 
-	diag := ApplyVars(ctx, block.vars, dataCtx)
+	// Clone dataCtx to avoid modifying the parent context when applying vars
+	// but only for the purpose of evaluating is_included
+	localDataCtx := maps.Clone(dataCtx)
+
+	// Apply vars before evaluating is_included
+	diag := ApplyVars(ctx, block.vars, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
 
-	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, dataCtx)
+	// Verify required vars
+	if len(block.requiredVars) > 0 {
+		diag := verifyRequiredVars(localDataCtx, block.requiredVars, block.source.Block)
+		if diags.Extend(diag) {
+			return
+		}
+	}
+
+	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, localDataCtx)
 	if diags.Extend(diag) {
 		return
 	}
 	if isIncluded.IsNull() || !plugindata.IsTruthy(*plugindata.Encapsulated.MustFromCty(isIncluded)) {
+		return
+	}
+
+	// Now that we know the section should be included, apply the vars to the original context
+	diag = ApplyVars(ctx, block.vars, dataCtx)
+	if diags.Extend(diag) {
 		return
 	}
 
@@ -106,7 +148,14 @@ func (block *Section) RenderContent(ctx context.Context, dataCtx plugindata.Map,
 	posMap := make(map[int]uint32)
 	for i := range children {
 		empty := new(plugin.ContentEmpty)
-		section.Add(empty, nil)
+		if err := section.Add(empty, nil); err != nil {
+			diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to add empty content",
+				Detail:   fmt.Sprintf("Failed to add empty content: %s", err),
+			})
+			return
+		}
 		posMap[i] = empty.ID()
 	}
 	// sort content blocks by invocation order
@@ -120,7 +169,7 @@ func (block *Section) RenderContent(ctx context.Context, dataCtx plugindata.Map,
 		return ao.Weight() - bo.Weight()
 	})
 
-	// verify required vars
+	// verify required vars again with the original context
 	if len(block.requiredVars) > 0 {
 		diag := verifyRequiredVars(dataCtx, block.requiredVars, block.source.Block)
 		if diags.Extend(diag) {

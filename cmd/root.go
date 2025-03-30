@@ -194,7 +194,9 @@ func Execute() {
 		rootSpan.End()
 	}
 	if rootCleanup != nil {
-		rootCleanup(rootCtx)
+		if cleanupErr := rootCleanup(rootCtx); cleanupErr != nil {
+			slog.ErrorContext(rootCtx, "Failed to clean up", "error", cleanupErr)
+		}
 	}
 	os.Exit(exitCode)
 }

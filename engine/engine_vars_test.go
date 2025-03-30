@@ -118,7 +118,8 @@ func TestEngineVarsHandling(t *testing.T) {
   "sectVar": "sectVar"
 }`,
 			`3: {
-  "docVar": "docVar"
+  "docVar": "docVar",
+  "sectVar": "sectVar"
 }`,
 		},
 	)

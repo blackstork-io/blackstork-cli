@@ -115,7 +115,7 @@ func (p Printer) evalFrontmatter(data *Data, el plugin.Content) error {
 			data.Description = attr
 		}
 		if css, ok := parsed[fmCSSCodeKey].(string); ok {
-			data.CSS = template.CSS(css)
+			data.CSS = template.CSS(css) //nolint:gosec // This CSS content is trusted as it comes from frontmatter
 		}
 		if js, ok := parsed[fmJSCodeKey].(string); ok {
 			data.JS = template.JS(js) //nolint: gosec

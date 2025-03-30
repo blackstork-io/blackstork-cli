@@ -153,7 +153,6 @@ func unwrapDynamicItem(ctx context.Context, dynamic *Dynamic, dataCtx plugindata
 		vars[itemVarName] = kv[1]
 		newDynVarVals, diag := parseDynVars(ctx, kv[0], kv[1], dynamic.items.ValueRange)
 		if diags.Extend(diag) {
-			// infallible
 			return
 		}
 		nonDynamicContent, diag := applyDynamicContentVars(ctx, dynamic.children, newDataCtx, newDynVarVals)
@@ -170,38 +169,56 @@ func unwrapDynamicItem(ctx context.Context, dynamic *Dynamic, dataCtx plugindata
 const (
 	itemIndexVarName = "dynamic_item_index"
 	itemVarName      = "dynamic_item"
+	itemNameVarName  = "item_name"
 )
 
-func parseDynVars(ctx context.Context, idx, val plugindata.Data, rng hcl.Range) (parsed *definitions.ParsedVars, diags diagnostics.Diag) {
+// getVarsCopy ensures a vars map exists in the context and returns it
+
+func parseDynVars(ctx context.Context, idx, val plugindata.Data, rng hcl.Range, itemName ...string) (parsed *definitions.ParsedVars, diags diagnostics.Diag) {
 	// use existing vars parser by creating a synthetic (dynamic_)vars block
+	attrs := map[string]*hclsyntax.Attribute{
+		itemIndexVarName: {
+			Name: itemIndexVarName,
+			Expr: &hclsyntax.LiteralValueExpr{
+				Val: plugindata.Encapsulated.ValToCty(idx),
+			},
+			SrcRange:    rng,
+			NameRange:   rng,
+			EqualsRange: rng,
+		},
+		itemVarName: {
+			Name: itemVarName,
+			Expr: &hclsyntax.LiteralValueExpr{
+				Val: plugindata.Encapsulated.ValToCty(val),
+			},
+			SrcRange:    rng,
+			NameRange:   rng,
+			EqualsRange: rng,
+		},
+	}
+
+	// Add item_name if provided
+	if len(itemName) > 0 {
+		attrs[itemNameVarName] = &hclsyntax.Attribute{
+			Name: itemNameVarName,
+			Expr: &hclsyntax.LiteralValueExpr{
+				Val: plugindata.Encapsulated.ValToCty(plugindata.String(itemName[0])),
+			},
+			SrcRange:    rng,
+			NameRange:   rng,
+			EqualsRange: rng,
+		}
+	}
+
 	return parser.ParseVars(ctx, &hclsyntax.Block{
 		Type:            "dynamic_vars",
 		TypeRange:       rng,
 		OpenBraceRange:  rng,
 		CloseBraceRange: rng,
 		Body: &hclsyntax.Body{
-			SrcRange: rng,
-			EndRange: rng,
-			Attributes: map[string]*hclsyntax.Attribute{
-				itemIndexVarName: {
-					Name: itemIndexVarName,
-					Expr: &hclsyntax.LiteralValueExpr{
-						Val: plugindata.Encapsulated.ValToCty(idx),
-					},
-					SrcRange:    rng,
-					NameRange:   rng,
-					EqualsRange: rng,
-				},
-				itemVarName: {
-					Name: itemVarName,
-					Expr: &hclsyntax.LiteralValueExpr{
-						Val: plugindata.Encapsulated.ValToCty(val),
-					},
-					SrcRange:    rng,
-					NameRange:   rng,
-					EqualsRange: rng,
-				},
-			},
+			SrcRange:   rng,
+			EndRange:   rng,
+			Attributes: attrs,
 		},
 	}, nil)
 }

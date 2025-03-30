@@ -74,7 +74,7 @@ func ReadLockFile(r io.Reader) (*LockFile, error) {
 
 // ReadLockFileFrom parses a lock configuration from a local file.
 func ReadLockFileFrom(path string) (*LockFile, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(path) //nolint:gosec // Path is controlled by admin configuration
 	if os.IsNotExist(err) {
 		return &LockFile{}, nil
 	} else if err != nil {
@@ -99,7 +99,7 @@ func SaveLockFileTo(path string, lockFile *LockFile) error {
 	if lockFile == nil {
 		return fmt.Errorf("plugin lock file is nil")
 	}
-	file, err := os.Create(path)
+	file, err := os.Create(path) //nolint:gosec // Path is controlled by admin configuration
 	if err != nil {
 		return err
 	}

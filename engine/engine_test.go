@@ -832,3 +832,78 @@ func TestEngineRenderContent(t *testing.T) {
 		optDocName("test"),
 	)
 }
+
+func TestDependencyContextAccess(t *testing.T) {
+	// Test case 1: Access dependency blocks via context
+	renderTest(
+		t, "Access dependency blocks via context",
+		[]string{`
+			document "test" {
+				content text "foo" {
+					value = "first result"
+				}
+				
+				content text "bar" {
+					depends_on = ["content.text.foo"]
+					value = "second result"
+				}
+				
+				content text "baz" {
+					depends_on = ["content.text.foo", "content.text.bar"]
+					value = "Dependency foo: {{ .dependency.content.text.foo.markdown }} and bar: {{ .dependency.content.text.bar.markdown }}"
+				}
+			}
+		`},
+		[]string{
+			"first result",
+			"second result",
+			"Dependency foo: first result and bar: second result",
+		},
+		optDocName("test"),
+	)
+
+	// Test case 2: Access section dependency blocks via context
+	renderTest(
+		t, "Access section dependency blocks via context",
+		[]string{`
+			section "foo" {
+				title = "Foo section"
+				content text {
+					value = "foo content"
+				}
+			}
+			
+			document "test" {
+				section ref "bar" {
+					base = section.foo
+					title = "Bar section"
+				}
+				
+				content text {
+					depends_on = ["section.ref.bar"]
+					value = <<-EOT
+						Dependency: {{ .dependency | toPrettyJson }}
+						Section title: {{ .dependency.section.ref.bar.meta.title }}
+					EOT
+				}
+			}
+		`},
+		[]string{
+			"# Bar section",
+			"foo content",
+			"Dependency: {\n" +
+				"  \"section\": {\n" +
+				"    \"ref\": {\n" +
+				"      \"bar\": {\n" +
+				"        \"meta\": {\n" +
+				"          \"title\": \"foo\"\n" +
+				"        }\n" +
+				"      }\n" +
+				"    }\n" +
+				"  }\n" +
+				"}\n" +
+				"Section title: foo",
+		},
+		optDocName("test"),
+	)
+}

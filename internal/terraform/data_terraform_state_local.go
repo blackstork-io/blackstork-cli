@@ -51,7 +51,7 @@ func fetchTerraformStateLocalData(ctx context.Context, params *plugin.RetrieveDa
 }
 
 func readTerraformStateFile(fp string) (plugindata.Data, error) {
-	data, err := os.ReadFile(fp)
+	data, err := os.ReadFile(fp) //nolint:gosec // File path comes from the configuration and is user-controlled
 	if err != nil {
 		return nil, err
 	}

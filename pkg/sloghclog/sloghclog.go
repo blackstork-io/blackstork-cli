@@ -76,7 +76,12 @@ func levelToSlog(level hclog.Level) slog.Level {
 }
 
 func levelToHclog(level slog.Level) (res hclog.Level) {
-	res = hclog.Level(level/4 + 3)
+	// Safely convert level/4 + 3 to hclog.Level, ensuring no overflow
+	levelValue := int64(level) / 4
+	if levelValue > math.MaxInt32-3 {
+		levelValue = math.MaxInt32 - 3
+	}
+	res = hclog.Level(levelValue + 3) //nolint:gosec // overflow is handled above
 	if res == hclog.NoLevel {
 		res--
 	}

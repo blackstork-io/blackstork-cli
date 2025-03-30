@@ -390,12 +390,20 @@ func (source RemoteSource) download(
 			return
 		}
 		// if there is an error, remove extracted binary file
-		os.Remove(binaryPath)
-		os.Remove(checksumPath)
+		if removeErr := os.Remove(binaryPath); removeErr != nil {
+			// Log removal error
+			source.logger.DebugContext(context.Background(), "Failed to cleanup binary file", "error", removeErr)
+		}
+		if removeErr := os.Remove(checksumPath); removeErr != nil {
+			source.logger.WarnContext(ctx, "Failed to remove checksum file during cleanup", "err", removeErr)
+		}
 		// remove directory if it is empty
-		entries, err := os.ReadDir(filepath.Dir(binaryPath))
-		if err == nil && len(entries) == 0 {
-			os.Remove(filepath.Dir(binaryPath))
+		entries, readErr := os.ReadDir(filepath.Dir(binaryPath))
+		if readErr == nil && len(entries) == 0 {
+			if removeErr := os.Remove(filepath.Dir(binaryPath)); removeErr != nil {
+				// Log directory removal error
+				source.logger.DebugContext(context.Background(), "Failed to cleanup directory", "error", removeErr)
+			}
 		}
 	}()
 	// read remaining data from the response body to verify the checksum of the downloaded archive
@@ -479,24 +487,34 @@ func (source RemoteSource) extract(
 	}
 	binaryPath := filepath.Join(source.downloadDir, name.Namespace(), filepath.Base(found.Name))
 	checksumPath := strings.TrimSuffix(binaryPath, ".exe") + "_checksums.txt"
-	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o750); err != nil {
 		return "", "", fmt.Errorf("failed to create plugin directory: %w", err)
 	}
-	binaryFile, err := os.OpenFile(binaryPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
+	binaryFile, err := os.OpenFile(binaryPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // Path is constructed from plugin name/version by the resolver
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create plugin file: %w", err)
 	}
 	// cleanup the downloaded binary on error
 	defer func() {
-		binaryFile.Close()
+		closeErr := binaryFile.Close()
 		if err != nil {
 			// if there is an error, remove extracted binary file and checksum file
-			os.Remove(binaryPath)
-			// remove directory if it is empty
-			entries, err := os.ReadDir(filepath.Dir(binaryPath))
-			if err == nil && len(entries) == 0 {
-				os.Remove(filepath.Dir(binaryPath))
+			if removeErr := os.Remove(binaryPath); removeErr != nil {
+				// Log removal error
+				source.logger.DebugContext(context.Background(), "Failed to cleanup binary file", "error", removeErr)
 			}
+			// remove directory if it is empty
+			entries, readErr := os.ReadDir(filepath.Dir(binaryPath))
+			if readErr == nil && len(entries) == 0 {
+				if removeErr := os.Remove(filepath.Dir(binaryPath)); removeErr != nil {
+					// Log directory removal error
+					source.logger.DebugContext(context.Background(), "Failed to cleanup directory", "error", removeErr)
+				}
+			}
+		}
+		// If we have no other error but close failed, propagate that
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close binary file: %w", closeErr)
 		}
 	}()
 	// calculate checksum of the plugin binary while writing to the file
@@ -516,15 +534,22 @@ func (source RemoteSource) extract(
 		return "", "", fmt.Errorf("invalid plugin binary checksum: '%s'", sum)
 	}
 	// Create checksums file to be used for the following installs when plugin is installed from the local source.
-	checksumFile, err := os.Create(checksumPath)
+	checksumFile, err := os.Create(checksumPath) //nolint:gosec // Path is constructed from plugin name/version by the resolver
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create plugin meta file: %w", err)
 	}
 	// cleanup checksum file operation
 	defer func() {
-		checksumFile.Close()
+		closeErr := checksumFile.Close()
 		if err != nil { // if there is an error, remove checksum file
-			os.Remove(checksumPath)
+			if removeErr := os.Remove(checksumPath); removeErr != nil {
+				// Log removal error
+				source.logger.DebugContext(context.Background(), "Failed to cleanup checksum file", "error", removeErr)
+			}
+		}
+		// If we have no other error but close failed, propagate that
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close checksum file: %w", closeErr)
 		}
 	}()
 	if err := encodeChecksums(checksumFile, checksums); err != nil {

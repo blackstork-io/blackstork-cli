@@ -30,7 +30,8 @@ func init() {
 	rootCmd.AddCommand(renderCmd)
 	renderCmd.Flags().BoolVar(&publish, "publish", false, "publish the rendered document")
 	renderCmd.Flags().StringVar(&format, "format", "md", "default output format of the document (md, html or pdf)")
-	renderCmd.Flags().StringVar(&tags, "with-meta-tags", "", "comma separated list of meta tags. Only content blocks matching these tags will be rendered")
+	renderCmd.Flags().
+		StringVar(&tags, "with-meta-tags", "", "comma separated list of meta tags. Only content blocks matching these tags will be rendered")
 
 	renderCmd.SetUsageTemplate(UsageTemplate(
 		[2]string{"TARGET", "name of the document to be rendered as 'document.<name>'"},
@@ -58,8 +59,11 @@ var renderCmd = &cobra.Command{
 			),
 			func(tag string) bool { return tag == "" },
 		)
-		ctx := cmd.Context()
+
 		logger := slog.Default()
+
+		ctx := cmd.Context()
+		ctx = utils.WithLog(ctx, logger)
 
 		var diags diagnostics.Diag
 		eng := engine.New(

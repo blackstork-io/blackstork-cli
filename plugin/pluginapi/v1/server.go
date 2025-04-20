@@ -109,6 +109,41 @@ func (srv *grpcServer) ProvideContent(ctx context.Context, req *ProvideContentRe
 	}, nil
 }
 
+func (srv *grpcServer) FormatContent(ctx context.Context, req *FormatContentRequest) (*FormatContentResponse, error) {
+	slog.DebugContext(ctx, "Formatting")
+	defer func() {
+		if r := recover(); r != nil {
+			slog.ErrorContext(ctx, "Formatting failed", "panic", r)
+			panic(r)
+		} else {
+			slog.DebugContext(ctx, "Formatter done")
+		}
+	}()
+	formatterName := req.GetFormatter()
+	cfg, err := decodeBlock(req.GetConfig())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode config: %v", err)
+	}
+	args, err := decodeBlock(req.GetArgs())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
+	}
+	datactx := decodeMapData(req.GetDataContext().GetValue())
+	content, diags := srv.schema.Format(ctx, formatterName, &plugin.FormatParams{
+		Config:       cfg,
+		Args:         args,
+		DataContext:  datactx,
+	})
+	return &FormatContentResponse{
+		Result: &FormattedContent{
+			Content: content.Content,
+			Format: content.Format,
+		},
+		Diagnostics: encodeDiagnosticList(diags),
+	}, nil
+}
+
+
 func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*PublishResponse, error) {
 	slog.DebugContext(ctx, "Publish")
 	defer func() {
@@ -133,7 +168,6 @@ func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*Publi
 		Config:       cfg,
 		Args:         args,
 		DataContext:  datactx,
-		Format:       req.GetFormat(),
 		DocumentName: req.GetDocumentName(),
 	})
 	return &PublishResponse{

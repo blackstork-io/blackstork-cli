@@ -22,6 +22,7 @@ const (
 	PluginService_GetSchema_FullMethodName      = "/pluginapi.v1.PluginService/GetSchema"
 	PluginService_RetrieveData_FullMethodName   = "/pluginapi.v1.PluginService/RetrieveData"
 	PluginService_ProvideContent_FullMethodName = "/pluginapi.v1.PluginService/ProvideContent"
+	PluginService_FormatContent_FullMethodName  = "/pluginapi.v1.PluginService/FormatContent"
 	PluginService_Publish_FullMethodName        = "/pluginapi.v1.PluginService/Publish"
 )
 
@@ -32,6 +33,7 @@ type PluginServiceClient interface {
 	GetSchema(ctx context.Context, in *GetSchemaRequest, opts ...grpc.CallOption) (*GetSchemaResponse, error)
 	RetrieveData(ctx context.Context, in *RetrieveDataRequest, opts ...grpc.CallOption) (*RetrieveDataResponse, error)
 	ProvideContent(ctx context.Context, in *ProvideContentRequest, opts ...grpc.CallOption) (*ProvideContentResponse, error)
+	FormatContent(ctx context.Context, in *FormatContentRequest, opts ...grpc.CallOption) (*FormatContentResponse, error)
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 }
 
@@ -73,6 +75,16 @@ func (c *pluginServiceClient) ProvideContent(ctx context.Context, in *ProvideCon
 	return out, nil
 }
 
+func (c *pluginServiceClient) FormatContent(ctx context.Context, in *FormatContentRequest, opts ...grpc.CallOption) (*FormatContentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FormatContentResponse)
+	err := c.cc.Invoke(ctx, PluginService_FormatContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pluginServiceClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PublishResponse)
@@ -90,6 +102,7 @@ type PluginServiceServer interface {
 	GetSchema(context.Context, *GetSchemaRequest) (*GetSchemaResponse, error)
 	RetrieveData(context.Context, *RetrieveDataRequest) (*RetrieveDataResponse, error)
 	ProvideContent(context.Context, *ProvideContentRequest) (*ProvideContentResponse, error)
+	FormatContent(context.Context, *FormatContentRequest) (*FormatContentResponse, error)
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	mustEmbedUnimplementedPluginServiceServer()
 }
@@ -109,6 +122,9 @@ func (UnimplementedPluginServiceServer) RetrieveData(context.Context, *RetrieveD
 }
 func (UnimplementedPluginServiceServer) ProvideContent(context.Context, *ProvideContentRequest) (*ProvideContentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProvideContent not implemented")
+}
+func (UnimplementedPluginServiceServer) FormatContent(context.Context, *FormatContentRequest) (*FormatContentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FormatContent not implemented")
 }
 func (UnimplementedPluginServiceServer) Publish(context.Context, *PublishRequest) (*PublishResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
@@ -188,6 +204,24 @@ func _PluginService_ProvideContent_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PluginService_FormatContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FormatContentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginServiceServer).FormatContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginService_FormatContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginServiceServer).FormatContent(ctx, req.(*FormatContentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PluginService_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PublishRequest)
 	if err := dec(in); err != nil {
@@ -224,6 +258,10 @@ var PluginService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProvideContent",
 			Handler:    _PluginService_ProvideContent_Handler,
+		},
+		{
+			MethodName: "FormatContent",
+			Handler:    _PluginService_FormatContent_Handler,
 		},
 		{
 			MethodName: "Publish",

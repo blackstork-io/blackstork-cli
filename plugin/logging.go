@@ -18,6 +18,7 @@ func WithLogging(plugin *Schema, logger *slog.Logger) *Schema {
 	logger = logger.With("component", "plugin")
 	plugin.ContentProviders = makeContentProvidersLogging(plugin.Name, plugin.ContentProviders, logger)
 	plugin.DataSources = makeDataSourcesLogging(plugin.Name, plugin.DataSources, logger)
+	plugin.Formatters = makeFormattersLogging(plugin.Name, plugin.Formatters, logger)
 	plugin.Publishers = makePublishersLogging(plugin.Name, plugin.Publishers, logger)
 	return plugin
 }
@@ -55,10 +56,35 @@ func makePublisherLogging(plugin, name string, publisher Publisher, logger *slog
 		logger.DebugContext(ctx, "Executing publisher", "params", slog.GroupValue(
 			slog.String("plugin", plugin),
 			slog.String("publisher", name),
-			slog.Any("format", params.Format),
+			slog.Any("formats", publisher.Formats),
 			slog.Any("config", logDataBlockValue(params.Config)),
 			slog.Any("args", logDataBlockValue(params.Args)),
 			slog.String("document_name", params.DocumentName),
+		))
+		return next(ctx, params)
+	}
+}
+
+func makeFormattersLogging(plugin string, formatters Formatters, logger *slog.Logger) Formatters {
+	result := make(Formatters)
+	for name, formatter := range formatters {
+		formatter.FormatFunc = makeFormatterLogging(plugin, name, *formatter, logger)
+		result[name] = formatter
+	}
+	return result
+}
+
+
+func makeFormatterLogging(plugin, name string, formatter Formatter, logger *slog.Logger) FormatFunc {
+	next := formatter.FormatFunc
+	return func(ctx context.Context, params *FormatParams) (*FormattedContent, diagnostics.Diag) {
+		logger.DebugContext(ctx, "Executing formatter", "params", slog.GroupValue(
+			slog.String("plugin", plugin),
+			slog.String("formatter", name),
+			slog.Any("format", formatter.Format),
+			slog.Any("file_ext", formatter.FileExt),
+			slog.Any("config", logDataBlockValue(params.Config)),
+			slog.Any("args", logDataBlockValue(params.Args)),
 		))
 		return next(ctx, params)
 	}

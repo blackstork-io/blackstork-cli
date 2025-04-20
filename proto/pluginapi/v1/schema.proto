@@ -11,6 +11,7 @@ message Schema {
     map<string, DataSourceSchema>       data_sources      = 3;
     map<string, ContentProviderSchema>  content_providers = 4;
     map<string, PublisherSchema>        publishers        = 7;
+    map<string, FormatterSchema>        formatters        = 8;
     string                              doc               = 5;
     repeated string                     tags              = 6;
 }
@@ -36,11 +37,19 @@ message ContentProviderSchema {
     repeated string tags             = 7;
 }
 
-
 message PublisherSchema {
-    BlockSpec             args            = 1;
-    BlockSpec             config          = 2;
-    string                doc             = 3;
-    repeated string       tags            = 4;
+    BlockSpec             args    = 1;
+    BlockSpec             config  = 2;
+    string                doc     = 3;
+    repeated string       tags    = 4;
     repeated string       formats = 5;
+}
+
+message FormatterSchema {
+    BlockSpec             args     = 1;
+    BlockSpec             config   = 2;
+    string                doc      = 3;
+    string                format   = 4;
+    string                file_ext = 5;
+    repeated string       tags     = 6;
 }

@@ -143,7 +143,7 @@ func (p *grpcPlugin) clientDataFunc(name string, client PluginServiceClient) plu
 }
 
 func (p *grpcPlugin) clientFormatFunc(name string, client PluginServiceClient) plugin.FormatFunc {
-	return func(ctx context.Context, params *plugin.PublishParams) (diags diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.FormatParams) (_ *plugin.FormattedContent, diags diagnostics.Diag) {
 		p.logger.DebugContext(ctx, "Calling a formatter", "name", name)
 		defer func(start time.Time) {
 			p.logger.DebugContext(ctx, "Called a formatter", "name", name, "took", time.Since(start))
@@ -158,24 +158,32 @@ func (p *grpcPlugin) clientFormatFunc(name string, client PluginServiceClient) p
 		diags.Extend(diag)
 		datactx := encodeMapData(params.DataContext)
 		format := params.Format
-		res, err := client.Publish(ctx, &FormatRequest{
-			Publisher:    name,
+		res, err := client.FormatContent(ctx, &FormatContentRequest{
+			Formatter:    name,
 			Config:       cfgEncoded,
 			Args:         argsEncoded,
 			DataContext:  datactx,
 			Format:       format,
-			DocumentName: params.DocumentName,
 		}, p.callOptions()...)
 
 		if diags.AppendErr(err, "Failed to publish") {
-			return diagnostics.Diag{{
+			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,
 				Summary:  "Failed to publish",
 				Detail:   err.Error(),
 			}}
 		}
 		diags.Extend(decodeDiagnosticList(res.GetDiagnostics()))
-		return
+
+		var result plugin.FormattedContent
+		if res.Result != nil {
+			result = plugin.FormattedContent{
+				Content: res.Result.Content,
+				Format: res.Result.Format,
+			}
+		}
+
+		return &result, diags
 	}
 }
 
@@ -198,18 +206,18 @@ func (p *grpcPlugin) clientPublishFunc(name string, client PluginServiceClient) 
 		var content *FormattedContent
 		if params.FormattedContent != nil {
 			content = &FormattedContent{
-				Format: params.FormattedContent.Format,
+				Format:  params.FormattedContent.Format,
 				Content: params.FormattedContent.Content,
 			}
 		}
 
 		res, err := client.Publish(ctx, &PublishRequest{
-			Publisher:    name,
-			Config:       cfgEncoded,
-			Args:         argsEncoded,
-			DataContext:  datactx,
+			Publisher:        name,
+			Config:           cfgEncoded,
+			Args:             argsEncoded,
+			DataContext:      datactx,
 			FormattedContent: content,
-			DocumentName: params.DocumentName,
+			DocumentName:     params.DocumentName,
 		}, p.callOptions()...)
 
 		if diags.AppendErr(err, "Failed to publish") {

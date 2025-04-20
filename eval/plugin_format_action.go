@@ -22,12 +22,11 @@ func (block *PluginFormatAction) Execute(
 	ctx context.Context,
 	dataCtx plugindata.Map,
 	documentName string,
-) ([]byte, diagnostics.Diag) {
+) (*plugin.FormattedContent, diagnostics.Diag) {
 	return block.Formatter.Execute(ctx, &plugin.FormatParams{
 		Config:       block.Config,
 		Args:         block.Args,
 		DataContext:  dataCtx,
-		DocumentName: documentName,
 	})
 }
 
@@ -101,7 +100,6 @@ func CreatePluginFormatActionMD(
 	ctx context.Context,
 	formatters Formatters,
 ) (_ *PluginFormatAction, diags diagnostics.Diag) {
-
 	pluginName := "md"
 
 	p, ok := formatters.Formatter(pluginName)

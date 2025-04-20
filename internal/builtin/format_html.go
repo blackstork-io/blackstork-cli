@@ -36,23 +36,23 @@ func makeHTMLFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatt
 					Type: cty.String,
 				},
 				{
-					Name: "template_per_type",
-					Doc:  "HTML templates for specific block types (content and section)",
-					Type: plugindata.Encapsulated.CtyType(),
+					Name:        "template_per_type",
+					Doc:         "HTML templates for specific block types (content and section)",
+					Type:        plugindata.Encapsulated.CtyType(),
 					Constraints: constraint.RequiredMeaningful,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
-						"content.text": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
+						"content.text":  cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
 						"content.image": cty.StringVal(`<img src="{{ .self.src }}" alt="{{ .self.alt }}" class="img-w-10" />`),
 					}),
 				},
 				{
-					Name: "template_per_block",
-					Doc:  "HTML templates for specific content and section blocks",
-					Type: plugindata.Encapsulated.CtyType(),
+					Name:        "template_per_block",
+					Doc:         "HTML templates for specific content and section blocks",
+					Type:        plugindata.Encapsulated.CtyType(),
 					Constraints: constraint.RequiredMeaningful,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
 						"content.text.foo": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
-						"section.bar": cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
+						"section.bar":      cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
 					}),
 				},
 			},
@@ -61,8 +61,8 @@ func makeHTMLFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatt
 	}
 }
 
-func makeHTMLFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
-	return func(ctx context.Context, params *plugin.FormatParams) ([]byte, diagnostics.Diag) {
+func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
+	return func(ctx context.Context, params *plugin.FormatParams) (*plugin.FormattedContent, diagnostics.Diag) {
 		document, _ := parseScope(params.DataContext)
 		if document == nil {
 			return nil, diagnostics.Diag{{
@@ -71,11 +71,23 @@ func makeHTMLFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.Form
 				Detail:   "document is not found",
 			}}
 		}
-		//datactx := params.DataContext
-		//datactx["format"] = plugindata.String(params.Format)
+		// datactx := params.DataContext
+		// datactx["format"] = plugindata.String(params.Format)
 
-		logger.InfoContext(ctx, "HTML FORMATTER CALLED", "params", params)
-		return []byte("HELLO FORMATTED HTML"), nil
+		for _, child := range document.Children {
+			childData := child.AsData().(plugindata.Map)
+			log.InfoContext(
+				ctx, "CHILD",
+				"data", childData,
+			)
+		}
+
+
+		log.InfoContext(ctx, "HTML FORMATTER CALLED", "params", params, "document", document)
+		return &plugin.FormattedContent{
+			Content: []byte("HELLO FORMATTED HTML"),
+			Format: params.Format,
+		}, nil
 
 		// var printer print.Printer
 		// switch params.Format {

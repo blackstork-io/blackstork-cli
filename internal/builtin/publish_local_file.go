@@ -14,7 +14,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
 
@@ -23,8 +22,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/print"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 func makeLocalFilePublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publisher {
@@ -63,12 +60,24 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 				Detail:   "document is required",
 			}}
 		}
+
+		if params.FormattedContent == nil {
+			return diagnostics.Diag{{
+				Severity: hcl.DiagError,
+				Summary:  "No formatted content received",
+				Detail:   "formatted content is required",
+			}}
+		}
+
 		datactx := params.DataContext
-		datactx["format"] = plugindata.String(params.Format)
+		// datactx["formatted_content"] = plugindata.String(params.FormattedContent.Content)
 
-		log.InfoContext(ctx, "PUBLISHING A LOCAL FILE", "format", params.Format)
+		content := params.FormattedContent.Content
+		format := params.FormattedContent.Format
 
-		var printer print.Printer = mdprint.New()
+		log.InfoContext(ctx, "PUBLISHING A LOCAL FILE", "format", format)
+
+		// var printer print.Printer = mdprint.New()
 		// switch params.Format {
 		// case plugin.OutputFormatMD:
 		// 	printer = mdprint.New()
@@ -83,8 +92,9 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 		// 		Detail:   "Only md, html and pdf formats are supported",
 		// 	}}
 		// }
-		printer = print.WithLogging(printer, log, slog.String("format", params.Format))
-		printer = print.WithTracing(printer, tracer, attribute.String("format", params.Format))
+		// printer = print.WithLogging(printer, log, slog.String("format", format))
+		// printer = print.WithTracing(printer, tracer, attribute.String("format", format))
+
 		pathAttr := params.Args.GetAttrVal("path")
 		if pathAttr.IsNull() || pathAttr.AsString() == "" {
 			return diagnostics.Diag{{
@@ -107,7 +117,7 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 		if err != nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,
-				Summary:  "Failed to create a directory",
+				Summary:  "Failed to create a directory for the output file",
 				Detail:   err.Error(),
 			}}
 		}
@@ -120,7 +130,9 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 			}}
 		}
 		defer fs.Close()
-		err = printer.Print(ctx, fs, document)
+
+		bytesCount, err := fs.Write(content)
+		// err = printer.Print(ctx, fs, document)
 		if err != nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,
@@ -128,6 +140,11 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 				Detail:   err.Error(),
 			}}
 		}
+		log.DebugContext(
+			ctx, "Content written to a file",
+			"bytes_count", bytesCount,
+			"path", path,
+		)
 		return nil
 	}
 }

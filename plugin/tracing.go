@@ -15,7 +15,9 @@ import (
 func WithTracing(plugin *Schema, tracer trace.Tracer) *Schema {
 	plugin.ContentProviders = makeContentProvidersTracing(plugin.Name, plugin.ContentProviders, tracer)
 	plugin.DataSources = makeDataSourcesTracing(plugin.Name, plugin.DataSources, tracer)
+	plugin.Formatters = makeFormattersTracing(plugin.Name, plugin.Formatters, tracer)
 	plugin.Publishers = makePublishersTracing(plugin.Name, plugin.Publishers, tracer)
+
 	return plugin
 }
 
@@ -61,6 +63,33 @@ func makeDataSourceTracing(plugin, name string, source *DataSource, tracer trace
 		ctx, span := tracer.Start(ctx, "DataSource.Execute", trace.WithAttributes(
 			attribute.String("plugin", plugin),
 			attribute.String("datasource", name),
+		))
+		defer func() {
+			if diags.HasErrors() {
+				span.RecordError(diags)
+				span.SetStatus(codes.Error, diags.Error())
+			}
+			span.End()
+		}()
+		return next(ctx, params)
+	}
+}
+
+func makeFormattersTracing(plugin string, formatters Formatters, tracer trace.Tracer) Formatters {
+	result := make(Formatters)
+	for name, formatter := range formatters {
+		formatter.FormatFunc = makeFormatterTracing(plugin, name, formatter, tracer)
+		result[name] = formatter
+	}
+	return result
+}
+
+func makeFormatterTracing(plugin, name string, formatter *Formatter, tracer trace.Tracer) FormatFunc {
+	next := formatter.FormatFunc
+	return func(ctx context.Context, params *FormatParams) (_ *FormattedContent, diags diagnostics.Diag) {
+		ctx, span := tracer.Start(ctx, "Formatter.Execute", trace.WithAttributes(
+			attribute.String("plugin", plugin),
+			attribute.String("formatter", name),
 		))
 		defer func() {
 			if diags.HasErrors() {

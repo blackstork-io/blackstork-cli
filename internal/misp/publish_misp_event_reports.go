@@ -10,8 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"go.opentelemetry.io/otel/attribute"
-	nooptrace "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/blackstork-io/fabric/internal/misp/client"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
@@ -19,8 +17,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/print"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 func makeMispEventReportsPublisher(loader ClientLoaderFn) *plugin.Publisher {
@@ -81,8 +77,8 @@ func parseContent(data plugindata.Map) (document *plugin.ContentSection) {
 }
 
 func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
-	logger := slog.Default()
-	tracer := nooptrace.Tracer{}
+	// logger := slog.Default()
+	// tracer := nooptrace.Tracer{}
 	return func(ctx context.Context, params *plugin.PublishParams) diagnostics.Diag {
 		document := parseContent(params.DataContext)
 		if document == nil {
@@ -93,40 +89,39 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 			}}
 		}
 
-		if params.Format == nil {
+		if params.FormattedContent == nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,
-				Summary:  "No format specified",
-				Detail:   "format must be specified for MISP publisher",
+				Summary:  "No content provided",
+				Detail:   "content must be provided for MISP publisher",
 			}}
 		}
-		format := *params.Format
 
-		datactx := params.DataContext
-		datactx["format"] = plugindata.String(format)
-		var printer print.Printer
-		switch format {
-		case "md":
-			printer = mdprint.New()
-		default:
-			return diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported format",
-				Detail:   "Only md format is supported",
-			}}
-		}
-		printer = print.WithLogging(printer, logger, slog.String("format", format))
-		printer = print.WithTracing(printer, tracer, attribute.String("format", format))
-
+		//datactx := params.DataContext
+		//datactx["format"] = plugindata.String(format)
+		// var printer print.Printer
+		// switch format {
+		// case "md":
+		// 	printer = mdprint.New()
+		// default:
+		// 	return diagnostics.Diag{{
+		// 		Severity: hcl.DiagError,
+		// 		Summary:  "Unsupported format",
+		// 		Detail:   "Only md format is supported",
+		// 	}}
+		// }
+		// printer = print.WithLogging(printer, logger, slog.String("format", format))
+		// printer = print.WithTracing(printer, tracer, attribute.String("format", format))
+		//
 		buff := bytes.NewBuffer(nil)
-		err := printer.Print(ctx, buff, document)
-		if err != nil {
-			return diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to render the report",
-				Detail:   err.Error(),
-			}}
-		}
+		// err := printer.Print(ctx, buff, document)
+		// if err != nil {
+		// 	return diagnostics.Diag{{
+		// 		Severity: hcl.DiagError,
+		// 		Summary:  "Failed to render the report",
+		// 		Detail:   err.Error(),
+		// 	}}
+		// }
 
 		cli := loader(params.Config)
 
@@ -161,7 +156,18 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 			}}
 		}
 
-		slog.InfoContext(ctx, "Successfully added report", "id", resp.EventReport.Id, "uuid", resp.EventReport.Uuid, "event_id", resp.EventReport.EventId, "name", resp.EventReport.Name)
+		slog.InfoContext(
+			ctx,
+			"Successfully added report",
+			"id",
+			resp.EventReport.Id,
+			"uuid",
+			resp.EventReport.Uuid,
+			"event_id",
+			resp.EventReport.EventId,
+			"name",
+			resp.EventReport.Name,
+		)
 		return nil
 	}
 }

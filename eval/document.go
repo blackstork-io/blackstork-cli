@@ -3,13 +3,13 @@ package eval
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
@@ -26,12 +26,14 @@ type Document struct {
 }
 
 func (doc *Document) FetchData(ctx context.Context) (plugindata.Data, diagnostics.Diag) {
-	evaluator := makeAsyncDataEvaluator(ctx, doc, slog.Default())
+	log := utils.Log(ctx)
+	evaluator := makeAsyncDataEvaluator(ctx, doc, log)
 	return evaluator.Execute()
 }
 
 func (doc *Document) FetchDataWithPath(ctx context.Context, path []string) (plugindata.Data, diagnostics.Diag) {
-	evaluator := makeAsyncDataEvaluatorWithPath(ctx, doc, path, slog.Default())
+	log := utils.Log(ctx)
+	evaluator := makeAsyncDataEvaluatorWithPath(ctx, doc, path, log)
 	return evaluator.Execute()
 }
 
@@ -56,7 +58,7 @@ func (doc *Document) RenderContent(
 	docDataCtx plugindata.Map,
 	requiredTags []string,
 ) (*plugin.ContentSection, plugindata.Data, diagnostics.Diag) {
-	log := slog.Default()
+	log := utils.Log(ctx)
 	log.InfoContext(ctx, "Rendering document content", "document", doc.Source.Name)
 	data, diags := doc.FetchData(ctx)
 	if diags.HasErrors() {
@@ -114,7 +116,7 @@ func (doc *Document) Publish(
 	data plugindata.Data,
 	documentName string,
 ) diagnostics.Diag {
-	log := *slog.Default()
+	log := utils.Log(ctx)
 	log.DebugContext(ctx, "Publishing a document")
 
 	docData := plugindata.Map{
@@ -128,9 +130,12 @@ func (doc *Document) Publish(
 		definitions.BlockKindDocument: docData,
 	}
 
+	// Collecting all required formats from publish blocks
+
 	var formatDiags diagnostics.Diag
 
 	requiredFormats := map[string]*PluginFormatAction{}
+
 	for _, block := range doc.PublishBlocks {
 
 		if block.Format == nil {
@@ -168,19 +173,22 @@ func (doc *Document) Publish(
 		return formatDiags
 	}
 
+	// Calling publish blocks while passing in a requested formatter
+
 	var diags diagnostics.Diag
 	for _, block := range doc.PublishBlocks {
-
-		log.DebugContext(
-			ctx, "Executing a publish block",
-			"publisher", block.PluginName,
-			"block_name", block.BlockName,
-		)
 
 		var formatter *PluginFormatAction
 		if block.Format != nil {
 			formatter = requiredFormats[*block.Format]
 		}
+
+		log.DebugContext(
+			ctx, "Executing a publish block",
+			"publisher", block.PluginName,
+			"block_name", block.BlockName,
+			"formatter", formatter,
+		)
 
 		diag := block.Publish(ctx, dataCtx, documentName, formatter)
 		if diag != nil {

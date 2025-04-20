@@ -10,13 +10,13 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-type FormatFunc func(ctx context.Context, params *FormatParams) ([]byte, diagnostics.Diag)
+type FormatFunc func(ctx context.Context, params *FormatParams) (*FormattedContent, diagnostics.Diag)
 
 type FormatParams struct {
-	DocumentName string
-	Config       *dataspec.Block
-	Args         *dataspec.Block
-	DataContext  plugindata.Map
+	Config      *dataspec.Block
+	Args        *dataspec.Block
+	DataContext plugindata.Map
+	Format      string
 }
 
 type Formatter struct {
@@ -55,7 +55,7 @@ func (formatter *Formatter) Validate() diagnostics.Diag {
 func (formatter *Formatter) Execute(
 	ctx context.Context,
 	params *FormatParams,
-) (content []byte, diags diagnostics.Diag) {
+) (result *FormattedContent, diags diagnostics.Diag) {
 	if formatter == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -69,7 +69,11 @@ func (formatter *Formatter) Execute(
 			Detail:   "Format function not loaded",
 		}}
 	}
-	return formatter.FormatFunc(ctx, params)
+	result, diags = formatter.FormatFunc(ctx, params)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return result, nil
 }
 
 type Formatters map[string]*Formatter

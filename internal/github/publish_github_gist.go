@@ -1,24 +1,18 @@
 package github
 
 import (
-	"bytes"
 	"context"
 	"log/slog"
 
 	gh "github.com/google/go-github/v58/github"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"go.opentelemetry.io/otel/attribute"
-	nooptrace "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/print"
-	"github.com/blackstork-io/fabric/print/htmlprint"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 func makeGithubGistPublisher(loader ClientLoaderFn) *plugin.Publisher {
@@ -100,33 +94,33 @@ func publishGithubGist(loader ClientLoaderFn) plugin.PublishFunc {
 			}}
 		}
 
-//		datactx := params.DataContext
-// 		datactx["format"] = plugindata.String(format)
-// 		var printer print.Printer
-// 		switch format {
-// 		case "md":
-// 			printer = mdprint.New()
-// 		case "html":
-// 			printer = htmlprint.New()
-// 		default:
-// 			return diagnostics.Diag{{
-// 				Severity: hcl.DiagError,
-// 				Summary:  "Unsupported format",
-// 				Detail:   "Only md and html formats are supported",
-// 			}}
-// 		}
-// 		printer = print.WithLogging(printer, log, slog.String("format", format))
-// 		printer = print.WithTracing(printer, tracer, attribute.String("format", format))
+		//		datactx := params.DataContext
+		// 		datactx["format"] = plugindata.String(format)
+		// 		var printer print.Printer
+		// 		switch format {
+		// 		case "md":
+		// 			printer = mdprint.New()
+		// 		case "html":
+		// 			printer = htmlprint.New()
+		// 		default:
+		// 			return diagnostics.Diag{{
+		// 				Severity: hcl.DiagError,
+		// 				Summary:  "Unsupported format",
+		// 				Detail:   "Only md and html formats are supported",
+		// 			}}
+		// 		}
+		// 		printer = print.WithLogging(printer, log, slog.String("format", format))
+		// 		printer = print.WithTracing(printer, tracer, attribute.String("format", format))
 
-// 		buff := bytes.NewBuffer(nil)
-// 		err := printer.Print(ctx, buff, document)
-// 		if err != nil {
-// 			return diagnostics.Diag{{
-// 				Severity: hcl.DiagError,
-// 				Summary:  "Failed to write to a file",
-// 				Detail:   err.Error(),
-// 			}}
-// 		}
+		// 		buff := bytes.NewBuffer(nil)
+		// 		err := printer.Print(ctx, buff, document)
+		// 		if err != nil {
+		// 			return diagnostics.Diag{{
+		// 				Severity: hcl.DiagError,
+		// 				Summary:  "Failed to write to a file",
+		// 				Detail:   err.Error(),
+		// 			}}
+		// 		}
 
 		fileExt := params.FormattedContent.Format
 		fileName := params.DocumentName + "." + fileExt

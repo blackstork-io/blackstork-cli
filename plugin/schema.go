@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -96,7 +95,7 @@ func (p *Schema) ProvideContent(
 	if p.ContentProviders == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "No content providers",
+			Summary:  "No content providers found",
 			Detail:   "No content providers defined in schema",
 		}}
 	}
@@ -121,6 +120,32 @@ func (p *Schema) ProvideContent(
 	return result, diags
 }
 
+func (p *Schema) Format(ctx context.Context, name string, params *FormatParams) (_ *FormattedContent, diags diagnostics.Diag) {
+	if p == nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "No schema",
+			Detail:   "No schema defined",
+		}}
+	}
+	if p.Formatters == nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "No formatters found",
+			Detail:   "No formatters defined in schema",
+		}}
+	}
+	formatter, ok := p.Formatters[name]
+	if !ok || formatter == nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Formatter not found",
+			Detail:   fmt.Sprintf("Formatter '%s' not found in schema", name),
+		}}
+	}
+	return formatter.Execute(ctx, params)
+}
+
 func (p *Schema) Publish(ctx context.Context, name string, params *PublishParams) (diags diagnostics.Diag) {
 	if p == nil {
 		return diagnostics.Diag{{
@@ -132,7 +157,7 @@ func (p *Schema) Publish(ctx context.Context, name string, params *PublishParams
 	if p.Publishers == nil {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "No publishers",
+			Summary:  "No publishers found",
 			Detail:   "No publishers defined in schema",
 		}}
 	}
@@ -142,13 +167,6 @@ func (p *Schema) Publish(ctx context.Context, name string, params *PublishParams
 			Severity: hcl.DiagError,
 			Summary:  "Publisher not found",
 			Detail:   fmt.Sprintf("Publisher '%s' not found in schema", name),
-		}}
-	}
-	if params.Format != nil && !slices.Contains(publisher.Formats, *params.Format) {
-		return diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid format",
-			Detail:   fmt.Sprintf("Publisher '%s' does not support format '%s'", name, *params.Format),
 		}}
 	}
 	return publisher.Execute(ctx, params)

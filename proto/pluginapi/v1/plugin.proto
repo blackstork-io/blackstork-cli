@@ -13,6 +13,7 @@ service PluginService {
     rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {}
     rpc RetrieveData(RetrieveDataRequest) returns (RetrieveDataResponse) {}
     rpc ProvideContent(ProvideContentRequest) returns (ProvideContentResponse) {}
+    rpc FormatContent(FormatContentRequest) returns (FormatContentResponse) {}
     rpc Publish(PublishRequest) returns (PublishResponse) {}
 }
 
@@ -48,9 +49,10 @@ message ProvideContentResponse {
 
 message FormatContentRequest {
     string   formatter    = 1;
-    Block    args         = 2;
-    Block    config       = 3;
-    MapData  data_context = 4;
+    string   format       = 2;
+    Block    args         = 3;
+    Block    config       = 4;
+    MapData  data_context = 5;
 }
 
 message FormatContentResponse {

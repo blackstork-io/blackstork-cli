@@ -29,10 +29,15 @@ func (block *PluginPublishAction) Publish(
 	documentName string,
 	formatter *PluginFormatAction,
 ) diagnostics.Diag {
-
-	var formattedContent []byte
+	log := utils.Log(ctx)
+	var formattedContent *plugin.FormattedContent
 	var diag diagnostics.Diag
 	if formatter != nil {
+		log.InfoContext(
+			ctx, "Formatting content for the publisher",
+			"publisher", block.PluginName,
+			"formatter", formatter.PluginName,
+		)
 		formattedContent, diag = formatter.Execute(ctx, dataCtx, documentName)
 		if diag.HasErrors() {
 			return diag
@@ -43,7 +48,6 @@ func (block *PluginPublishAction) Publish(
 		Config:           block.Config,
 		Args:             block.Args,
 		DataContext:      dataCtx,
-		Format:           block.Format,
 		DocumentName:     documentName,
 		FormattedContent: formattedContent,
 	})
@@ -82,7 +86,7 @@ func LoadPluginPublishAction(
 	}
 
 	var format *string
-	formatAttr, found := utils.Pop(node.Invocation.Body.Attributes, "format");
+	formatAttr, found := utils.Pop(node.Invocation.Body.Attributes, "format")
 
 	if found && len(p.Formats) > 0 {
 		val, diag := dataspec.DecodeAttr(fabctx.GetEvalContext(ctx), formatAttr, &dataspec.AttrSpec{

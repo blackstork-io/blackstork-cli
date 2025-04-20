@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Collection of tools
 function is_ci() {
     [ -n "$CI" ] && [ -n "$GITHUB_ACTIONS" ]
@@ -13,6 +14,7 @@ function install_tool() {
         # binary is already installed and has the correct version
         return
     fi
+
     if is_ci; then
         go install $path@v$version &
         return

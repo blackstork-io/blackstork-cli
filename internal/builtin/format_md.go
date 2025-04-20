@@ -36,23 +36,23 @@ func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.For
 					Type: cty.String,
 				},
 				{
-					Name: "template_per_type",
-					Doc:  "Markdown templates for specific block types (content and section)",
-					Type: plugindata.Encapsulated.CtyType(),
+					Name:        "template_per_type",
+					Doc:         "Markdown templates for specific block types (content and section)",
+					Type:        plugindata.Encapsulated.CtyType(),
 					Constraints: constraint.RequiredMeaningful,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
-						"content.text": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
+						"content.text":  cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
 						"content.image": cty.StringVal(`<img src="{{ .self.src }}" alt="{{ .self.alt }}" class="img-w-10" />`),
 					}),
 				},
 				{
-					Name: "template_per_block",
-					Doc:  "Markdown templates for specific content and section blocks",
-					Type: plugindata.Encapsulated.CtyType(),
+					Name:        "template_per_block",
+					Doc:         "Markdown templates for specific content and section blocks",
+					Type:        plugindata.Encapsulated.CtyType(),
 					Constraints: constraint.RequiredMeaningful,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
 						"content.text.foo": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
-						"section.bar": cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
+						"section.bar":      cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
 					}),
 				},
 			},
@@ -62,7 +62,7 @@ func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.For
 }
 
 func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
-	return func(ctx context.Context, params *plugin.FormatParams) ([]byte, diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.FormatParams) (*plugin.FormattedContent, diagnostics.Diag) {
 		document, _ := parseScope(params.DataContext)
 		if document == nil {
 			return nil, diagnostics.Diag{{
@@ -71,11 +71,14 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 				Detail:   "document is not found",
 			}}
 		}
-		//datactx := params.DataContext
-		//datactx["format"] = plugindata.String(params.Format)
+		// datactx := params.DataContext
+		// datactx["format"] = plugindata.String(params.Format)
 
 		logger.InfoContext(ctx, "Markdown FORMATTER CALLED", "params", params)
-		return []byte("HELLO FORMATTED MD"), nil
+		return &plugin.FormattedContent{
+			Content: []byte("HELLO FORMATTED MD"),
+			Format: params.Format,
+		}, nil
 
 		// var printer print.Printer
 		// switch params.Format {
@@ -140,4 +143,3 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 		// return nil
 	}
 }
-

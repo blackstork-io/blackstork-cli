@@ -23,6 +23,9 @@ type Document struct {
 	ContentBlocks []*Content
 	PublishBlocks []*PluginPublishAction
 	FormatBlocks  []*PluginFormatAction
+
+	DefaultPublish *PluginPublishAction
+	DefaultFormat *PluginFormatAction
 }
 
 func (doc *Document) FetchData(ctx context.Context) (plugindata.Data, diagnostics.Diag) {
@@ -110,14 +113,27 @@ func (doc *Document) RenderContent(
 	return result, docDataCtx, diags
 }
 
+
 func (doc *Document) Publish(
 	ctx context.Context,
 	content plugin.Content,
 	data plugindata.Data,
 	documentName string,
+	executePublishBlocks bool,
 ) diagnostics.Diag {
 	log := utils.Log(ctx)
 	log.DebugContext(ctx, "Publishing a document")
+
+	// If publishing is not requested, execute the default publisher / formatter
+	if !executePublishBlocks {
+		log.DebugContext(
+			ctx, "Executing the default publisher and formatter",
+			"publisher", doc.DefaultPublish.PluginName,
+			"formatter", doc.DefaultFormat.PluginName,
+		)
+		doc.PublishBlocks = []*PluginPublishAction{ doc.DefaultPublish }
+		doc.FormatBlocks = []*PluginFormatAction{ doc.DefaultFormat }
+	}
 
 	docData := plugindata.Map{
 		definitions.BlockKindContent: content.AsData(),
@@ -130,10 +146,19 @@ func (doc *Document) Publish(
 		definitions.BlockKindDocument: docData,
 	}
 
+	contentMap, ok := content.AsData().(plugindata.Map)
+	if !ok {
+		log.ErrorContext(ctx, "Content data is not a map")
+		return diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Error while converting content for publishing",
+			Detail: "Content data received is not a data map",
+		}}
+	}
+
 	// Collecting all required formats from publish blocks
 
 	var formatDiags diagnostics.Diag
-
 	requiredFormats := map[string]*PluginFormatAction{}
 
 	for _, block := range doc.PublishBlocks {
@@ -187,10 +212,10 @@ func (doc *Document) Publish(
 			ctx, "Executing a publish block",
 			"publisher", block.PluginName,
 			"block_name", block.BlockName,
-			"formatter", formatter,
+			"formatter", formatter.PluginName,
 		)
 
-		diag := block.Publish(ctx, dataCtx, documentName, formatter)
+		diag := block.Publish(ctx, dataCtx, contentMap, documentName, formatter)
 		if diag != nil {
 			diags.Extend(diag)
 		}
@@ -243,18 +268,6 @@ func LoadDocument(
 		doc.FormatBlocks = append(doc.FormatBlocks, decoded)
 	}
 
-	// register MD format block if it's not defined
-	mdIdx := slices.IndexFunc(doc.FormatBlocks, func(b *PluginFormatAction) bool {
-		return b.Formatter.Format == "md"
-	})
-	if mdIdx == -1 {
-		mdFormatAction, diag := CreatePluginFormatActionMD(ctx, plugins)
-		doc.FormatBlocks = append(doc.FormatBlocks, mdFormatAction)
-		if diags.Extend(diag) {
-			return nil, diags
-		}
-	}
-
 	for _, child := range node.Publish {
 		decoded, diag := LoadPluginPublishAction(ctx, plugins, child)
 		if diags.Extend(diag) {
@@ -262,5 +275,19 @@ func LoadDocument(
 		}
 		doc.PublishBlocks = append(doc.PublishBlocks, decoded)
 	}
+
+	// Default publisher / formatter instances
+	var diag diagnostics.Diag
+
+	doc.DefaultPublish, diag = LoadStdoutPluginPublishAction(ctx, plugins, "md")
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+
+	doc.DefaultFormat, diag = LoadMarkdownPluginFormatAction(ctx, plugins)
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+
 	return &doc, diags
 }

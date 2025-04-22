@@ -53,7 +53,7 @@ func makePublishersLogging(plugin string, publishers Publishers, logger *slog.Lo
 func makePublisherLogging(plugin, name string, publisher Publisher, logger *slog.Logger) PublishFunc {
 	next := publisher.PublishFunc
 	return func(ctx context.Context, params *PublishParams) diagnostics.Diag {
-		logger.DebugContext(ctx, "Executing publisher", "params", slog.GroupValue(
+		logger.DebugContext(ctx, "Executing a publisher", "params", slog.GroupValue(
 			slog.String("plugin", plugin),
 			slog.String("publisher", name),
 			slog.Any("formats", publisher.Formats),
@@ -78,7 +78,7 @@ func makeFormattersLogging(plugin string, formatters Formatters, logger *slog.Lo
 func makeFormatterLogging(plugin, name string, formatter Formatter, logger *slog.Logger) FormatFunc {
 	next := formatter.FormatFunc
 	return func(ctx context.Context, params *FormatParams) (*FormattedContent, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing formatter", "params", slog.GroupValue(
+		logger.DebugContext(ctx, "Executing a formatter", "params", slog.GroupValue(
 			slog.String("plugin", plugin),
 			slog.String("formatter", name),
 			slog.Any("format", formatter.Format),

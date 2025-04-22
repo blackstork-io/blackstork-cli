@@ -156,14 +156,17 @@ func (p *grpcPlugin) clientFormatFunc(name string, client PluginServiceClient) p
 		diags.Extend(diag)
 		cfgEncoded, diag := encodeBlock(params.Config)
 		diags.Extend(diag)
+
 		datactx := encodeMapData(params.DataContext)
-		format := params.Format
+		content := encodeMapData(params.Content)
+
 		res, err := client.FormatContent(ctx, &FormatContentRequest{
 			Formatter:    name,
 			Config:       cfgEncoded,
 			Args:         argsEncoded,
+			Content:      content,
 			DataContext:  datactx,
-			Format:       format,
+			Format:       params.Format,
 		}, p.callOptions()...)
 
 		if diags.AppendErr(err, "Failed to publish") {

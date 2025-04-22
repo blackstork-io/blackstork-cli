@@ -21,12 +21,14 @@ type PluginFormatAction struct {
 func (block *PluginFormatAction) Execute(
 	ctx context.Context,
 	dataCtx plugindata.Map,
+	content plugindata.Map,
 	documentName string,
 ) (*plugin.FormattedContent, diagnostics.Diag) {
 	return block.Formatter.Execute(ctx, &plugin.FormatParams{
-		Config:       block.Config,
-		Args:         block.Args,
-		DataContext:  dataCtx,
+		Config:      block.Config,
+		Args:        block.Args,
+		Content:     content,
+		DataContext: dataCtx,
 	})
 }
 
@@ -96,7 +98,7 @@ func LoadPluginFormatAction(
 	}, diags
 }
 
-func CreatePluginFormatActionMD(
+func LoadMarkdownPluginFormatAction(
 	ctx context.Context,
 	formatters Formatters,
 ) (_ *PluginFormatAction, diags diagnostics.Diag) {
@@ -114,10 +116,6 @@ func CreatePluginFormatActionMD(
 	return &PluginFormatAction{
 		PluginAction: &PluginAction{
 			PluginName: pluginName,
-			BlockName:  "",
-			Meta:       nil,
-			Config:     nil,
-			Args:       nil,
 		},
 		Formatter: p,
 	}, diags

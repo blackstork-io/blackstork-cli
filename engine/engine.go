@@ -518,6 +518,7 @@ func (e *Engine) PublishContent(
 	doc *eval.Document,
 	content *plugin.ContentSection,
 	dataCtx plugindata.Data,
+	executePublishBlocks bool,
 ) (diags diagnostics.Diag) {
 	// FIXME: should be calling formatting somewhere here
 
@@ -532,7 +533,7 @@ func (e *Engine) PublishContent(
 		span.End()
 	}()
 	e.logger.InfoContext(ctx, "Publishing the content", "target", target)
-	diag := doc.Publish(ctx, content, dataCtx, target)
+	diag := doc.Publish(ctx, content, dataCtx, target, executePublishBlocks)
 	diags.Extend(diag)
 	return
 }

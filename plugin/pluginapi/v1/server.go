@@ -77,7 +77,10 @@ func (srv *grpcServer) RetrieveData(ctx context.Context, req *RetrieveDataReques
 	}, nil
 }
 
-func (srv *grpcServer) ProvideContent(ctx context.Context, req *ProvideContentRequest) (*ProvideContentResponse, error) {
+func (srv *grpcServer) ProvideContent(
+	ctx context.Context,
+	req *ProvideContentRequest,
+) (*ProvideContentResponse, error) {
 	slog.DebugContext(ctx, "ProvideContent")
 	defer func() {
 		if r := recover(); r != nil {
@@ -129,20 +132,21 @@ func (srv *grpcServer) FormatContent(ctx context.Context, req *FormatContentRequ
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
 	}
 	datactx := decodeMapData(req.GetDataContext().GetValue())
+	contentTree := decodeMapData(req.GetContent().GetValue())
 	content, diags := srv.schema.Format(ctx, formatterName, &plugin.FormatParams{
-		Config:       cfg,
-		Args:         args,
-		DataContext:  datactx,
+		Config:      cfg,
+		Args:        args,
+		Content:     contentTree,
+		DataContext: datactx,
 	})
 	return &FormatContentResponse{
 		Result: &FormattedContent{
 			Content: content.Content,
-			Format: content.Format,
+			Format:  content.Format,
 		},
 		Diagnostics: encodeDiagnosticList(diags),
 	}, nil
 }
-
 
 func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*PublishResponse, error) {
 	slog.DebugContext(ctx, "Publish")
@@ -164,11 +168,13 @@ func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*Publi
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
 	}
 	datactx := decodeMapData(req.GetDataContext().GetValue())
+	content := decodeFormattedContent(req.GetFormattedContent())
 	diags := srv.schema.Publish(ctx, publisher, &plugin.PublishParams{
-		Config:       cfg,
-		Args:         args,
-		DataContext:  datactx,
-		DocumentName: req.GetDocumentName(),
+		Config:           cfg,
+		Args:             args,
+		DataContext:      datactx,
+		DocumentName:     req.GetDocumentName(),
+		FormattedContent: content,
 	})
 	return &PublishResponse{
 		Diagnostics: encodeDiagnosticList(diags),

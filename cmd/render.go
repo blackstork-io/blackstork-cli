@@ -3,21 +3,16 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/blackstork-io/fabric/engine"
 	"github.com/blackstork-io/fabric/internal/builtin"
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/print"
-	"github.com/blackstork-io/fabric/print/htmlprint"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 var (
@@ -92,36 +87,33 @@ var renderCmd = &cobra.Command{
 			return
 		}
 
-		if publish {
-			diag = eng.PublishContent(ctx, target, doc, content, dataCtx)
-			if diags.Extend(diag) {
-				return
-			}
-			// Do not print to stdout if publishing is requested
+		diag = eng.PublishContent(ctx, target, doc, content, dataCtx, publish)
+		if diags.Extend(diag) {
 			return
 		}
+		// Do not print to stdout if publishing is requested
 
-		logger.InfoContext(ctx, "Printing to stdout", "format", format)
-
-		var printer print.Printer
-		switch format {
-		case "md":
-			printer = mdprint.New()
-		case "html":
-			printer = htmlprint.New()
-		default:
-			diags.Add("Unsupported format", fmt.Sprintf("Format '%s' is not supported for stdout", format))
-			return
-		}
-		printer = print.WithLogging(printer, slog.Default(), slog.String("format", format))
-		printer = print.WithTracing(printer, tracer, attribute.String("format", format))
-		err = printer.Print(ctx, os.Stdout, content)
-		if err != nil {
-			diags.AppendErr(err, "Error while printing")
-		}
-
-		// Making sure the stdout printout has a linebreak at the end
-		fmt.Printf("\n")
+		// logger.InfoContext(ctx, "Printing to stdout", "format", format)
+		//
+		// var printer print.Printer
+		// switch format {
+		// case "md":
+		// 	printer = mdprint.New()
+		// case "html":
+		// 	printer = htmlprint.New()
+		// default:
+		// 	diags.Add("Unsupported format", fmt.Sprintf("Format '%s' is not supported for stdout", format))
+		// 	return
+		// }
+		// printer = print.WithLogging(printer, slog.Default(), slog.String("format", format))
+		// printer = print.WithTracing(printer, tracer, attribute.String("format", format))
+		// err = printer.Print(ctx, os.Stdout, content)
+		// if err != nil {
+		// 	diags.AppendErr(err, "Error while printing")
+		// }
+		//
+		// // Making sure the stdout printout has a linebreak at the end
+		// fmt.Printf("\n")
 
 		return nil
 	},

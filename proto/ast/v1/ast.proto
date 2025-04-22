@@ -43,8 +43,7 @@ message Node {
     AutoLink auto_link = 20;
     RawHTML raw_html = 21;
 
-    // Github Flavored Markdown
-    // blocks
+    // Github Flavored Markdown blocks
     Table table = 22;
     TableRow table_row = 23;
     TableCell table_cell = 24;

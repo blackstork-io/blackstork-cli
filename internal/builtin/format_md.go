@@ -2,9 +2,14 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strings"
 	"log/slog"
+	"encoding/json"
 
+	"gopkg.in/yaml.v3"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/trace"
@@ -36,24 +41,27 @@ func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.For
 					Type: cty.String,
 				},
 				{
-					Name:        "template_per_type",
-					Doc:         "Markdown templates for specific block types (content and section)",
+					Name:        "frontmatter",
 					Type:        plugindata.Encapsulated.CtyType(),
+					Doc:         `Arbitrary key-value map to be put in the frontmatter`,
 					Constraints: constraint.RequiredMeaningful,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
-						"content.text":  cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
-						"content.image": cty.StringVal(`<img src="{{ .self.src }}" alt="{{ .self.alt }}" class="img-w-10" />`),
+						"key": cty.StringVal("arbitrary value"),
+						"key2": cty.MapVal(map[string]cty.Value{
+							"nested_key": cty.NumberIntVal(42),
+						}),
 					}),
 				},
 				{
-					Name:        "template_per_block",
-					Doc:         "Markdown templates for specific content and section blocks",
-					Type:        plugindata.Encapsulated.CtyType(),
-					Constraints: constraint.RequiredMeaningful,
-					ExampleVal: cty.ObjectVal(map[string]cty.Value{
-						"content.text.foo": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
-						"section.bar":      cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
-					}),
+					Name:       "frontmatter_format",
+					Type:       cty.String,
+					Doc:        `Format of the frontmatter.`,
+					DefaultVal: cty.StringVal("yaml"),
+					OneOf: []cty.Value{
+						cty.StringVal("yaml"),
+						cty.StringVal("toml"),
+						cty.StringVal("json"),
+					},
 				},
 			},
 		},
@@ -62,7 +70,7 @@ func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.For
 }
 
 func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
-	return func(ctx context.Context, params *plugin.FormatParams) (*plugin.FormattedContent, diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.FormatParams) (_ *plugin.FormattedContent, diags diagnostics.Diag) {
 		document, _ := parseScope(params.DataContext)
 		if document == nil {
 			return nil, diagnostics.Diag{{
@@ -74,10 +82,43 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 		// datactx := params.DataContext
 		// datactx["format"] = plugindata.String(params.Format)
 
-		logger.InfoContext(ctx, "Markdown FORMATTER CALLED", "params", params)
+		frontmatterData, err := plugindata.Encapsulated.FromCty(params.Args.GetAttrVal("frontmatter"))
+
+		if err != nil {
+			return nil, diagnostics.Diag{{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to parse frontmatter content",
+				Detail:   err.Error(),
+			}}
+		}
+
+		var frontmatterString *string
+		var diag diagnostics.Diag
+
+		if frontmatterData != nil {
+			frontmatterMap, ok := (*frontmatterData).(plugindata.Map)
+			if !ok {
+				return nil, diagnostics.Diag{{
+					Severity: hcl.DiagError,
+					Summary:  "Failed to parse frontmatter content type",
+					Detail:   fmt.Sprintf("Received invalid frontmatter data type `%T` while map is required", frontmatterData),
+				}}
+			}
+			format := params.Args.GetAttrVal("frontmatter_format").AsString()
+
+			frontmatterString, diag = renderFrontmatter(format, frontmatterMap)
+			if diags.Extend(diag) {
+				return nil, diags
+			}
+		}
+
+		logger.InfoContext(ctx, "Markdown FORMATTER CALLED", "params", params, "frontmatter", frontmatterString)
+
+		content := fmt.Sprintf("MD CONTENT: %s\n", params.Content)
+
 		return &plugin.FormattedContent{
-			Content: []byte("HELLO FORMATTED MD"),
-			Format: params.Format,
+			Content: []byte(content),
+			Format:  params.Format,
 		}, nil
 
 		// var printer print.Printer
@@ -142,4 +183,66 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 		// }
 		// return nil
 	}
+}
+
+
+func renderFrontmatter(format string, data plugindata.Map) (*string, diagnostics.Diag) {
+	var result string
+	var err error
+	switch format {
+	case "yaml":
+		result, err = renderYAMLFrontMatter(data)
+	case "toml":
+		result, err = renderTOMLFrontMatter(data)
+	case "json":
+		result, err = renderJSONFrontMatter(data)
+	default:
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid frontmatter format",
+			Detail:   fmt.Sprintf("Received unsupported frontmatter format `%s`", format),
+		}}
+	}
+	if err != nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to render frontmatter",
+			Detail:   err.Error(),
+		}}
+	}
+	return &result, nil
+}
+
+
+func renderYAMLFrontMatter(m plugindata.Map) (string, error) {
+	var buf strings.Builder
+	buf.WriteString("---\n")
+	err := yaml.NewEncoder(&buf).Encode(m)
+	if err != nil {
+		return "", err
+	}
+	buf.WriteString("---")
+	return buf.String(), nil
+}
+
+func renderTOMLFrontMatter(m plugindata.Map) (string, error) {
+	var buf strings.Builder
+	buf.WriteString("+++\n")
+	err := toml.NewEncoder(&buf).Encode(m)
+	if err != nil {
+		return "", err
+	}
+	buf.WriteString("+++")
+	return buf.String(), nil
+}
+
+func renderJSONFrontMatter(m plugindata.Map) (string, error) {
+	var buf strings.Builder
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(m)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

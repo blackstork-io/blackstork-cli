@@ -14,6 +14,8 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/fabric/plugin/ast"
+	"github.com/blackstork-io/fabric/plugin/ast/nodes"
 )
 
 const (
@@ -65,7 +67,10 @@ func makeTitleContentProvider() *plugin.ContentProvider {
 	}
 }
 
-func genTitleContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genTitleContent(
+	ctx context.Context,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value")
 	if value.IsNull() {
 		return nil, diagnostics.Diag{{
@@ -90,7 +95,11 @@ func genTitleContent(ctx context.Context, params *plugin.ProvideContentParams) (
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to parse arguments",
-			Detail:   fmt.Sprintf("absolute_size must be between %d and %d", minAbsoluteTitleSize, maxAbsoluteTitleSize),
+			Detail: fmt.Sprintf(
+				"absolute_size must be between %d and %d",
+				minAbsoluteTitleSize,
+				maxAbsoluteTitleSize,
+			),
 		}}
 	}
 
@@ -106,6 +115,7 @@ func genTitleContent(ctx context.Context, params *plugin.ProvideContentParams) (
 	text = strings.ReplaceAll(text, "\n", " ")
 	text = strings.Repeat("#", int(titleSize)+1) + " " + text
 	return &plugin.ContentResult{
+		//NewContent: plugin.NewElement(ast.Header(titleSize, ast.Text(text))),
 		Content: plugin.NewElementFromMarkdown(text),
 	}, nil
 }

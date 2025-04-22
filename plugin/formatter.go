@@ -15,6 +15,7 @@ type FormatFunc func(ctx context.Context, params *FormatParams) (*FormattedConte
 type FormatParams struct {
 	Config      *dataspec.Block
 	Args        *dataspec.Block
+	Content     plugindata.Map
 	DataContext plugindata.Map
 	Format      string
 }

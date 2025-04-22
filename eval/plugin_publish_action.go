@@ -26,6 +26,7 @@ type PluginPublishAction struct {
 func (block *PluginPublishAction) Publish(
 	ctx context.Context,
 	dataCtx plugindata.Map,
+	content plugindata.Map,
 	documentName string,
 	formatter *PluginFormatAction,
 ) diagnostics.Diag {
@@ -38,7 +39,7 @@ func (block *PluginPublishAction) Publish(
 			"publisher", block.PluginName,
 			"formatter", formatter.PluginName,
 		)
-		formattedContent, diag = formatter.Execute(ctx, dataCtx, documentName)
+		formattedContent, diag = formatter.Execute(ctx, dataCtx, content, documentName)
 		if diag.HasErrors() {
 			return diag
 		}
@@ -144,3 +145,26 @@ func LoadPluginPublishAction(
 		Format:    format,
 	}, diags
 }
+
+
+func LoadStdoutPluginPublishAction(ctx context.Context, publishers Publishers, format string) (_ *PluginPublishAction, diags diagnostics.Diag) {
+	pluginName := "stdout"
+
+	publisher, ok := publishers.Publisher(pluginName)
+	if !ok {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Missing formatter",
+			Detail:   fmt.Sprintf("'%s' not found in any plugin", pluginName),
+		}}
+	}
+
+	return &PluginPublishAction{
+		PluginAction: &PluginAction{
+			PluginName: pluginName,
+		},
+		Publisher: publisher,
+		Format:    &format,
+	}, nil
+}
+

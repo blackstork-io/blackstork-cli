@@ -82,7 +82,6 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 			)
 		}
 
-
 		log.InfoContext(ctx, "HTML FORMATTER CALLED", "params", params, "document", document)
 		return &plugin.FormattedContent{
 			Content: []byte("HELLO FORMATTED HTML"),

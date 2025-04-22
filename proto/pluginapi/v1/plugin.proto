@@ -53,6 +53,7 @@ message FormatContentRequest {
     Block    args         = 3;
     Block    config       = 4;
     MapData  data_context = 5;
+    MapData  content      = 6;
 }
 
 message FormatContentResponse {

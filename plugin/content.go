@@ -47,7 +47,7 @@ type Location struct {
 type ContentResult struct {
 	Location *Location
 	Content  Content
-	// 	Content  *FabricContentNode // switch to this
+	// NewContent  *astv1.FabricContentNode
 }
 
 type Content interface {

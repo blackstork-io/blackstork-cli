@@ -348,6 +348,7 @@ type FormatContentRequest struct {
 	Args          *Block                 `protobuf:"bytes,3,opt,name=args,proto3" json:"args,omitempty"`
 	Config        *Block                 `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
 	DataContext   *MapData               `protobuf:"bytes,5,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
+	Content       *MapData               `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -413,6 +414,13 @@ func (x *FormatContentRequest) GetConfig() *Block {
 func (x *FormatContentRequest) GetDataContext() *MapData {
 	if x != nil {
 		return x.DataContext
+	}
+	return nil
+}
+
+func (x *FormatContentRequest) GetContent() *MapData {
+	if x != nil {
+		return x.Content
 	}
 	return nil
 }
@@ -621,13 +629,14 @@ const file_pluginapi_v1_plugin_proto_rawDesc = "" +
 	"content_id\x18\x05 \x01(\rR\tcontentId\"\x89\x01\n" +
 	"\x16ProvideContentResponse\x123\n" +
 	"\x06result\x18\x01 \x01(\v2\x1b.pluginapi.v1.ContentResultR\x06result\x12:\n" +
-	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\xdc\x01\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\x8d\x02\n" +
 	"\x14FormatContentRequest\x12\x1c\n" +
 	"\tformatter\x18\x01 \x01(\tR\tformatter\x12\x16\n" +
 	"\x06format\x18\x02 \x01(\tR\x06format\x12'\n" +
 	"\x04args\x18\x03 \x01(\v2\x13.pluginapi.v1.BlockR\x04args\x12+\n" +
 	"\x06config\x18\x04 \x01(\v2\x13.pluginapi.v1.BlockR\x06config\x128\n" +
-	"\fdata_context\x18\x05 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\"\x8b\x01\n" +
+	"\fdata_context\x18\x05 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\x12/\n" +
+	"\acontent\x18\x06 \x01(\v2\x15.pluginapi.v1.MapDataR\acontent\"\x8b\x01\n" +
 	"\x15FormatContentResponse\x126\n" +
 	"\x06result\x18\x01 \x01(\v2\x1e.pluginapi.v1.FormattedContentR\x06result\x12:\n" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\xcb\x02\n" +
@@ -695,28 +704,29 @@ var file_pluginapi_v1_plugin_proto_depIdxs = []int32{
 	11, // 10: pluginapi.v1.FormatContentRequest.args:type_name -> pluginapi.v1.Block
 	11, // 11: pluginapi.v1.FormatContentRequest.config:type_name -> pluginapi.v1.Block
 	14, // 12: pluginapi.v1.FormatContentRequest.data_context:type_name -> pluginapi.v1.MapData
-	16, // 13: pluginapi.v1.FormatContentResponse.result:type_name -> pluginapi.v1.FormattedContent
-	13, // 14: pluginapi.v1.FormatContentResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
-	11, // 15: pluginapi.v1.PublishRequest.args:type_name -> pluginapi.v1.Block
-	11, // 16: pluginapi.v1.PublishRequest.config:type_name -> pluginapi.v1.Block
-	14, // 17: pluginapi.v1.PublishRequest.data_context:type_name -> pluginapi.v1.MapData
-	16, // 18: pluginapi.v1.PublishRequest.formatted_content:type_name -> pluginapi.v1.FormattedContent
-	13, // 19: pluginapi.v1.PublishResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
-	0,  // 20: pluginapi.v1.PluginService.GetSchema:input_type -> pluginapi.v1.GetSchemaRequest
-	2,  // 21: pluginapi.v1.PluginService.RetrieveData:input_type -> pluginapi.v1.RetrieveDataRequest
-	4,  // 22: pluginapi.v1.PluginService.ProvideContent:input_type -> pluginapi.v1.ProvideContentRequest
-	6,  // 23: pluginapi.v1.PluginService.FormatContent:input_type -> pluginapi.v1.FormatContentRequest
-	8,  // 24: pluginapi.v1.PluginService.Publish:input_type -> pluginapi.v1.PublishRequest
-	1,  // 25: pluginapi.v1.PluginService.GetSchema:output_type -> pluginapi.v1.GetSchemaResponse
-	3,  // 26: pluginapi.v1.PluginService.RetrieveData:output_type -> pluginapi.v1.RetrieveDataResponse
-	5,  // 27: pluginapi.v1.PluginService.ProvideContent:output_type -> pluginapi.v1.ProvideContentResponse
-	7,  // 28: pluginapi.v1.PluginService.FormatContent:output_type -> pluginapi.v1.FormatContentResponse
-	9,  // 29: pluginapi.v1.PluginService.Publish:output_type -> pluginapi.v1.PublishResponse
-	25, // [25:30] is the sub-list for method output_type
-	20, // [20:25] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	14, // 13: pluginapi.v1.FormatContentRequest.content:type_name -> pluginapi.v1.MapData
+	16, // 14: pluginapi.v1.FormatContentResponse.result:type_name -> pluginapi.v1.FormattedContent
+	13, // 15: pluginapi.v1.FormatContentResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
+	11, // 16: pluginapi.v1.PublishRequest.args:type_name -> pluginapi.v1.Block
+	11, // 17: pluginapi.v1.PublishRequest.config:type_name -> pluginapi.v1.Block
+	14, // 18: pluginapi.v1.PublishRequest.data_context:type_name -> pluginapi.v1.MapData
+	16, // 19: pluginapi.v1.PublishRequest.formatted_content:type_name -> pluginapi.v1.FormattedContent
+	13, // 20: pluginapi.v1.PublishResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
+	0,  // 21: pluginapi.v1.PluginService.GetSchema:input_type -> pluginapi.v1.GetSchemaRequest
+	2,  // 22: pluginapi.v1.PluginService.RetrieveData:input_type -> pluginapi.v1.RetrieveDataRequest
+	4,  // 23: pluginapi.v1.PluginService.ProvideContent:input_type -> pluginapi.v1.ProvideContentRequest
+	6,  // 24: pluginapi.v1.PluginService.FormatContent:input_type -> pluginapi.v1.FormatContentRequest
+	8,  // 25: pluginapi.v1.PluginService.Publish:input_type -> pluginapi.v1.PublishRequest
+	1,  // 26: pluginapi.v1.PluginService.GetSchema:output_type -> pluginapi.v1.GetSchemaResponse
+	3,  // 27: pluginapi.v1.PluginService.RetrieveData:output_type -> pluginapi.v1.RetrieveDataResponse
+	5,  // 28: pluginapi.v1.PluginService.ProvideContent:output_type -> pluginapi.v1.ProvideContentResponse
+	7,  // 29: pluginapi.v1.PluginService.FormatContent:output_type -> pluginapi.v1.FormatContentResponse
+	9,  // 30: pluginapi.v1.PluginService.Publish:output_type -> pluginapi.v1.PublishResponse
+	26, // [26:31] is the sub-list for method output_type
+	21, // [21:26] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_pluginapi_v1_plugin_proto_init() }

@@ -59,3 +59,11 @@ func decodeLocationEffect(src LocationEffect) plugin.LocationEffect {
 		return plugin.LocationEffectUnspecified
 	}
 }
+
+
+func decodeFormattedContent(src *FormattedContent) *plugin.FormattedContent {
+	return &plugin.FormattedContent{
+		Content: src.Content,
+		Format: src.Format,
+	}
+}

@@ -32,10 +32,10 @@ func Plugin(version string, logger *slog.Logger, tracer trace.Tracer) *plugin.Sc
 			"image":       makeImageContentProvider(),
 			"list":        makeListContentProvider(),
 			"table":       makeTableContentProvider(),
-			"frontmatter": makeFrontMatterContentProvider(),
 			"sleep":       makeSleepContentProvider(logger),
 		},
 		Publishers: plugin.Publishers{
+			"stdout":     makeStdoutPublisher(logger, tracer),
 			"local_file": makeLocalFilePublisher(logger, tracer),
 			"hub":        makeHubPublisher(version, defaultHubClientLoader, logger, tracer),
 		},

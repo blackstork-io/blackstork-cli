@@ -2,18 +2,18 @@ package builtin
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"log/slog"
-	"encoding/json"
+	"strings"
 
-	"gopkg.in/yaml.v3"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/trace"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
+	"gopkg.in/yaml.v3"
 
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/plugin"
@@ -101,7 +101,10 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 				return nil, diagnostics.Diag{{
 					Severity: hcl.DiagError,
 					Summary:  "Failed to parse frontmatter content type",
-					Detail:   fmt.Sprintf("Received invalid frontmatter data type `%T` while map is required", frontmatterData),
+					Detail: fmt.Sprintf(
+						"Received invalid frontmatter data type `%T` while map is required",
+						frontmatterData,
+					),
 				}}
 			}
 			format := params.Args.GetAttrVal("frontmatter_format").AsString()
@@ -185,7 +188,6 @@ func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.
 	}
 }
 
-
 func renderFrontmatter(format string, data plugindata.Map) (*string, diagnostics.Diag) {
 	var result string
 	var err error
@@ -212,7 +214,6 @@ func renderFrontmatter(format string, data plugindata.Map) (*string, diagnostics
 	}
 	return &result, nil
 }
-
 
 func renderYAMLFrontMatter(m plugindata.Map) (string, error) {
 	var buf strings.Builder

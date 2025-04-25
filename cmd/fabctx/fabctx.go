@@ -11,11 +11,12 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-// FabCtx is a context that can be used to cancel the main context and trigger cleanup.
-// It is used to handle graceful shutdowns for the fabric CLI.
+// FabCtx is a context that can be used to cancel the main context.
+// It is used to handle graceful shutdowns for the CLI execution flow.
 type FabCtx struct {
 	mainCtx    context.Context
-	cleanupCtx context.Context
+
+	// Template evaluation context
 	evalCtx    *hcl.EvalContext
 }
 
@@ -66,14 +67,6 @@ func (ctx *FabCtx) Value(v any) any {
 	}
 }
 
-func (ctx *FabCtx) CleanupCtx() context.Context {
-	if ctx == nil {
-		slog.Warn("CleanupCtx was called on a nil ptr!")
-		return context.Background()
-	}
-	return ctx.cleanupCtx
-}
-
 type fabCtxOpts struct {
 	signals bool
 }
@@ -99,13 +92,11 @@ func New(options ...Option) *FabCtx {
 
 	if !opts.signals {
 		ctx.mainCtx = context.Background()
-		ctx.cleanupCtx = context.Background()
 		return &ctx
 	}
 
-	var mainCancel, cleanupCancel context.CancelCauseFunc
-	ctx.cleanupCtx, cleanupCancel = context.WithCancelCause(context.Background())
-	ctx.mainCtx, mainCancel = context.WithCancelCause(ctx.cleanupCtx)
+	var mainCancel context.CancelCauseFunc
+	ctx.mainCtx, mainCancel = context.WithCancelCause(context.Background())
 
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt)
@@ -117,12 +108,12 @@ func New(options ...Option) *FabCtx {
 			case 0:
 				slog.WarnContext(&ctx, "Received os.Interrupt")
 				mainCancel(fmt.Errorf("got termination request (gentle)"))
-			case 1:
-				slog.ErrorContext(&ctx, "Received second os.Interrupt")
-				cleanupCancel(fmt.Errorf("got termination request (forceful)"))
+// 			case 1:
+// 				slog.ErrorContext(&ctx, "Received second os.Interrupt")
+// 				cleanupCancel(fmt.Errorf("got termination request (forceful)"))
 			default:
-				slog.ErrorContext(&ctx, "Rough exit (3 interrupts received, probably deadlocked)")
-				panic("rough exit")
+				slog.ErrorContext(&ctx, "Rough exit with multiple interrupts received")
+				panic("Interruped")
 			}
 			caught++
 		}

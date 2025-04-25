@@ -7,7 +7,6 @@
 package pluginapiv1
 
 import (
-	v1 "github.com/blackstork-io/fabric/plugin/ast/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,118 +21,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type LocationEffect int32
-
-const (
-	LocationEffect_LOCATION_EFFECT_UNSPECIFIED LocationEffect = 0
-	LocationEffect_LOCATION_EFFECT_BEFORE      LocationEffect = 1
-	LocationEffect_LOCATION_EFFECT_AFTER       LocationEffect = 2
-)
-
-// Enum value maps for LocationEffect.
-var (
-	LocationEffect_name = map[int32]string{
-		0: "LOCATION_EFFECT_UNSPECIFIED",
-		1: "LOCATION_EFFECT_BEFORE",
-		2: "LOCATION_EFFECT_AFTER",
-	}
-	LocationEffect_value = map[string]int32{
-		"LOCATION_EFFECT_UNSPECIFIED": 0,
-		"LOCATION_EFFECT_BEFORE":      1,
-		"LOCATION_EFFECT_AFTER":       2,
-	}
-)
-
-func (x LocationEffect) Enum() *LocationEffect {
-	p := new(LocationEffect)
-	*p = x
-	return p
-}
-
-func (x LocationEffect) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocationEffect) Descriptor() protoreflect.EnumDescriptor {
-	return file_pluginapi_v1_content_proto_enumTypes[0].Descriptor()
-}
-
-func (LocationEffect) Type() protoreflect.EnumType {
-	return &file_pluginapi_v1_content_proto_enumTypes[0]
-}
-
-func (x LocationEffect) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocationEffect.Descriptor instead.
-func (LocationEffect) EnumDescriptor() ([]byte, []int) {
-	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{0}
-}
-
-type Location struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Effect        LocationEffect         `protobuf:"varint,2,opt,name=effect,proto3,enum=pluginapi.v1.LocationEffect" json:"effect,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Location) Reset() {
-	*x = Location{}
-	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Location) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Location) ProtoMessage() {}
-
-func (x *Location) ProtoReflect() protoreflect.Message {
-	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Location.ProtoReflect.Descriptor instead.
-func (*Location) Descriptor() ([]byte, []int) {
-	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Location) GetIndex() uint32 {
-	if x != nil {
-		return x.Index
-	}
-	return 0
-}
-
-func (x *Location) GetEffect() LocationEffect {
-	if x != nil {
-		return x.Effect
-	}
-	return LocationEffect_LOCATION_EFFECT_UNSPECIFIED
-}
-
 type ContentResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       *Content               `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
-	Location      *Location              `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ContentResult) Reset() {
 	*x = ContentResult{}
-	mi := &file_pluginapi_v1_content_proto_msgTypes[1]
+	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -145,7 +42,7 @@ func (x *ContentResult) String() string {
 func (*ContentResult) ProtoMessage() {}
 
 func (x *ContentResult) ProtoReflect() protoreflect.Message {
-	mi := &file_pluginapi_v1_content_proto_msgTypes[1]
+	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,19 +55,12 @@ func (x *ContentResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContentResult.ProtoReflect.Descriptor instead.
 func (*ContentResult) Descriptor() ([]byte, []int) {
-	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{1}
+	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ContentResult) GetContent() *Content {
 	if x != nil {
 		return x.Content
-	}
-	return nil
-}
-
-func (x *ContentResult) GetLocation() *Location {
-	if x != nil {
-		return x.Location
 	}
 	return nil
 }
@@ -189,7 +79,7 @@ type Content struct {
 
 func (x *Content) Reset() {
 	*x = Content{}
-	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
+	mi := &file_pluginapi_v1_content_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -201,7 +91,7 @@ func (x *Content) String() string {
 func (*Content) ProtoMessage() {}
 
 func (x *Content) ProtoReflect() protoreflect.Message {
-	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
+	mi := &file_pluginapi_v1_content_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -214,7 +104,7 @@ func (x *Content) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Content.ProtoReflect.Descriptor instead.
 func (*Content) Descriptor() ([]byte, []int) {
-	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{2}
+	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Content) GetValue() isContent_Value {
@@ -273,10 +163,71 @@ func (*Content_Section) isContent_Value() {}
 
 func (*Content_Empty) isContent_Value() {}
 
+type Metadata struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	ProviderName          string                 `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	ProviderPluginName    string                 `protobuf:"bytes,2,opt,name=provider_plugin_name,json=providerPluginName,proto3" json:"provider_plugin_name,omitempty"`
+	ProviderPluginVersion string                 `protobuf:"bytes,3,opt,name=provider_plugin_version,json=providerPluginVersion,proto3" json:"provider_plugin_version,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *Metadata) Reset() {
+	*x = Metadata{}
+	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Metadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Metadata) ProtoMessage() {}
+
+func (x *Metadata) ProtoReflect() protoreflect.Message {
+	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Metadata.ProtoReflect.Descriptor instead.
+func (*Metadata) Descriptor() ([]byte, []int) {
+	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Metadata) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+func (x *Metadata) GetProviderPluginName() string {
+	if x != nil {
+		return x.ProviderPluginName
+	}
+	return ""
+}
+
+func (x *Metadata) GetProviderPluginVersion() string {
+	if x != nil {
+		return x.ProviderPluginVersion
+	}
+	return ""
+}
+
 type ContentSection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Children      []*Content             `protobuf:"bytes,1,rep,name=children,proto3" json:"children,omitempty"`
-	Meta          *v1.Metadata           `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Children      []*Content             `protobuf:"bytes,3,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,6 +262,20 @@ func (*ContentSection) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *ContentSection) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *ContentSection) GetMeta() *Metadata {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
 func (x *ContentSection) GetChildren() []*Content {
 	if x != nil {
 		return x.Children
@@ -318,18 +283,13 @@ func (x *ContentSection) GetChildren() []*Content {
 	return nil
 }
 
-func (x *ContentSection) GetMeta() *v1.Metadata {
-	if x != nil {
-		return x.Meta
-	}
-	return nil
-}
-
 type ContentElement struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Markdown      []byte                 `protobuf:"bytes,1,opt,name=markdown,proto3" json:"markdown,omitempty"`
-	Ast           *v1.FabricContentNode  `protobuf:"bytes,2,opt,name=ast,proto3,oneof" json:"ast,omitempty"`
-	Meta          *v1.Metadata           `protobuf:"bytes,3,opt,name=meta,proto3" json:"meta,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Kind          string                 `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	Attrs         *MapData               `protobuf:"bytes,4,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	DataContext   *MapData               `protobuf:"bytes,5,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -364,29 +324,45 @@ func (*ContentElement) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ContentElement) GetMarkdown() []byte {
+func (x *ContentElement) GetId() []byte {
 	if x != nil {
-		return x.Markdown
+		return x.Id
 	}
 	return nil
 }
 
-func (x *ContentElement) GetAst() *v1.FabricContentNode {
-	if x != nil {
-		return x.Ast
-	}
-	return nil
-}
-
-func (x *ContentElement) GetMeta() *v1.Metadata {
+func (x *ContentElement) GetMeta() *Metadata {
 	if x != nil {
 		return x.Meta
 	}
 	return nil
 }
 
+func (x *ContentElement) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *ContentElement) GetAttrs() *MapData {
+	if x != nil {
+		return x.Attrs
+	}
+	return nil
+}
+
+func (x *ContentElement) GetDataContext() *MapData {
+	if x != nil {
+		return x.DataContext
+	}
+	return nil
+}
+
 type ContentEmpty struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -419,6 +395,20 @@ func (x *ContentEmpty) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ContentEmpty.ProtoReflect.Descriptor instead.
 func (*ContentEmpty) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ContentEmpty) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *ContentEmpty) GetMeta() *Metadata {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
 }
 
 type FormattedContent struct {
@@ -477,34 +467,34 @@ var File_pluginapi_v1_content_proto protoreflect.FileDescriptor
 
 const file_pluginapi_v1_content_proto_rawDesc = "" +
 	"\n" +
-	"\x1apluginapi/v1/content.proto\x12\fpluginapi.v1\x1a\x10ast/v1/ast.proto\"V\n" +
-	"\bLocation\x12\x14\n" +
-	"\x05index\x18\x01 \x01(\rR\x05index\x124\n" +
-	"\x06effect\x18\x02 \x01(\x0e2\x1c.pluginapi.v1.LocationEffectR\x06effect\"t\n" +
+	"\x1apluginapi/v1/content.proto\x12\fpluginapi.v1\x1a\x17pluginapi/v1/data.proto\"@\n" +
 	"\rContentResult\x12/\n" +
-	"\acontent\x18\x01 \x01(\v2\x15.pluginapi.v1.ContentR\acontent\x122\n" +
-	"\blocation\x18\x02 \x01(\v2\x16.pluginapi.v1.LocationR\blocation\"\xba\x01\n" +
+	"\acontent\x18\x01 \x01(\v2\x15.pluginapi.v1.ContentR\acontent\"\xba\x01\n" +
 	"\aContent\x128\n" +
 	"\aelement\x18\x01 \x01(\v2\x1c.pluginapi.v1.ContentElementH\x00R\aelement\x128\n" +
 	"\asection\x18\x02 \x01(\v2\x1c.pluginapi.v1.ContentSectionH\x00R\asection\x122\n" +
 	"\x05empty\x18\x03 \x01(\v2\x1a.pluginapi.v1.ContentEmptyH\x00R\x05emptyB\a\n" +
-	"\x05value\"i\n" +
-	"\x0eContentSection\x121\n" +
-	"\bchildren\x18\x01 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\x12$\n" +
-	"\x04meta\x18\x02 \x01(\v2\x10.ast.v1.MetadataR\x04meta\"\x8c\x01\n" +
-	"\x0eContentElement\x12\x1a\n" +
-	"\bmarkdown\x18\x01 \x01(\fR\bmarkdown\x120\n" +
-	"\x03ast\x18\x02 \x01(\v2\x19.ast.v1.FabricContentNodeH\x00R\x03ast\x88\x01\x01\x12$\n" +
-	"\x04meta\x18\x03 \x01(\v2\x10.ast.v1.MetadataR\x04metaB\x06\n" +
-	"\x04_ast\"\x0e\n" +
-	"\fContentEmpty\"D\n" +
+	"\x05value\"\x99\x01\n" +
+	"\bMetadata\x12#\n" +
+	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x120\n" +
+	"\x14provider_plugin_name\x18\x02 \x01(\tR\x12providerPluginName\x126\n" +
+	"\x17provider_plugin_version\x18\x03 \x01(\tR\x15providerPluginVersion\"\x7f\n" +
+	"\x0eContentSection\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
+	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x121\n" +
+	"\bchildren\x18\x03 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\"\xc7\x01\n" +
+	"\x0eContentElement\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
+	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x12+\n" +
+	"\x05attrs\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\x05attrs\x128\n" +
+	"\fdata_context\x18\x05 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\"J\n" +
+	"\fContentEmpty\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
+	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\"D\n" +
 	"\x10FormattedContent\x12\x16\n" +
 	"\x06format\x18\x01 \x01(\tR\x06format\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent*h\n" +
-	"\x0eLocationEffect\x12\x1f\n" +
-	"\x1bLOCATION_EFFECT_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16LOCATION_EFFECT_BEFORE\x10\x01\x12\x19\n" +
-	"\x15LOCATION_EFFECT_AFTER\x10\x02B\xb2\x01\n" +
+	"\acontent\x18\x02 \x01(\fR\acontentB\xb2\x01\n" +
 	"\x10com.pluginapi.v1B\fContentProtoP\x01Z?github.com/blackstork-io/fabric/plugin/pluginapi/v1;pluginapiv1\xa2\x02\x03PXX\xaa\x02\fPluginapi.V1\xca\x02\fPluginapi\\V1\xe2\x02\x18Pluginapi\\V1\\GPBMetadata\xea\x02\rPluginapi::V1b\x06proto3"
 
 var (
@@ -519,31 +509,28 @@ func file_pluginapi_v1_content_proto_rawDescGZIP() []byte {
 	return file_pluginapi_v1_content_proto_rawDescData
 }
 
-var file_pluginapi_v1_content_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_pluginapi_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_pluginapi_v1_content_proto_goTypes = []any{
-	(LocationEffect)(0),          // 0: pluginapi.v1.LocationEffect
-	(*Location)(nil),             // 1: pluginapi.v1.Location
-	(*ContentResult)(nil),        // 2: pluginapi.v1.ContentResult
-	(*Content)(nil),              // 3: pluginapi.v1.Content
-	(*ContentSection)(nil),       // 4: pluginapi.v1.ContentSection
-	(*ContentElement)(nil),       // 5: pluginapi.v1.ContentElement
-	(*ContentEmpty)(nil),         // 6: pluginapi.v1.ContentEmpty
-	(*FormattedContent)(nil),     // 7: pluginapi.v1.FormattedContent
-	(*v1.Metadata)(nil),          // 8: ast.v1.Metadata
-	(*v1.FabricContentNode)(nil), // 9: ast.v1.FabricContentNode
+	(*ContentResult)(nil),    // 0: pluginapi.v1.ContentResult
+	(*Content)(nil),          // 1: pluginapi.v1.Content
+	(*Metadata)(nil),         // 2: pluginapi.v1.Metadata
+	(*ContentSection)(nil),   // 3: pluginapi.v1.ContentSection
+	(*ContentElement)(nil),   // 4: pluginapi.v1.ContentElement
+	(*ContentEmpty)(nil),     // 5: pluginapi.v1.ContentEmpty
+	(*FormattedContent)(nil), // 6: pluginapi.v1.FormattedContent
+	(*MapData)(nil),          // 7: pluginapi.v1.MapData
 }
 var file_pluginapi_v1_content_proto_depIdxs = []int32{
-	0,  // 0: pluginapi.v1.Location.effect:type_name -> pluginapi.v1.LocationEffect
-	3,  // 1: pluginapi.v1.ContentResult.content:type_name -> pluginapi.v1.Content
-	1,  // 2: pluginapi.v1.ContentResult.location:type_name -> pluginapi.v1.Location
-	5,  // 3: pluginapi.v1.Content.element:type_name -> pluginapi.v1.ContentElement
-	4,  // 4: pluginapi.v1.Content.section:type_name -> pluginapi.v1.ContentSection
-	6,  // 5: pluginapi.v1.Content.empty:type_name -> pluginapi.v1.ContentEmpty
-	3,  // 6: pluginapi.v1.ContentSection.children:type_name -> pluginapi.v1.Content
-	8,  // 7: pluginapi.v1.ContentSection.meta:type_name -> ast.v1.Metadata
-	9,  // 8: pluginapi.v1.ContentElement.ast:type_name -> ast.v1.FabricContentNode
-	8,  // 9: pluginapi.v1.ContentElement.meta:type_name -> ast.v1.Metadata
+	1,  // 0: pluginapi.v1.ContentResult.content:type_name -> pluginapi.v1.Content
+	4,  // 1: pluginapi.v1.Content.element:type_name -> pluginapi.v1.ContentElement
+	3,  // 2: pluginapi.v1.Content.section:type_name -> pluginapi.v1.ContentSection
+	5,  // 3: pluginapi.v1.Content.empty:type_name -> pluginapi.v1.ContentEmpty
+	2,  // 4: pluginapi.v1.ContentSection.meta:type_name -> pluginapi.v1.Metadata
+	1,  // 5: pluginapi.v1.ContentSection.children:type_name -> pluginapi.v1.Content
+	2,  // 6: pluginapi.v1.ContentElement.meta:type_name -> pluginapi.v1.Metadata
+	7,  // 7: pluginapi.v1.ContentElement.attrs:type_name -> pluginapi.v1.MapData
+	7,  // 8: pluginapi.v1.ContentElement.data_context:type_name -> pluginapi.v1.MapData
+	2,  // 9: pluginapi.v1.ContentEmpty.meta:type_name -> pluginapi.v1.Metadata
 	10, // [10:10] is the sub-list for method output_type
 	10, // [10:10] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -556,25 +543,24 @@ func file_pluginapi_v1_content_proto_init() {
 	if File_pluginapi_v1_content_proto != nil {
 		return
 	}
-	file_pluginapi_v1_content_proto_msgTypes[2].OneofWrappers = []any{
+	file_pluginapi_v1_data_proto_init()
+	file_pluginapi_v1_content_proto_msgTypes[1].OneofWrappers = []any{
 		(*Content_Element)(nil),
 		(*Content_Section)(nil),
 		(*Content_Empty)(nil),
 	}
-	file_pluginapi_v1_content_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pluginapi_v1_content_proto_rawDesc), len(file_pluginapi_v1_content_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_pluginapi_v1_content_proto_goTypes,
 		DependencyIndexes: file_pluginapi_v1_content_proto_depIdxs,
-		EnumInfos:         file_pluginapi_v1_content_proto_enumTypes,
 		MessageInfos:      file_pluginapi_v1_content_proto_msgTypes,
 	}.Build()
 	File_pluginapi_v1_content_proto = out.File

@@ -6,7 +6,6 @@ import (
 
 	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin"
-	astv1 "github.com/blackstork-io/fabric/plugin/ast/v1"
 )
 
 func encodeContentResult(src *plugin.ContentResult) *ContentResult {
@@ -14,8 +13,7 @@ func encodeContentResult(src *plugin.ContentResult) *ContentResult {
 		return nil
 	}
 	return &ContentResult{
-		Content:  EncodeContent(src.Content),
-		Location: encodeLocation(src.Location),
+		Content: EncodeContent(src.Content),
 	}
 }
 
@@ -29,11 +27,11 @@ func EncodeContent(src plugin.Content) *Content {
 			break
 		}
 		el := &ContentElement{
-			Markdown: val.AsMarkdownSrc(),
-			Meta:     astv1.EncodeMetadata(val.Meta()),
-		}
-		if val.IsAst() {
-			el.Ast = val.AsSerializedNode()
+			Id:          val.ID().Bytes(),
+			Meta:        encodeMetadata(val.Meta()),
+			Kind:        string(val.Kind()),
+			Attrs:       encodeMapData(val.Attrs()),
+			DataContext: encodeMapData(val.DataContext()),
 		}
 		variant = &Content_Element{
 			Element: el,
@@ -44,16 +42,20 @@ func EncodeContent(src plugin.Content) *Content {
 		}
 		variant = &Content_Section{
 			Section: &ContentSection{
+				Id:       val.ID().Bytes(),
 				Children: utils.FnMap(val.Children, EncodeContent),
-				Meta:     astv1.EncodeMetadata(val.Meta()),
+				Meta:     encodeMetadata(val.Meta()),
 			},
 		}
 	case *plugin.ContentEmpty:
 		variant = &Content_Empty{
-			Empty: &ContentEmpty{},
+			Empty: &ContentEmpty{
+				Id:   val.ID().Bytes(),
+				Meta: encodeMetadata(val.Meta()),
+			},
 		}
 	default:
-		slog.Error("unknown content type", "type", fmt.Sprintf("%T", src))
+		slog.Error("Unknown content type encountered during encoding", "type", fmt.Sprintf("%T", src))
 	}
 
 	return &Content{
@@ -61,23 +63,13 @@ func EncodeContent(src plugin.Content) *Content {
 	}
 }
 
-func encodeLocation(src *plugin.Location) *Location {
+func encodeMetadata(src *plugin.ContentMeta) *Metadata {
 	if src == nil {
 		return nil
 	}
-	return &Location{
-		Index:  src.Index,
-		Effect: encodeLocationEffect(src.Effect),
-	}
-}
-
-func encodeLocationEffect(src plugin.LocationEffect) LocationEffect {
-	switch src {
-	case plugin.LocationEffectBefore:
-		return LocationEffect_LOCATION_EFFECT_BEFORE
-	case plugin.LocationEffectAfter:
-		return LocationEffect_LOCATION_EFFECT_AFTER
-	default:
-		return LocationEffect_LOCATION_EFFECT_UNSPECIFIED
+	return &Metadata{
+		ProviderName:          src.ProviderName,
+		ProviderPluginName:    src.ProviderPluginName,
+		ProviderPluginVersion: src.ProviderPluginVersion,
 	}
 }

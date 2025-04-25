@@ -13,7 +13,6 @@ import (
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type (
@@ -59,7 +58,10 @@ func renderTest(t *testing.T, testName string, files, expectedResult []string, o
 			if !diags.Extend(eng.LoadPluginResolver(ctx, false)) && !diags.Extend(eng.LoadPluginRunner(ctx)) {
 				_, content, _, diag := eng.RenderContent(ctx, target, requiredTags)
 				if !diags.Extend(diag) {
-					res = mdprint.PrintString(content)
+					// FIXME:
+					// res = mdprint.PrintString(content)
+					t.Logf("ERROR: fix content check %s", content)
+					res = "FIXME"
 				}
 			}
 		}

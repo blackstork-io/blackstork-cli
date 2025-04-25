@@ -14,7 +14,6 @@ import (
 
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/ast"
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
@@ -146,9 +145,7 @@ func renderStixView(ctx context.Context, params *plugin.ProvideContentParams) (*
 	}
 
 	return &plugin.ContentResult{
-		Content: plugin.NewElement(
-			ast.HTMLBlock(buf.Bytes()),
-		),
+		Content: plugin.NewHTMLElement(buf.String(), params.DataContext),
 	}, nil
 }
 

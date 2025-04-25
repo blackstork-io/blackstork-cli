@@ -69,7 +69,7 @@ func parseScope(datactx plugindata.Map) (document, section *plugin.ContentSectio
 	return document, section
 }
 
-func findDepth(parent *plugin.ContentSection, id uint32, depth int) int {
+func findDepth(parent *plugin.ContentSection, id plugin.ContentID, depth int) int {
 	if parent.ID() == id {
 		return depth
 	}
@@ -86,35 +86,36 @@ func findDepth(parent *plugin.ContentSection, id uint32, depth int) int {
 	return -1
 }
 
-func firstTitle(el plugin.Content) (string, bool) {
+func firstTitle(el plugin.Content) plugin.Content {
 	switch el := el.(type) {
 	case *plugin.ContentSection:
 		for _, c := range el.Children {
-			if title, ok := firstTitle(c); ok {
-				return title, true
+			if titleEl := firstTitle(c); titleEl != nil {
+				return titleEl
 			}
 		}
 	case *plugin.ContentElement:
-		meta := el.Meta()
-		if meta.Plugin == "blackstork/builtin" && meta.Provider == "title" {
-			return string(bytes.TrimSpace(
-				bytes.TrimPrefix(el.AsMarkdownSrc(), []byte("#")),
-			)), true
+		if el.Kind() == plugin.KindHeading {
+			return el
 		}
 	}
-	return "", false
+	return nil
 }
 
-func templateString(str string, datactx plugindata.Map) (string, error) {
-	tmpl, err := template.New("pattern").Funcs(sprig.FuncMap()).Parse(str)
+func prepareTemplate(name, value string) (*template.Template, error) {
+	return template.New(name).Funcs(sprig.FuncMap()).Parse(value)
+}
+
+func renderText(text string, datactx plugindata.Map) (string, error) {
+	tmpl, err := prepareTemplate("text", text)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse a text template: %w", err)
+		return "", fmt.Errorf("failed to parse the template: %w", err)
 	}
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, datactx.Any())
 	if err != nil {
-		return "", fmt.Errorf("failed to execute a text template: %w", err)
+		return "", fmt.Errorf("failed to execute the template: %w", err)
 	}
 	return strings.TrimSpace(buf.String()), nil
 }

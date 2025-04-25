@@ -1,13 +1,8 @@
 package builtin
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"strings"
-	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -15,7 +10,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
 func makeTextContentProvider() *plugin.ContentProvider {
@@ -28,47 +22,36 @@ func makeTextContentProvider() *plugin.ContentProvider {
 					Type:        cty.String,
 					Constraints: constraint.RequiredNonNull,
 					ExampleVal:  cty.StringVal("Hello world!"),
-					Doc:         `A string to render. Can use go template syntax.`,
+					Doc:         `Text value rendered as a Go template`,
 				},
 			},
 		},
-		Doc: `Renders text`,
+		Doc: `Renders text block`,
 	}
 }
 
-func genTextContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genTextContent(
+	ctx context.Context,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value")
 	if value.IsNull() {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to parse arguments",
-			Detail:   "value is required",
+			Summary:  "Failed to parse the arguments",
+			Detail:   "`value` must be provided",
 		}}
 	}
 
-	text, err := genTextContentText(value.AsString(), params.DataContext)
+	text, err := renderText(value.AsString(), params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to render text",
+			Summary:  "Failed to render text block",
 			Detail:   err.Error(),
 		}}
 	}
 	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(text),
+		Content: plugin.NewTextElement(text, params.DataContext),
 	}, nil
-}
-
-func genTextContentText(text string, datactx plugindata.Map) (string, error) {
-	tmpl, err := template.New("text").Funcs(sprig.FuncMap()).Parse(text)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse text template: %w", err)
-	}
-
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, datactx.Any())
-	if err != nil {
-		return "", fmt.Errorf("failed to execute text template: %w", err)
-	}
-	return strings.TrimSpace(buf.String()), nil
 }

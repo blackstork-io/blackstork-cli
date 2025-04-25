@@ -101,7 +101,7 @@ func genOpenAIText(clientLoader AzureOpenAIClientLoadFn) plugin.ProvideContentFu
 			}}
 		}
 		return &plugin.ContentResult{
-			Content: plugin.NewElementFromMarkdown(result),
+			Content: plugin.NewTextElement(result, params.DataContext),
 		}, nil
 	}
 }

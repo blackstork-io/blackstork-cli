@@ -79,7 +79,7 @@ func genOpenAIText(loader ClientLoadFn) plugin.ProvideContentFunc {
 			}}
 		}
 		return &plugin.ContentResult{
-			Content: plugin.NewElementFromMarkdown(result),
+			Content: plugin.NewTextElement(result, params.DataContext),
 		}, nil
 	}
 }

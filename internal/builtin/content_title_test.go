@@ -13,7 +13,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type TitleTestSuite struct {
@@ -60,7 +59,7 @@ func (s *TitleTestSuite) TestTDefault() {
 		},
 	})
 	s.Empty(diags)
-	s.Equal("## Hello World!", mdprint.PrintString(result.Content))
+	s.Equal("## Hello World!", result.Content)
 }
 
 func (s *TitleTestSuite) TestWithTextMultiline() {
@@ -76,7 +75,7 @@ func (s *TitleTestSuite) TestWithTextMultiline() {
 		},
 	})
 	s.Empty(diags)
-	s.Equal("## Hello World for you!", mdprint.PrintString(result.Content))
+	s.Equal("## Hello World for you!", result.Content)
 }
 
 func (s *TitleTestSuite) TestWithSize() {
@@ -93,7 +92,7 @@ func (s *TitleTestSuite) TestWithSize() {
 		},
 	})
 	s.Empty(diags)
-	s.Equal("### Hello World!", mdprint.PrintString(result.Content))
+	s.Equal("### Hello World!", result.Content)
 }
 
 func (s *TitleTestSuite) TestWithSizeTooBig() {

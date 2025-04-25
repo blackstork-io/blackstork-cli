@@ -9,7 +9,6 @@ import (
 	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type ImageGeneratorTestSuite struct {
@@ -64,7 +63,7 @@ func (s *ImageGeneratorTestSuite) TestCallImageSourceValid() {
 	result, diags := s.schema.ContentFunc(ctx, &plugin.ProvideContentParams{
 		Args: args,
 	})
-	s.Equal("![](https://example.com/image.png)", mdprint.PrintString(result.Content))
+	s.Equal("![](https://example.com/image.png)", result.Content)
 	s.Empty(diags)
 }
 
@@ -79,7 +78,7 @@ func (s *ImageGeneratorTestSuite) TestCallImageSourceValidWithAlt() {
 	result, diags := s.schema.ContentFunc(ctx, &plugin.ProvideContentParams{
 		Args: args,
 	})
-	s.Equal("![alt text](https://example.com/image.png)", mdprint.PrintString(result.Content))
+	s.Equal("![alt text](https://example.com/image.png)", result.Content)
 	s.Empty(diags)
 }
 
@@ -93,7 +92,7 @@ func (s *ImageGeneratorTestSuite) TestCallImageSourceTemplateRender() {
 	result, diags := s.schema.ContentFunc(ctx, &plugin.ProvideContentParams{
 		Args: args,
 	})
-	s.Equal("![](./3.png)", mdprint.PrintString(result.Content))
+	s.Equal("![](./3.png)", result.Content)
 	s.Empty(diags)
 }
 
@@ -108,6 +107,6 @@ func (s *ImageGeneratorTestSuite) TestCallImageAltTemplateRender() {
 	result, diags := s.schema.ContentFunc(ctx, &plugin.ProvideContentParams{
 		Args: args,
 	})
-	s.Equal("![5 alt text](./3.png)", mdprint.PrintString(result.Content))
+	s.Equal("![5 alt text](./3.png)", result.Content)
 	s.Empty(diags)
 }

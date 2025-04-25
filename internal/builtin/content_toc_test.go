@@ -11,7 +11,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type TOCContentTestSuite struct {
@@ -39,8 +38,8 @@ func (s *TOCContentTestSuite) TestSimple() {
 	args := plugintest.ReencodeCTY(s.T(), s.schema.Args, val, nil)
 	ctx := context.Background()
 	titleMeta := plugindata.Map{
-		"provider": plugindata.String("title"),
-		"plugin":   plugindata.String("blackstork/builtin"),
+		"provider_name": plugindata.String("title"),
+		"provider_plugin_name":   plugindata.String("blackstork/builtin"),
 	}
 	res, diags := s.schema.ContentFunc(ctx, &plugin.ProvideContentParams{
 		Args: args,
@@ -86,7 +85,7 @@ func (s *TOCContentTestSuite) TestSimple() {
 		"- [Header 1](#header-1)",
 		"  - [Header 2](#header-2)",
 		"    - [Header 3](#header-3)",
-	}, "\n")+"\n", mdprint.PrintString(res.Content))
+	}, "\n")+"\n", res.Content)
 }
 
 func (s *TOCContentTestSuite) TestAdvanced() {
@@ -167,5 +166,5 @@ func (s *TOCContentTestSuite) TestAdvanced() {
 		"  1. [Header 3](#header-3)",
 		"2. [Header 4](#header-4)",
 		"3. [Header 5](#header-5)",
-	}, "\n")+"\n", mdprint.PrintString(res.Content))
+	}, "\n")+"\n", res.Content)
 }

@@ -1,193 +1,187 @@
 package plugin
 
 import (
-	"bytes"
 	"fmt"
-	"log/slog"
 	"slices"
 	"sync"
 
-	markdown "github.com/blackstork-io/goldmark-markdown"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/text"
-	"google.golang.org/protobuf/proto"
+	ulid "github.com/oklog/ulid/v2"
 
-	"github.com/blackstork-io/fabric/plugin/ast/astsrc"
-	"github.com/blackstork-io/fabric/plugin/ast/nodes"
-	astv1 "github.com/blackstork-io/fabric/plugin/ast/v1"
+	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-type idStore struct {
-	id uint32
-	sync.Mutex
+type ContentID = ulid.ULID
+
+func createId() ContentID {
+	return ulid.Make()
 }
 
-func (i *idStore) next() uint32 {
-	i.Lock()
-	defer i.Unlock()
-	i.id++
-	return i.id
-}
-
-type LocationEffect int
+type ContentKind string
 
 const (
-	LocationEffectUnspecified LocationEffect = iota
-	LocationEffectBefore
-	LocationEffectAfter
+	SectionKind ContentKind = "section"
+	EmptyKind   ContentKind = "empty"
+
+	TextKind    ContentKind = "text"
+	HeadingKind ContentKind = "heading"
+	ImageKind   ContentKind = "image"
+	CodeKind    ContentKind = "code"
+	ListKind    ContentKind = "list"
+	TOCKind     ContentKind = "toc"
 )
 
-type Location struct {
-	Index  uint32
-	Effect LocationEffect
-}
-
+// Content provider call result
 type ContentResult struct {
-	Location *Location
-	Content  Content
-	// NewContent  *astv1.FabricContentNode
+	Content Content
 }
 
 type Content interface {
-	setID(id uint32)
-	SetMeta(meta *nodes.ContentMeta)
+	ID() ContentID
+
+	Kind() ContentKind
+
 	AsData() plugindata.Data
-	ID() uint32
-	AsPluginData() plugindata.Data
-	Meta() *nodes.ContentMeta
+
+	SetMeta(meta *ContentMeta)
+	Meta() *ContentMeta
+}
+
+type ContentMeta struct {
+	ProviderName          string
+	ProviderPluginName    string
+	ProviderPluginVersion string
+}
+
+func (meta *ContentMeta) AsData() plugindata.Data {
+	if meta == nil {
+		return nil
+	}
+	return plugindata.Map{
+		"provider_name":           plugindata.String(meta.ProviderName),
+		"provider_plugin_name":    plugindata.String(meta.ProviderPluginName),
+		"provider_plugin_version": plugindata.String(meta.ProviderPluginVersion),
+	}
+}
+
+func parseContentMeta(data plugindata.Data) *ContentMeta {
+	if data == nil {
+		return nil
+	}
+	meta := data.(plugindata.Map)
+	provider, _ := meta["provider_name"].(plugindata.String)
+	plugin, _ := meta["provider_plugin_name"].(plugindata.String)
+	version, _ := meta["provider_plugin_version"].(plugindata.String)
+	return &ContentMeta{
+		ProviderName:          string(provider),
+		ProviderPluginName:    string(plugin),
+		ProviderPluginVersion: string(version),
+	}
 }
 
 type ContentEmpty struct {
-	id   uint32
-	meta *nodes.ContentMeta
+	id   ContentID
+	meta *ContentMeta
 }
 
-func (n *ContentEmpty) setID(id uint32) {
-	n.id = id
+func NewEmptyContent(id *ContentID, meta *ContentMeta) *ContentEmpty {
+	if id == nil {
+		newId := createId()
+		id = &newId
+	}
+	return &ContentEmpty{id: *id, meta: meta}
 }
 
-func (n *ContentEmpty) SetMeta(meta *nodes.ContentMeta) {
+func (n *ContentEmpty) SetMeta(meta *ContentMeta) {
 	n.meta = meta
 }
 
 func (n *ContentEmpty) AsData() plugindata.Data {
 	return plugindata.Map{
-		"type": plugindata.String("empty"),
-		"id":   plugindata.Number(n.id),
+		"kind": plugindata.String(EmptyKind),
+		"id":   plugindata.String(n.id.String()),
 		"meta": n.meta.AsData(),
 	}
 }
 
-func (n *ContentEmpty) ID() uint32 {
+func (n *ContentEmpty) ID() ContentID {
 	return n.id
 }
 
-func (n *ContentEmpty) Meta() *nodes.ContentMeta {
+func (n *ContentEmpty) Meta() *ContentMeta {
 	return n.meta
 }
 
-func (n *ContentEmpty) AsPluginData() plugindata.Data {
-	return n.AsData()
+func (c *ContentEmpty) Kind() ContentKind {
+	return EmptyKind
+}
+
+func parseContentEmpty(data plugindata.Map) (*ContentEmpty, error) {
+	if data == nil {
+		return nil, nil
+	}
+	empty := &ContentEmpty{}
+	id, ok := data["id"].(plugindata.String)
+	if ok {
+		empty.id = ContentID([]byte(id))
+	}
+	meta, ok := data["meta"].(plugindata.Map)
+	if ok {
+		empty.meta = parseContentMeta(meta)
+	}
+	return empty, nil
 }
 
 type ContentSection struct {
-	*idStore
-	id       uint32
+	id   ContentID
+	meta *ContentMeta
+
 	Children []Content
-	meta     *nodes.ContentMeta
-	mtx      sync.RWMutex
+
+	mtx sync.RWMutex
 }
 
-func NewSection(contentID uint32) *ContentSection {
+// func NewEmptySection() *ContentSection {
+// 	return &ContentSection{
+// 		id: createId(),
+// 	}
+// }
+
+func NewSection(id ContentID, meta *ContentMeta, children []Content) *ContentSection {
 	return &ContentSection{
-		idStore: &idStore{
-			id: contentID,
-		},
-		id: contentID,
+		id:       id,
+		meta:     meta,
+		Children: children,
 	}
 }
 
 // Add content to the content tree.
-func (c *ContentSection) Add(content Content, loc *Location) error {
+func (c *ContentSection) Add(content Content) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	if c.idStore == nil {
-		c.idStore = &idStore{}
-	}
-	if section, ok := content.(*ContentSection); ok {
-		section.idStore = c.idStore
-	}
-	if loc == nil {
-		content.setID(c.next())
-		c.Children = append(c.Children, content)
-		return nil
-	}
-	if loc.Effect != LocationEffectUnspecified {
-		content.setID(c.next())
-	} else {
-		content.setID(loc.Index)
-	}
-	foundIdx := slices.IndexFunc(c.Children, func(c Content) bool {
-		return c.ID() == loc.Index
-	})
-	if foundIdx > -1 {
-		switch loc.Effect {
-		case LocationEffectBefore:
-			c.Children = append(c.Children[:foundIdx], append([]Content{content}, c.Children[foundIdx:]...)...)
-		case LocationEffectAfter:
-			c.Children = append(c.Children[:foundIdx+1], append([]Content{content}, c.Children[foundIdx+1:]...)...)
-		default:
-			c.Children[foundIdx] = content
-		}
-		return nil
-	}
-	for _, c := range c.Children {
-		section, ok := c.(*ContentSection)
-		if !ok {
-			continue
-		}
-		err := section.Add(content, loc)
-		if err == ErrContentLocationNotFound {
-			continue
-		} else if err != nil {
-			return err
-		}
-	}
-	return ErrContentLocationNotFound
+	c.Children = append(c.Children, content)
 }
 
-func (c *ContentSection) setID(id uint32) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.id = id
-}
-
-func (c *ContentSection) SetMeta(meta *nodes.ContentMeta) {
+func (c *ContentSection) SetMeta(meta *ContentMeta) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.meta = meta
-	for _, child := range c.Children {
-		child.SetMeta(meta)
-	}
+	// FIXME: why are we propagating meta to all children?
+	//
+	//	for _, child := range c.Children {
+	//		child.SetMeta(meta)
+	//	}
 }
 
-func (c *ContentSection) ID() uint32 {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
+func (c *ContentSection) ID() ContentID {
 	return c.id
 }
 
-func (c *ContentSection) Meta() *nodes.ContentMeta {
+func (c *ContentSection) Meta() *ContentMeta {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	return c.meta
-}
-
-func (c *ContentSection) AsPluginData() plugindata.Data {
-	return c.AsData()
 }
 
 // Compact removes empty sections from the content tree.
@@ -204,6 +198,10 @@ func (c *ContentSection) Compact() {
 		}
 		return false
 	})
+}
+
+func (c *ContentSection) Kind() ContentKind {
+	return SectionKind
 }
 
 // IsEmpty returns true if the section does not contain children
@@ -225,157 +223,210 @@ func (c *ContentSection) AsData() plugindata.Data {
 		children[i] = child.AsData()
 	}
 	return plugindata.Map{
-		"type":     plugindata.String("section"),
-		"id":       plugindata.Number(c.id),
+		"id":       plugindata.String(c.id.String()),
+		"kind":     plugindata.String(SectionKind),
 		"children": children,
 		"meta":     c.meta.AsData(),
 	}
 }
 
 type ContentElement struct {
-	// Type transitions:
-	// mdString <-> source&node <-> serializedNode
+	meta *ContentMeta
 
-	meta *nodes.ContentMeta
-	id   uint32
+	id      ContentID
+	kind    ContentKind
+	attrs   plugindata.Map
+	dataCtx plugindata.Map
 
-	// do not access directly
-	// legacy markdown string representation
-	mdString []byte
 	// serialized node representation
-	serializedNode *astv1.FabricContentNode
-	source         astsrc.ASTSource
-	node           *nodes.FabricContentNode
+	// 	serializedNode *astv1.FabricContentNode
+	// 	source         astsrc.ASTSource
+	// 	node           *nodes.FabricContentNode
 
 	mtx sync.RWMutex
 }
 
-// NewElement is the preferred way to create a new content element.
-// It accepts a list of AST nodes to build the content element.
-func NewElement(content ...astv1.BlockContent) *ContentElement {
-	var children []*astv1.Node
-	for _, node := range content {
-		children = node.ExtendNodes(children)
+func NewContentElement(
+	id ContentID,
+	kind ContentKind,
+	meta *ContentMeta,
+	attrs plugindata.Map,
+	data plugindata.Map,
+) (*ContentElement, error) {
+
+	elemKind := ContentKind(kind)
+
+	if !slices.Contains([]ContentKind{
+		TextKind, HeadingKind, ImageKind, CodeKind, ListKind,
+	}, elemKind) {
+		return nil, fmt.Errorf("unknown content type: %s", kind)
 	}
+
 	return &ContentElement{
-		serializedNode: &astv1.FabricContentNode{
-			Root: &astv1.BaseNode{
-				Children: children,
-			},
+		id:      id,
+		kind:    ListKind,
+		meta:    meta,
+		attrs:   attrs,
+		dataCtx: data,
+	}, nil
+}
+
+func NewCodeElement(body string, lang string, dataCtx plugindata.Map) *ContentElement {
+	return &ContentElement{
+		id:   createId(),
+		kind: CodeKind,
+		attrs: plugindata.Map{
+			"body":     plugindata.String(body),
+			"language": plugindata.String(lang),
 		},
+		dataCtx: dataCtx,
 	}
 }
 
-// NewElementFromMarkdown creates a new content element from a markdown string.
-//
-// Deprecated: opt in to working with the new AST by using [NewElement] instead.
-func NewElementFromMarkdown(source string) *ContentElement {
+func NewTextElement(body string, dataCtx plugindata.Map) *ContentElement {
 	return &ContentElement{
-		mdString: []byte(source),
+		id:   createId(),
+		kind: TextKind,
+		attrs: plugindata.Map{
+			"body": plugindata.String(body),
+		},
+		dataCtx: dataCtx,
 	}
 }
 
-// NewElementFromMarkdownAndAST creates a new content element from a markdown string and an AST.
-// This is a temporary method to allow for a smooth transition to the new AST.
-// Should only be used for deserialization purposes during the transition.
-func NewElementFromMarkdownAndAST(source []byte, ast *astv1.FabricContentNode, meta *astv1.Metadata) *ContentElement {
+func NewHTMLElement(body string, dataCtx plugindata.Map) *ContentElement {
 	return &ContentElement{
-		mdString:       source,
-		serializedNode: ast,
-		meta:           astv1.DecodeMetadata(meta),
+		id:   createId(),
+		kind: TextKind,
+		attrs: plugindata.Map{
+			"body":    plugindata.String(body),
+			"is_html": plugindata.Bool(true),
+		},
+		dataCtx: dataCtx,
 	}
 }
 
-var BaseMarkdownOptions = goldmark.WithExtensions(
-	extension.Table,
-	extension.Strikethrough,
-	extension.TaskList,
-)
-
-// AsMarkdownSrc returns the markdown source of the content element.
-//
-// Deprecated: opt in to working with the new AST by using .AsNode()
-func (c *ContentElement) AsMarkdownSrc() []byte {
-	if c.mdString != nil {
-		return c.mdString
+func NewQuoteElement(body string, dataCtx plugindata.Map) *ContentElement {
+	return &ContentElement{
+		id:   createId(),
+		kind: TextKind,
+		attrs: plugindata.Map{
+			"body":          plugindata.String(body),
+			"is_blockquote": plugindata.Bool(true),
+		},
+		dataCtx: dataCtx,
 	}
-
-	source, node := c.AsNode()
-	var buf bytes.Buffer
-	err := goldmark.New(
-		BaseMarkdownOptions,
-		goldmark.WithExtensions(
-			markdown.NewRenderer(
-				markdown.WithIgnoredNodes(
-					nodes.ContentNodeKind,
-					nodes.CustomBlockKind,
-					nodes.CustomInlineKind,
-				),
-			),
-		),
-	).Renderer().Render(&buf, source.AsBytes(), node)
-	if err != nil {
-		slog.Error("failed to render markdown", "error", err)
-	}
-	c.mdString = buf.Bytes()
-	return c.mdString
 }
 
-func (c *ContentElement) AsSerializedNode() *astv1.FabricContentNode {
-	if c.serializedNode != nil {
-		return c.serializedNode
+func NewHeadingElement(body string, size int64, dataCtx plugindata.Map) *ContentElement {
+	return &ContentElement{
+		id:   createId(),
+		kind: HeadingKind,
+		attrs: plugindata.Map{
+			"body": plugindata.String(body),
+			"size": plugindata.Number(size),
+		},
+		dataCtx: dataCtx,
 	}
-	src, node := c.AsNode()
-	serNode, err := astv1.Encode(node, src.AsBytes())
-	if err != nil {
-		slog.Error("failed to encode AST", "error", err)
-	}
-	c.serializedNode = serNode.GetContentNode()
-	return c.serializedNode
 }
 
-func (c *ContentElement) AsNode() (*astsrc.ASTSource, *nodes.FabricContentNode) {
-	if c.node != nil {
-		return &c.source, c.node
+func NewImageElement(src string, alt string, dataCtx plugindata.Map) *ContentElement {
+	return &ContentElement{
+		id:   createId(),
+		kind: ImageKind,
+		attrs: plugindata.Map{
+			"src": plugindata.String(src),
+			"alt": plugindata.String(alt),
+		},
+		dataCtx: dataCtx,
 	}
-	if c.serializedNode != nil {
-		node, source, err := astv1.Decode(&astv1.Node{
-			Kind: &astv1.Node_ContentNode{
-				ContentNode: c.serializedNode,
-			},
-		})
-		if err != nil {
-			slog.Error("failed to decode AST", "error", err)
-		} else {
-			c.node = nodes.ToFabricContentNode(node)
-			c.node.Meta = c.meta
-			c.source = source
-		}
-	} else {
-		node := goldmark.New(BaseMarkdownOptions).
-			Parser().Parse(text.NewReader(c.mdString))
-		c.node = nodes.ToFabricContentNode(node)
-		c.node.Meta = c.meta
-	}
-
-	return &c.source, c.node
 }
 
-func (c *ContentElement) ID() uint32 {
+func NewTableElement(headers []string, cellValues plugindata.List, dataCtx plugindata.Map) *ContentElement {
+
+	headerValues := utils.FnMap(headers, func(h string) plugindata.Data {
+		return plugindata.String(h)
+	})
+
+	return &ContentElement{
+		id:   createId(),
+		kind: ImageKind,
+		attrs: plugindata.Map{
+			"headers": plugindata.List(headerValues),
+			"rows":    cellValues,
+		},
+		dataCtx: dataCtx,
+	}
+}
+
+func NewListElement(
+	itemValues []plugindata.Data,
+	items []string,
+	format string,
+	dataCtx plugindata.Map,
+) *ContentElement {
+
+	itemsData, _ := plugindata.ParseAny(items)
+
+	return &ContentElement{
+		id:   createId(),
+		kind: ListKind,
+		attrs: plugindata.Map{
+			"items_rendered": itemsData,
+			"items":          plugindata.List(itemValues),
+			"format":         plugindata.String(format),
+		},
+		dataCtx: dataCtx,
+	}
+}
+
+func NewTOCElement(
+	headings plugindata.Data,
+	isOrdered bool,
+	dataCtx plugindata.Map,
+) *ContentElement {
+	return &ContentElement{
+		id:   createId(),
+		kind: ListKind,
+		attrs: plugindata.Map{
+			"headings":   headings,
+			"is_ordered": plugindata.Bool(isOrdered),
+		},
+		dataCtx: dataCtx,
+	}
+}
+
+func (c *ContentElement) ID() ContentID {
 	return c.id
 }
 
-func (c *ContentElement) setID(id uint32) {
-	c.id = id
+func (c *ContentElement) Kind() ContentKind {
+	return c.kind
 }
 
-func (c *ContentElement) Meta() *nodes.ContentMeta {
+func (c *ContentElement) Attrs() plugindata.Map {
+	return c.attrs
+}
+
+func (c *ContentElement) Attr(attr string) plugindata.Data {
+	val, ok := c.attrs[attr]
+	if !ok {
+		return nil
+	}
+	return val
+}
+
+func (c *ContentElement) DataContext() plugindata.Map {
+	return c.dataCtx
+}
+
+func (c *ContentElement) Meta() *ContentMeta {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	return c.meta
 }
 
-func (c *ContentElement) SetMeta(meta *nodes.ContentMeta) {
+func (c *ContentElement) SetMeta(meta *ContentMeta) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.meta = meta
@@ -385,49 +436,60 @@ func (c *ContentElement) AsPluginData() plugindata.Data {
 	return c.AsData()
 }
 
-func (c *ContentElement) IsAst() bool {
-	return c.node != nil || c.serializedNode != nil
-}
-
 func (c *ContentElement) AsData() plugindata.Data {
 	if c == nil {
 		return nil
 	}
 	data := plugindata.Map{
-		"type":     plugindata.String("element"),
-		"id":       plugindata.Number(c.id),
-		"markdown": plugindata.String(c.AsMarkdownSrc()),
-		"meta":     c.meta.AsData(),
-	}
-	// we have some AST data, include it
-	if c.IsAst() {
-		ser, err := proto.Marshal(c.AsSerializedNode())
-		if err != nil {
-			slog.Warn("failed to preserve AST in element", "error", err)
-		} else {
-			data["__ast"] = plugindata.String(ser)
-		}
+		"kind":  plugindata.String(c.kind),
+		"id":    plugindata.String(c.id.String()),
+		"data":  c.dataCtx,
+		"attrs": c.attrs,
+		"meta":  c.meta.AsData(),
 	}
 	return data
+}
+
+func parseContentElement(kind ContentKind, data plugindata.Map) (*ContentElement, error) {
+
+	if data == nil {
+		return nil, nil
+	}
+
+	idVal, ok := data["id"].(plugindata.String)
+	if !ok {
+		return nil, fmt.Errorf("no id found in the content")
+	}
+
+	meta, ok := data["meta"].(plugindata.Map)
+	if !ok {
+		return nil, fmt.Errorf("no meta found in the content")
+	}
+
+	return NewContentElement(
+		ContentID([]byte(idVal)),
+		ContentKind(kind),
+		parseContentMeta(meta),
+		data["attrs"].(plugindata.Map),
+		data["data"].(plugindata.Map),
+	)
 }
 
 func ParseContentData(data plugindata.Map) (Content, error) {
 	if data == nil {
 		return nil, nil
 	}
-	typ, ok := data["type"].(plugindata.String)
+	kind, ok := data["kind"].(plugindata.String)
 	if !ok {
-		return nil, fmt.Errorf("missing type")
+		return nil, fmt.Errorf("missing `kind` value")
 	}
-	switch string(typ) {
-	case "section":
+	switch contentKind := ContentKind(kind); contentKind {
+	case SectionKind:
 		return parseContentSection(data)
-	case "element":
-		return parseContentElement(data)
-	case "empty":
+	case EmptyKind:
 		return parseContentEmpty(data)
 	default:
-		return nil, fmt.Errorf("unknown type: %s", typ)
+		return parseContentElement(contentKind, data)
 	}
 }
 
@@ -438,7 +500,7 @@ func parseContentSection(data plugindata.Map) (*ContentSection, error) {
 	section := &ContentSection{}
 	children, ok := data["children"].(plugindata.List)
 	if !ok {
-		return nil, fmt.Errorf("missing children")
+		return nil, fmt.Errorf("missing content section children")
 	}
 	section.Children = make([]Content, len(children))
 	var err error
@@ -448,76 +510,13 @@ func parseContentSection(data plugindata.Map) (*ContentSection, error) {
 			return nil, err
 		}
 	}
-	id, ok := data["id"].(plugindata.Number)
+	id, ok := data["id"].(plugindata.String)
 	if ok {
-		section.id = uint32(id)
+		section.id = ContentID([]byte(id))
 	}
 	meta, ok := data["meta"].(plugindata.Map)
 	if ok {
-		section.meta = ParseContentMeta(meta)
+		section.meta = parseContentMeta(meta)
 	}
 	return section, nil
-}
-
-func parseContentElement(data plugindata.Map) (*ContentElement, error) {
-	if data == nil {
-		return nil, nil
-	}
-	elem := &ContentElement{}
-	markdown, ok := data["markdown"].(plugindata.String)
-	if !ok {
-		return nil, fmt.Errorf("missing markdown")
-	}
-	elem.mdString = []byte(markdown)
-	id, ok := data["id"].(plugindata.Number)
-	if ok {
-		elem.id = uint32(id)
-	}
-	meta, ok := data["meta"].(plugindata.Map)
-	if ok {
-		elem.meta = ParseContentMeta(meta)
-	}
-	if astData, ok := data["__ast"].(plugindata.String); ok {
-		// we have some AST data, include it
-		serNode := &astv1.FabricContentNode{}
-		err := proto.Unmarshal([]byte(astData), serNode)
-		if err != nil {
-			slog.Warn("failed to decode AST in element", "error", err)
-		} else {
-			elem.serializedNode = serNode
-		}
-	}
-	return elem, nil
-}
-
-func parseContentEmpty(data plugindata.Map) (*ContentEmpty, error) {
-	if data == nil {
-		return nil, nil
-	}
-	empty := &ContentEmpty{}
-	id, ok := data["id"].(plugindata.Number)
-	if !ok {
-		return nil, fmt.Errorf("missing id")
-	}
-	empty.id = uint32(id)
-	meta, ok := data["meta"].(plugindata.Map)
-	if ok {
-		empty.meta = ParseContentMeta(meta)
-	}
-	return empty, nil
-}
-
-func ParseContentMeta(data plugindata.Data) *nodes.ContentMeta {
-	if data == nil {
-		return nil
-	}
-	meta := data.(plugindata.Map)
-	provider, _ := meta["provider"].(plugindata.String)
-	plugin, _ := meta["plugin"].(plugindata.String)
-	version, _ := meta["version"].(plugindata.String)
-	return &nodes.ContentMeta{
-		Provider: string(provider),
-		Plugin:   string(plugin),
-		Version:  string(version),
-	}
 }

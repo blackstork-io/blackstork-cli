@@ -6,60 +6,74 @@ import (
 
 	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin"
-	astv1 "github.com/blackstork-io/fabric/plugin/ast/v1"
 )
 
-func decodeContentResult(src *ContentResult) *plugin.ContentResult {
+func decodeContentResult(src *ContentResult) (*plugin.ContentResult, error) {
 	if src == nil {
-		return nil
+		return nil, nil
 	}
-	return &plugin.ContentResult{
-		Content:  DecodeContent(src.Content),
-		Location: decodeLocation(src.Location),
+
+	content, err := decodeContent(src.Content)
+	if err != nil {
+		return nil, err
 	}
+
+	return &plugin.ContentResult{Content: content}, nil
 }
 
-func DecodeContent(src *Content) plugin.Content {
+func decodeContent(src *Content) (plugin.Content, error) {
 	switch val := src.GetValue().(type) {
 	case *Content_Element:
-		return plugin.NewElementFromMarkdownAndAST(val.Element.GetMarkdown(), val.Element.GetAst(), val.Element.GetMeta())
-	case *Content_Section:
-		section := &plugin.ContentSection{
-			Children: utils.FnMap(val.Section.GetChildren(), DecodeContent),
+		id := plugin.ContentID(val.Element.GetId())
+		kind := plugin.ContentKind(val.Element.GetKind())
+
+		meta := decodeMetadata(val.Element.GetMeta())
+		attrs := decodeMapData(val.Element.GetAttrs().GetValue())
+		data := decodeMapData(val.Element.GetDataContext().GetValue())
+
+		el, err := plugin.NewContentElement(id, kind, meta, attrs, data)
+		if err != nil {
+			return nil, err
 		}
-		section.SetMeta(astv1.DecodeMetadata(val.Section.GetMeta()))
-		return section
+		return el, nil
+	case *Content_Section:
+		id := plugin.ContentID(val.Section.GetId())
+		meta := decodeMetadata(val.Section.GetMeta())
+
+		children, err := utils.FnMapErr(
+			val.Section.GetChildren(),
+			decodeContent,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		section := plugin.NewSection(id, meta, children)
+		return section, nil
 	case *Content_Empty:
-		return &plugin.ContentEmpty{}
+		id := plugin.ContentID(val.Empty.GetId())
+		meta := decodeMetadata(val.Empty.GetMeta())
+
+		return plugin.NewEmptyContent(&id, meta), nil
 	case nil:
-		return nil
+		slog.Error("Received nil content", "src", src)
+		return nil, nil
 	default:
-		slog.Error("unknown content type", "type", fmt.Sprintf("%T", src))
-		return nil
+		slog.Error("Unknown content type encountered during decoding", "type", fmt.Sprintf("%T", src))
+		return nil, fmt.Errorf("unknown content type: %T", src)
 	}
 }
 
-func decodeLocation(src *Location) *plugin.Location {
+func decodeMetadata(src *Metadata) *plugin.ContentMeta {
 	if src == nil {
 		return nil
 	}
-	return &plugin.Location{
-		Index:  src.GetIndex(),
-		Effect: decodeLocationEffect(src.GetEffect()),
+	return &plugin.ContentMeta{
+		ProviderName: src.ProviderName,
+		ProviderPluginName: src.ProviderPluginName,
+		ProviderPluginVersion: src.ProviderPluginVersion,
 	}
 }
-
-func decodeLocationEffect(src LocationEffect) plugin.LocationEffect {
-	switch src {
-	case LocationEffect_LOCATION_EFFECT_BEFORE:
-		return plugin.LocationEffectBefore
-	case LocationEffect_LOCATION_EFFECT_AFTER:
-		return plugin.LocationEffectAfter
-	default:
-		return plugin.LocationEffectUnspecified
-	}
-}
-
 
 func decodeFormattedContent(src *FormattedContent) *plugin.FormattedContent {
 	return &plugin.FormattedContent{

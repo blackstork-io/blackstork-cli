@@ -10,7 +10,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type ListGeneratorTestSuite struct {
@@ -67,7 +66,8 @@ func (s *ListGeneratorTestSuite) TestUnordered() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("* foo bar\n* foo baz\n", mdprint.PrintString(result.Content))
+	//s.Equal("* foo bar\n* foo baz\n", mdprint.PrintString(result.Content))
+	s.Equal("* foo bar\n* foo baz\n", result.Content)
 	s.Empty(diags)
 }
 
@@ -84,7 +84,8 @@ func (s *ListGeneratorTestSuite) TestOrdered() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("1. foo bar\n2. foo baz\n", mdprint.PrintString(result.Content))
+	// s.Equal("1. foo bar\n2. foo baz\n", mdprint.PrintString(result.Content))
+	s.Equal("1. foo bar\n2. foo baz\n", result.Content)
 	s.Empty(diags)
 }
 
@@ -101,7 +102,8 @@ func (s *ListGeneratorTestSuite) TestTaskList() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("* [ ] foo bar\n* [ ] foo baz\n", mdprint.PrintString(result.Content))
+	// s.Equal("* [ ] foo bar\n* [ ] foo baz\n", mdprint.PrintString(result.Content))
+	s.Equal("* [ ] foo bar\n* [ ] foo baz\n", result.Content)
 	s.Empty(diags)
 }
 
@@ -117,7 +119,8 @@ func (s *ListGeneratorTestSuite) TestBasic() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("* foo bar\n* foo baz\n", mdprint.PrintString(result.Content))
+	// s.Equal("* foo bar\n* foo baz\n", mdprint.PrintString(result.Content))
+	s.Equal("* foo bar\n* foo baz\n", result.Content)
 	s.Empty(diags)
 }
 
@@ -142,7 +145,8 @@ func (s *ListGeneratorTestSuite) TestAdvanced() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("* foo bar1 BAZ1\n* foo bar2 BAZ2\n", mdprint.PrintString(result.Content))
+	// s.Equal("* foo bar1 BAZ1\n* foo bar2 BAZ2\n", mdprint.PrintString(result.Content))
+	s.Equal("* foo bar1 BAZ1\n* foo bar2 BAZ2\n", result.Content)
 	s.Empty(diags)
 }
 
@@ -168,6 +172,7 @@ func (s *ListGeneratorTestSuite) TestMissingItemTemplate() {
 		Args:        args,
 		DataContext: dataCtx,
 	})
-	s.Equal("* bar\n* baz\n", mdprint.PrintString(result.Content))
+	// s.Equal("* bar\n* baz\n", mdprint.PrintString(result.Content))
+	s.Equal("* bar\n* baz\n", result.Content)
 	s.Empty(diags)
 }

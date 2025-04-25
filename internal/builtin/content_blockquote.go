@@ -2,7 +2,6 @@ package builtin
 
 import (
 	"context"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -24,22 +23,25 @@ func makeBlockQuoteContentProvider() *plugin.ContentProvider {
 				Constraints: constraint.RequiredNonNull,
 			}},
 		},
-		Doc: "Formats text as a block quote",
+		Doc: "Formats text as a blockquote",
 	}
 }
 
-func genBlockQuoteContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genBlockQuoteContent(
+	ctx context.Context,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value")
-	text, err := genTextContentText(value.AsString(), params.DataContext)
+	text, err := renderText(value.AsString(), params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to render blockquote",
+			Summary:  "Failed to render the value as a template",
 			Detail:   err.Error(),
 		}}
 	}
-	text = "> " + strings.ReplaceAll(text, "\n", "\n> ")
+	// text = "> " + strings.ReplaceAll(text, "\n", "\n> ")
 	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(text),
+		Content: plugin.NewBlockquoteElement(text, params.DataContext),
 	}, nil
 }

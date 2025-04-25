@@ -3,7 +3,6 @@ package builtin
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -14,8 +13,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/plugin/ast"
-	"github.com/blackstork-io/fabric/plugin/ast/nodes"
 )
 
 const (
@@ -94,29 +91,28 @@ func genTitleContent(
 	if titleSize < minAbsoluteTitleSize || titleSize > maxAbsoluteTitleSize {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to parse arguments",
+			Summary:  "Failed to parse the arguments",
 			Detail: fmt.Sprintf(
-				"absolute_size must be between %d and %d",
+				"`absolute_size` value must be between %d and %d",
 				minAbsoluteTitleSize,
 				maxAbsoluteTitleSize,
 			),
 		}}
 	}
 
-	text, err := genTextContentText(value.AsString(), params.DataContext)
+	text, err := renderText(value.AsString(), params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to render value",
+			Summary:  "Failed to render the value",
 			Detail:   err.Error(),
 		}}
 	}
 	// remove all newlines
-	text = strings.ReplaceAll(text, "\n", " ")
-	text = strings.Repeat("#", int(titleSize)+1) + " " + text
+	// text = strings.ReplaceAll(text, "\n", " ")
+	// text = strings.Repeat("#", int(titleSize)+1) + " " + text
 	return &plugin.ContentResult{
-		//NewContent: plugin.NewElement(ast.Header(titleSize, ast.Text(text))),
-		Content: plugin.NewElementFromMarkdown(text),
+		Content: plugin.NewHeadingElement(text, titleSize, params.DataContext),
 	}, nil
 }
 

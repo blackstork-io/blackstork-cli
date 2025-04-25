@@ -12,7 +12,6 @@ import (
 
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type SleepContentTestSuite struct {
@@ -46,7 +45,7 @@ func (s *SleepContentTestSuite) TestCustom() {
 			Decode(),
 	})
 	s.Require().Empty(diags)
-	s.Equal("Slept for 123ms.", mdprint.PrintString(result.Content))
+	s.Equal("Slept for 123ms.", result.Content)
 }
 
 func (s *SleepContentTestSuite) TestDefault() {
@@ -56,7 +55,7 @@ func (s *SleepContentTestSuite) TestDefault() {
 		DataContext: nil,
 	})
 	s.Require().Empty(diags)
-	s.Equal("Slept for 1s.", mdprint.PrintString(result.Content))
+	s.Equal("Slept for 1s.", result.Content)
 }
 
 func (s *SleepContentTestSuite) TestCallInvalidDuration() {

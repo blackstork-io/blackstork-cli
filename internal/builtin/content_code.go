@@ -27,29 +27,30 @@ func makeCodeContentProvider() *plugin.ContentProvider {
 				{
 					Name:       "language",
 					Type:       cty.String,
-					ExampleVal: cty.StringVal("python3"),
-					DefaultVal: cty.StringVal(""),
-					Doc:        `Specifiy the language for syntax highlighting`,
+					ExampleVal: cty.StringVal("json"),
+					DefaultVal: cty.StringVal("text"),
+					Doc:        `Specifiy the code language for syntax highlighting`,
 				},
 			},
 		},
-		Doc: "Formats text as code snippet",
+		Doc: "Formats text as a code snippet",
 	}
 }
 
 func genCodeContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
-	value := params.Args.GetAttrVal("value")
-	lang := params.Args.GetAttrVal("language")
-	text, err := genTextContentText(value.AsString(), params.DataContext)
+	value := params.Args.GetAttrVal("value").AsString()
+	lang := params.Args.GetAttrVal("language").AsString()
+	text, err := renderText(value, params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to render code",
+			Summary:  "Failed to render code block as a template",
 			Detail:   err.Error(),
 		}}
 	}
-	text = fmt.Sprintf("```%s\n%s\n```", lang.AsString(), text)
+	//text = fmt.Sprintf("```%s\n%s\n```", lang.AsString(), text)
+
 	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(text),
+		Content: plugin.NewCodeElement(text, lang, params.DataContext),
 	}, nil
 }

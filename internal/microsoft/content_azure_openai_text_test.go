@@ -20,7 +20,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type AzureOpenAITextContentTestSuite struct {
@@ -35,9 +34,15 @@ func TestAzureOpenAITextContentSuite(t *testing.T) {
 }
 
 func (s *AzureOpenAITextContentTestSuite) SetupSuite() {
-	s.plugin = microsoft.Plugin("1.0.0", nil, (func(apiKey, endPoint string) (cli microsoft.AzureOpenAIClient, err error) {
-		return s.cli, nil
-	}), nil, nil)
+	s.plugin = microsoft.Plugin(
+		"1.0.0",
+		nil,
+		(func(apiKey, endPoint string) (cli microsoft.AzureOpenAIClient, err error) {
+			return s.cli, nil
+		}),
+		nil,
+		nil,
+	)
 	s.schema = s.plugin.ContentProviders["azure_openai_text"]
 }
 
@@ -92,7 +97,8 @@ func (s *AzureOpenAITextContentTestSuite) TestBasic() {
 	})
 	fmt.Println(diags)
 	s.Nil(diags)
-	s.Equal("Once upon a time.", mdprint.PrintString(result.Content))
+	//s.Equal("Once upon a time.", mdprint.PrintString(result.Content))
+	s.Equal("Once upon a time.", result.Content)
 }
 
 func (s *AzureOpenAITextContentTestSuite) TestAdvanced() {
@@ -134,7 +140,8 @@ func (s *AzureOpenAITextContentTestSuite) TestAdvanced() {
 		DataContext: dataCtx,
 	})
 	s.Empty(diags)
-	s.Equal("Once upon a time.", mdprint.PrintString(result.Content))
+	//s.Equal("Once upon a time.", mdprint.PrintString(result.Content))
+	s.Equal("Once upon a time.", result.Content)
 }
 
 func (s *AzureOpenAITextContentTestSuite) TestMissingPrompt() {

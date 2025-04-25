@@ -33,11 +33,12 @@ func makeImageContentProvider() *plugin.ContentProvider {
 					Name:       "alt",
 					Type:       cty.String,
 					ExampleVal: cty.StringVal("Text description of the image"),
+					DefaultVal: cty.StringVal(""),
 					// Not using empty string as DefaultVal here for semantical meaning
 				},
 			},
 		},
-		Doc: "Returns an image tag",
+		Doc: "Renders an image",
 	}
 }
 
@@ -46,12 +47,9 @@ func genImageContent(
 	params *plugin.ProvideContentParams,
 ) (*plugin.ContentResult, diagnostics.Diag) {
 	src := params.Args.GetAttrVal("src").AsString()
-	alt := params.Args.GetAttrVal("alt")
-	if alt.IsNull() {
-		alt = cty.StringVal("")
-	}
+	alt := params.Args.GetAttrVal("alt").AsString()
 
-	srcStr, err := renderAsTemplate("src", src, params.DataContext)
+	srcStr, err := renderText(src, params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -60,7 +58,7 @@ func genImageContent(
 		}}
 	}
 
-	altStr, err := renderAsTemplate("alt", alt.AsString(), params.DataContext)
+	altStr, err := renderText(alt, params.DataContext)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -70,27 +68,9 @@ func genImageContent(
 	}
 
 	// Make sure there are no line breaks in the values
-	srcStr = strings.TrimSpace(strings.ReplaceAll(srcStr, "\n", ""))
-	altStr = strings.TrimSpace(strings.ReplaceAll(altStr, "\n", ""))
+	// srcStr = strings.TrimSpace(strings.ReplaceAll(srcStr, "\n", ""))
+	// altStr = strings.TrimSpace(strings.ReplaceAll(altStr, "\n", ""))
 	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(fmt.Sprintf("![%s](%s)", altStr, srcStr)),
+		Content: plugin.NewImageElement(srcStr, altStr, params.DataContext),
 	}, nil
-}
-
-func renderAsTemplate(name, value string, datactx plugindata.Map) (string, error) {
-	if value == "" {
-		return "", nil
-	}
-
-	tmpl, err := template.New(name).Funcs(sprig.FuncMap()).Parse(value)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse text template: %w", err)
-	}
-
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, datactx.Any())
-	if err != nil {
-		return "", fmt.Errorf("failed to execute text template: %w", err)
-	}
-	return strings.TrimSpace(buf.String()), nil
 }

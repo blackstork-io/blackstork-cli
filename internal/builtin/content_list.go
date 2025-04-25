@@ -3,7 +3,7 @@ package builtin
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -58,10 +58,37 @@ func makeListContentProvider() *plugin.ContentProvider {
 	}
 }
 
-func genListContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genListContent(
+	ctx context.Context,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentResult, diagnostics.Diag) {
 	format := params.Args.GetAttrVal("format").AsString()
 
-	tmpl, err := template.New("item").Funcs(sprig.FuncMap()).Parse(params.Args.GetAttrVal("item_template").AsString())
+	items, err := utils.FnMapErr(
+		params.Args.GetAttrVal("items").AsValueSlice(),
+		func(v cty.Value) (plugindata.Data, error) {
+			data, err := plugindata.Encapsulated.FromCty(v)
+			if err != nil {
+				return nil, err
+			}
+			if data == nil {
+				return nil, nil
+			}
+			return *data, nil
+		},
+	)
+	if err != nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to parse `items` argument",
+			Detail:   err.Error(),
+			Subject:  &params.Args.Attrs["items"].ValueRange,
+		}}
+	}
+
+	itemTmpl, err := template.New("item").
+		Funcs(sprig.FuncMap()).
+		Parse(params.Args.GetAttrVal("item_template").AsString())
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -69,56 +96,47 @@ func genListContent(ctx context.Context, params *plugin.ProvideContentParams) (*
 			Detail:   err.Error(),
 		}}
 	}
-	items, err := utils.FnMapErr(params.Args.GetAttrVal("items").AsValueSlice(), func(v cty.Value) (plugindata.Data, error) {
-		data, err := plugindata.Encapsulated.FromCty(v)
-		if err != nil {
-			return nil, err
-		}
-		if data == nil {
-			return nil, nil
-		}
-		return *data, nil
-	})
-	if err != nil {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to parse arguments",
-			Detail:   err.Error(),
-			Subject:  &params.Args.Attrs["items"].ValueRange,
-		}}
-	}
 
-	result, err := renderListContent(format, tmpl, items)
-	if err != nil {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to render template",
-			Detail:   err.Error(),
-		}}
-	}
-	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(result),
-	}, nil
-}
+	renderedItems := make([]string, len(items))
 
-func renderListContent(format string, tmpl *template.Template, items plugindata.List) (string, error) {
-	var buf bytes.Buffer
 	var tmpBuf bytes.Buffer
 	for i, item := range items {
 		tmpBuf.Reset()
-		err := tmpl.Execute(&tmpBuf, item.Any())
+		err := itemTmpl.Execute(&tmpBuf, item.Any())
 		if err != nil {
-			return "", err
+			return nil, diagnostics.Diag{{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to render an item template",
+				Detail:   err.Error(),
+			}}
 		}
-		if format == "unordered" {
-			buf.WriteString("* ")
-		} else if format == "tasklist" {
-			buf.WriteString("* [ ] ")
-		} else {
-			fmt.Fprintf(&buf, "%d. ", i+1)
-		}
-		buf.Write(bytes.TrimSpace(bytes.ReplaceAll(tmpBuf.Bytes(), []byte("\n"), []byte(" "))))
-		buf.WriteString("\n")
+		value := strings.TrimSpace(tmpBuf.String())
+		renderedItems[i] = value
 	}
-	return buf.String(), nil
+
+	return &plugin.ContentResult{
+		Content: plugin.NewListElement(items, renderedItems, format, params.DataContext),
+	}, nil
 }
+
+// func renderListContent(format string, tmpl *template.Template, items plugindata.List) (string, error) {
+// 	var buf bytes.Buffer
+// 	var tmpBuf bytes.Buffer
+// 	for i, item := range items {
+// 		tmpBuf.Reset()
+// 		err := tmpl.Execute(&tmpBuf, item.Any())
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		if format == "unordered" {
+// 			buf.WriteString("* ")
+// 		} else if format == "tasklist" {
+// 			buf.WriteString("* [ ] ")
+// 		} else {
+// 			fmt.Fprintf(&buf, "%d. ", i+1)
+// 		}
+// 		buf.Write(bytes.TrimSpace(bytes.ReplaceAll(tmpBuf.Bytes(), []byte("\n"), []byte(" "))))
+// 		buf.WriteString("\n")
+// 	}
+// 	return buf.String(), nil
+// }

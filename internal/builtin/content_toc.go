@@ -3,8 +3,8 @@ package builtin
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
+	"log/slog"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -17,7 +17,19 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-func makeTOCContentProvider() *plugin.ContentProvider {
+type providerArgs struct {
+	startLevel int
+	endLevel   int
+	isOrdered  bool
+	scope      string
+}
+
+type heading struct {
+	title string
+	level int
+}
+
+func makeTOCContentProvider(log *slog.Logger) *plugin.ContentProvider {
 	return &plugin.ContentProvider{
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
@@ -25,7 +37,7 @@ func makeTOCContentProvider() *plugin.ContentProvider {
 					Name:         "start_level",
 					Type:         cty.Number,
 					DefaultVal:   cty.NumberIntVal(0),
-					Doc:          `Largest header size which produces entries in the table of contents`,
+					Doc:          `Largest size of the header to be included the table of contents`,
 					MinInclusive: cty.NumberIntVal(0),
 					MaxInclusive: cty.NumberIntVal(5),
 					Constraints:  constraint.Integer,
@@ -34,25 +46,26 @@ func makeTOCContentProvider() *plugin.ContentProvider {
 					Name:         "end_level",
 					Type:         cty.Number,
 					DefaultVal:   cty.NumberIntVal(2),
-					Doc:          `Smallest header size which produces entries in the table of contents`,
+					Doc:          `Smallest size of the header to be included in the table of contents`,
 					MinInclusive: cty.NumberIntVal(0),
 					MaxInclusive: cty.NumberIntVal(5),
 					Constraints:  constraint.Integer,
 				},
 				{
-					Name:       "ordered",
+					Name:       "as_ordered_list",
 					Type:       cty.Bool,
 					DefaultVal: cty.False,
-					Doc:        `Whether to use ordered list for the contents`,
+					Doc:        "Render as ordered list. If `false`, TOC is rendered as unordered list.",
 				},
 				{
 					Name: "scope",
 					Type: cty.String,
 					Doc: utils.Dedent(`
-					Scope of the headers to evaluate.
-					  "document" – look for headers in the whole document
-					  "section" – look for headers only in the current section
-					  "auto" – behaves as "section" if the "toc" block is inside of a section; else – behaves as "document"
+					Scope for TOC to cover:
+					  "document" – collect headers in the document;
+					  "section" – collect headers in the current section;
+					  "auto" – adaptive behaviour, with "section" scope if the toc" block is defined inside of a section,
+					  and "document" if it's on the root level of the document.
 					`),
 					OneOf: []cty.Value{
 						cty.StringVal("document"),
@@ -64,159 +77,159 @@ func makeTOCContentProvider() *plugin.ContentProvider {
 			},
 		},
 		InvocationOrder: plugin.InvocationOrderEnd,
-		ContentFunc:     genTOC,
-		Doc: utils.Dedent(`
-			Produces table of contents.
-
-			Inspects the rendered document for headers of a certain size and creates a linked
-			table of contents
-		`),
+		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+			return genTOC(ctx, log, params)
+		},
+		Doc: `Renders a list of contents (TOC) from the headers found in a defined scope.`,
 	}
 }
 
-type tocArgs struct {
-	startLevel int
-	endLevel   int
-	ordered    bool
-	scope      string
-}
-
-func parseTOCArgs(args *dataspec.Block) (*tocArgs, error) {
+func parseTOCArgs(args *dataspec.Block) (*providerArgs, error) {
 	startLevel, _ := args.GetAttrVal("start_level").AsBigFloat().Int64()
 	endLevel, _ := args.GetAttrVal("end_level").AsBigFloat().Int64()
-	ordered := args.GetAttrVal("ordered").True()
+	ordered := args.GetAttrVal("as_ordered_list").True()
 	scope := args.GetAttrVal("scope").AsString()
 
-	return &tocArgs{
+	return &providerArgs{
 		startLevel: int(startLevel),
 		endLevel:   int(endLevel),
-		ordered:    ordered,
+		isOrdered:  ordered,
 		scope:      scope,
 	}, nil
 }
 
-func genTOC(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genTOC(
+	ctx context.Context,
+	log *slog.Logger,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentResult, diagnostics.Diag) {
 	args, err := parseTOCArgs(params.Args)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to parse arguments",
+			Summary:  "Failed to parse the arguments",
 			Detail:   err.Error(),
 		}}
 	}
-	titles, err := parseContentTitles(params.DataContext, args.startLevel, args.endLevel, args.scope)
+	headings, err := extractContentTitles(log, params.DataContext, args.startLevel, args.endLevel, args.scope)
 	if err != nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to parse content titles",
+			Summary:  "Failed to find the headings in the content",
 			Detail:   err.Error(),
 		}}
 	}
 
+	headingsAsData := plugindata.List(utils.FnMap(headings, func(h heading) plugindata.Data {
+		return plugindata.Map{
+			"title": plugindata.String(h.title),
+			"level": plugindata.Number(h.level),
+		}
+	}))
+
 	return &plugin.ContentResult{
-		Content: plugin.NewElementFromMarkdown(titles.render(0, args.ordered)),
+		Content: plugin.NewTOCElement(headingsAsData, args.isOrdered, params.DataContext),
 	}, nil
 }
 
-type tocNode struct {
-	level    int
-	title    string
-	children tocNodeList
-}
+// func (n tocNode) render(pos, depth int, ordered bool) string {
+// 	format := "%s- [%s](#%s)\n"
+// 	if ordered {
+// 		format = "%s" + strconv.Itoa(pos+1) + ". [%s](#%s)\n"
+// 	}
+// 	const indentStep = "  "
+// 	dst := []string{
+// 		fmt.Sprintf(format, strings.Repeat(indentStep, depth), n.title, anchorize(n.title)),
+// 		n.children.render(depth+1, ordered),
+// 	}
+// 	return strings.Join(dst, "")
+// }
 
-func (n tocNode) render(pos, depth int, ordered bool) string {
-	format := "%s- [%s](#%s)\n"
-	if ordered {
-		format = "%s" + strconv.Itoa(pos+1) + ". [%s](#%s)\n"
-	}
-	const indentStep = "  "
-	dst := []string{
-		fmt.Sprintf(format, strings.Repeat(indentStep, depth), n.title, anchorize(n.title)),
-		n.children.render(depth+1, ordered),
-	}
-	return strings.Join(dst, "")
-}
+// func (l tocNodeList) render(depth int, ordered bool) string {
+// 	dst := []string{}
+// 	for i, node := range l {
+// 		dst = append(dst, node.render(i, depth, ordered))
+// 	}
+// 	return strings.Join(dst, "")
+// }
+//
+// func (l tocNodeList) add(node tocNode) tocNodeList {
+// 	if len(l) == 0 {
+// 		return append(l, node)
+// 	}
+// 	last := l[len(l)-1]
+// 	if last.level < node.level {
+// 		last.children = last.children.add(node)
+// 		l[len(l)-1] = last
+// 	} else {
+// 		l = append(l, node)
+// 	}
+// 	return l
+// }
+//
+// func anchorize(s string) string {
+// 	return strings.ToLower(strings.ReplaceAll(s, " ", "-"))
+// }
 
-type tocNodeList []tocNode
+func findTitles(log *slog.Logger, section *plugin.ContentSection) []heading {
 
-func (l tocNodeList) render(depth int, ordered bool) string {
-	dst := []string{}
-	for i, node := range l {
-		dst = append(dst, node.render(i, depth, ordered))
-	}
-	return strings.Join(dst, "")
-}
+	headings := []heading{}
 
-func (l tocNodeList) add(node tocNode) tocNodeList {
-	if len(l) == 0 {
-		return append(l, node)
-	}
-	last := l[len(l)-1]
-	if last.level < node.level {
-		last.children = last.children.add(node)
-		l[len(l)-1] = last
-	} else {
-		l = append(l, node)
-	}
-	return l
-}
+	// Depth-first recursive walk
 
-func anchorize(s string) string {
-	return strings.ToLower(strings.ReplaceAll(s, " ", "-"))
-}
-
-func extractTitles(section *plugin.ContentSection) []string {
-	var titles []string
 	for _, content := range section.Children {
 		switch content := content.(type) {
 		case *plugin.ContentSection:
-			titles = append(titles, extractTitles(content)...)
+			// Collect child headings in the sub section
+			headings = append(headings, findTitles(log, content)...)
 		case *plugin.ContentElement:
-			meta := content.Meta()
-			if meta == nil || meta.Plugin != Name || meta.Provider != "title" {
+			if content.Kind() != plugin.HeadingKind {
 				continue
 			}
-			titles = append(titles, string(content.AsMarkdownSrc()))
+
+			title := content.Attr("body")
+			size := content.Attr("size")
+
+			// Skip invalid title blocks
+			if title == nil || size == nil {
+				log.Error("Invalid title element encountered, skipping", "title", title, "size", size)
+				continue
+			}
+			heading := heading{
+				title: string(title.(plugindata.String)),
+				level: int(size.(plugindata.Number)),
+			}
+			headings = append(headings, heading)
 		}
 	}
-	return titles
+
+	return headings
 }
 
-func parseContentTitles(data plugindata.Map, startLvl, endLvl int, scope string) (tocNodeList, error) {
+func extractContentTitles(
+	log *slog.Logger,
+	data plugindata.Map,
+	startLvl, endLvl int,
+	scope string,
+) (headings []heading, err error) {
 	document, section := parseScope(data)
-	var list []string
-	if scope == "auto" {
-		if section != nil {
-			scope = "section"
-		} else {
-			scope = "document"
-		}
-	}
-	if scope == "document" {
-		list = extractTitles(document)
-	} else if scope == "section" && section != nil {
-		list = extractTitles(section)
-	} else {
-		return nil, fmt.Errorf("no content to parse")
-	}
-	var result tocNodeList
-	for _, item := range list {
-		line := strings.TrimSpace(item)
-		if strings.HasPrefix(line, "#") {
-			level := -1
-			for i := 0; i < len(line); i++ {
-				if line[i] != '#' {
-					break
-				}
-				level++
-			}
-			if level < startLvl || level > endLvl {
-				continue
-			}
-			title := strings.TrimSpace(line[level+1:])
-			result = result.add(tocNode{level: level, title: title})
-		}
+	if scope == "auto" && section != nil {
+		scope = "section"
+	} else if scope == "auto" && section == nil {
+		scope = "document"
 	}
 
-	return result, nil
+	if scope == "document" {
+		headings = findTitles(log, document)
+	} else if scope == "section" && section != nil {
+		headings = findTitles(log, section)
+	} else {
+		return nil, fmt.Errorf("no content in the scope")
+	}
+
+	headings = slices.DeleteFunc(headings, func(h heading) bool {
+		toKeep := (startLvl <= h.level) && (h.level <= endLvl)
+		return !toKeep
+	})
+	return headings, nil
 }

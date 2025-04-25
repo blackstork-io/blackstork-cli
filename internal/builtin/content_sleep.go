@@ -15,9 +15,7 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
 )
 
-func makeSleepContentProvider(logger *slog.Logger) *plugin.ContentProvider {
-	logger = logger.With("content_provider", "sleep")
-
+func makeSleepContentProvider(log *slog.Logger) *plugin.ContentProvider {
 	return &plugin.ContentProvider{
 		Doc: `
 			Sleeps for the specified duration. Useful for testing and debugging.
@@ -46,12 +44,13 @@ func makeSleepContentProvider(logger *slog.Logger) *plugin.ContentProvider {
 				}
 			}
 
-			logger.WarnContext(ctx, "Sleeping", "duration", duration)
+			log.WarnContext(ctx, "Sleeping", "duration", duration)
 			time.Sleep(duration)
 
 			return &plugin.ContentResult{
-				Content: plugin.NewElementFromMarkdown(
+				Content: plugin.NewTextElement(
 					fmt.Sprintf("Slept for %s.", duration),
+					params.DataContext,
 				),
 			}, nil
 		},

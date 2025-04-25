@@ -14,7 +14,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 	"github.com/blackstork-io/fabric/plugin/plugintest"
-	"github.com/blackstork-io/fabric/print/mdprint"
 )
 
 type TextTestSuite struct {
@@ -60,7 +59,8 @@ func (s *TextTestSuite) TestBasic() {
 		},
 	})
 	s.Empty(diags)
-	s.Equal("Hello World!", mdprint.PrintString(result.Content))
+	// s.Equal("Hello World!", result.Content)
+	s.Equal("Hello World!", result.Content)
 }
 
 func (s *TextTestSuite) TestNoTemplate() {
@@ -74,7 +74,7 @@ func (s *TextTestSuite) TestNoTemplate() {
 		DataContext: nil,
 	})
 	s.Empty(diags)
-	s.Equal("Hello World!", mdprint.PrintString(result.Content))
+	s.Equal("Hello World!", result.Content)
 }
 
 func (s *TextTestSuite) TestCallInvalidTemplate() {
@@ -114,5 +114,5 @@ func (s *TextTestSuite) TestSprigTemplate() {
 		},
 	})
 	s.Empty(diags)
-	s.Equal("Hello WORLD!", mdprint.PrintString(result.Content))
+	s.Equal("Hello WORLD!", result.Content)
 }

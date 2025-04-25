@@ -38,16 +38,19 @@ func ParseCSVContent(ctx context.Context, reader *csv.Reader) (plugindata.List, 
 					rowMap[header] = nil
 					continue
 				}
-				if row[j] == "true" {
+
+				val := row[j]
+				switch val {
+				case "true":
 					rowMap[header] = plugindata.Bool(true)
-				} else if row[j] == "false" {
+				case "false":
 					rowMap[header] = plugindata.Bool(false)
-				} else {
-					n := json.Number(row[j])
+				default:
+					n := json.Number(val)
 					if f, err := n.Float64(); err == nil {
 						rowMap[header] = plugindata.Number(f)
 					} else {
-						rowMap[header] = plugindata.String(row[j])
+						rowMap[header] = plugindata.String(val)
 					}
 				}
 			}

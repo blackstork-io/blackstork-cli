@@ -90,7 +90,7 @@ func publishHub(version string, loader hubClientLoadFn, logger *slog.Logger, tra
 			title = found
 		}
 		if attr := params.Args.GetAttrVal("title"); !attr.IsNull() {
-			title, err = templateString(attr.AsString(), params.DataContext)
+			title, err = renderText(attr.AsString(), params.DataContext)
 			if err != nil {
 				return diagnostics.Diag{{
 					Severity: hcl.DiagError,

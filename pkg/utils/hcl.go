@@ -3,11 +3,16 @@ package utils
 import (
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
+)
+
+const (
+	maxRefDepth = 10
 )
 
 func RangeStart(rng hcl.Range) hcl.Range {
@@ -104,4 +109,43 @@ func (o *onceVal[V]) do() (res V, diags diagnostics.Diag) {
 // on subsequent calls it will return RepeatedError.
 func OnceVal[V any](fn func() (V, diagnostics.Diag)) func() (V, diagnostics.Diag) {
 	return (&onceVal[V]{fn: fn}).do
+}
+
+// Using pointers as unique ids, not accessing the data.
+type RefId unsafe.Pointer
+
+type RefHistory struct {
+	mu   sync.Mutex
+	refs []RefId
+}
+
+func NewRefHistory() *RefHistory {
+	return &RefHistory{
+		refs: make([]RefId, 0),
+	}
+}
+
+func (hist *RefHistory) Add(refRange *hcl.Range) {
+	hist.mu.Lock()
+	hist.refs = append(hist.refs, RefId(refRange))
+	hist.mu.Unlock()
+}
+
+func (hist *RefHistory) Pop() {
+	hist.mu.Lock()
+	if len(hist.refs) > 0 {
+		hist.refs = hist.refs[:len(hist.refs)-1]
+	}
+	hist.mu.Unlock()
+}
+
+func (hist *RefHistory) IsRefAllowed() bool {
+	return len(hist.refs) <= maxRefDepth
+}
+
+func (hist *RefHistory) Size() int {
+	if hist == nil {
+		return 0
+	}
+	return len(hist.refs)
 }

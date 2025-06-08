@@ -10,8 +10,6 @@ import (
 
 	"github.com/evanphx/go-hclog-slog/hclogslog"
 	"github.com/hashicorp/go-hclog"
-
-	"github.com/blackstork-io/fabric/pkg/utils/slogutil"
 )
 
 var logMutex sync.Mutex
@@ -29,7 +27,7 @@ func init() {
 
 	// Make slog use hclogger
 	// NOTE: slog.SetDefault also calls log.SetOutput, the order of operations is important
-	slog.SetDefault(slog.New(slogutil.NewSourceRewriter(hclogslog.Adapt(hclog.New(&hclog.LoggerOptions{
+	slog.SetDefault(slog.New(hclogslog.Adapt(hclog.New(&hclog.LoggerOptions{
 		Level:                    hclog.Trace,
 		Output:                   os.Stderr,
 		JSONFormat:               true,
@@ -37,7 +35,7 @@ func init() {
 		IncludeLocation:          true,
 		AdditionalLocationOffset: 3, // for slog
 		Mutex:                    &logMutex,
-	})))))
+	}))))
 
 	// Make standard logger use hclogger
 	log.SetOutput(hclog.Default().StandardWriter(&hclog.StandardLoggerOptions{

@@ -8,11 +8,11 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 )
 
-func encodeContentResult(src *plugin.ContentResult) *ContentResult {
+func encodeContentProviderResult(src *plugin.ContentProviderResult) *ContentProviderResult {
 	if src == nil {
 		return nil
 	}
-	return &ContentResult{
+	return &ContentProviderResult{
 		Content: EncodeContent(src.Content),
 	}
 }
@@ -27,11 +27,10 @@ func EncodeContent(src plugin.Content) *Content {
 			break
 		}
 		el := &ContentElement{
-			Id:          val.ID().Bytes(),
 			Meta:        encodeMetadata(val.Meta()),
 			Kind:        string(val.Kind()),
 			Attrs:       encodeMapData(val.Attrs()),
-			DataContext: encodeMapData(val.DataContext()),
+			//DataContext: encodeMapData(val.DataContext()),
 		}
 		variant = &Content_Element{
 			Element: el,
@@ -42,7 +41,6 @@ func EncodeContent(src plugin.Content) *Content {
 		}
 		variant = &Content_Section{
 			Section: &ContentSection{
-				Id:       val.ID().Bytes(),
 				Children: utils.FnMap(val.Children, EncodeContent),
 				Meta:     encodeMetadata(val.Meta()),
 			},
@@ -50,7 +48,6 @@ func EncodeContent(src plugin.Content) *Content {
 	case *plugin.ContentEmpty:
 		variant = &Content_Empty{
 			Empty: &ContentEmpty{
-				Id:   val.ID().Bytes(),
 				Meta: encodeMetadata(val.Meta()),
 			},
 		}

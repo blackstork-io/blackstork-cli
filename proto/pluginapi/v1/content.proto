@@ -4,15 +4,15 @@ package pluginapi.v1;
 
 import "pluginapi/v1/data.proto";
 
-message ContentResult {
+message ContentProviderResult {
     Content  content  = 1;
 }
 
 message Content {
     oneof value {
-        ContentElement           element = 1;
-        ContentSection           section = 2;
-        ContentEmpty             empty   = 3;
+        ContentElement element = 1;
+        ContentSection section = 2;
+        ContentEmpty   empty   = 3;
     };
 }
 
@@ -23,24 +23,21 @@ message Metadata {
 }
 
 message ContentSection {
-    bytes id = 1;
-    Metadata meta = 2;
-    repeated Content children = 3;
+    Metadata meta = 1;
+    repeated Content children = 2;
 }
 
 message ContentElement {
-    bytes id = 1;
-    Metadata meta = 2;
+    Metadata meta = 1;
 
-    string kind = 3;
+    string kind = 2;
 
-    MapData attrs = 4;
-    MapData data_context = 5;
+    MapData attrs = 3;
+    MapData data_context = 4;
 }
 
 message ContentEmpty {
-    bytes id = 1;
-    Metadata meta = 2;
+    Metadata meta = 1;
 }
 
 

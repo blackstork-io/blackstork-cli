@@ -25,7 +25,7 @@ func Load(
 	ctx context.Context,
 	binaryMap map[string]string,
 	builtin *plugin.Schema,
-	logger *slog.Logger,
+	log *slog.Logger,
 	tracer trace.Tracer,
 ) (_ *Runner, diags diagnostics.Diag) {
 	ctx, span := tracer.Start(ctx, "runner.Load")
@@ -36,9 +36,7 @@ func Load(
 		}
 		span.End()
 	}()
-	logger = logger.With("component", "runner")
-	logger.DebugContext(ctx, "Loading plugins")
-	loader := makeLoader(binaryMap, builtin, logger, tracer)
+	loader := makeLoader(binaryMap, builtin, log, tracer)
 	if diags = loader.loadAll(ctx); diags.HasErrors() {
 		return nil, diags
 	}

@@ -52,7 +52,9 @@ func makeLocalFilePublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publi
 
 func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc {
 	return func(ctx context.Context, params *plugin.PublishParams) diagnostics.Diag {
-		document, _ := parseScope(params.DataContext)
+		var document *plugin.ContentSection
+		//content, _ := getDocument(params.DataContext)
+		//document, _ := parseScope(params.DataContext)
 		if document == nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,

@@ -17,24 +17,17 @@ message Schema {
 }
 
 message DataSourceSchema {
-    BlockSpec            args   = 3;
-    BlockSpec            config = 4;
-    string               doc    = 5;
-    repeated string      tags   = 6;
-}
-
-enum InvocationOrder {
-    INVOCATION_ORDER_UNSPECIFIED = 0;
-    INVOCATION_ORDER_BEGIN       = 2;
-    INVOCATION_ORDER_END         = 3;
+    BlockSpec            args   = 1;
+    BlockSpec            config = 2;
+    string               doc    = 3;
+    repeated string      tags   = 4;
 }
 
 message ContentProviderSchema {
-    BlockSpec       args             = 4;
-    BlockSpec       config           = 5;
-    InvocationOrder invocation_order = 3;
-    string          doc              = 6;
-    repeated string tags             = 7;
+    BlockSpec       args   = 1;
+    BlockSpec       config = 2;
+    string          doc    = 3;
+    repeated string tags   = 4;
 }
 
 message PublisherSchema {
@@ -51,5 +44,4 @@ message FormatterSchema {
     string                doc      = 3;
     string                format   = 4;
     string                file_ext = 5;
-    repeated string       tags     = 6;
 }

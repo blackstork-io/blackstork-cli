@@ -2,6 +2,7 @@ package diagnostics
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -54,4 +55,59 @@ func PrintDiags(output io.Writer, diags []*hcl.Diagnostic, fileMap map[string]*h
 			slog.Error("Failed to write diagnostics", "err", err)
 		}
 	}
+}
+
+func GetDiagsDetails(diags []*hcl.Diagnostic) (details []map[string]any) {
+	if len(diags) == 0 {
+		return details
+	}
+
+	details = []map[string]any{}
+
+	for _, diag := range diags {
+		details = append(details, GetDiagDetails(diag))
+	}
+	return details
+}
+
+func GetDiagDetails(diag *hcl.Diagnostic) (details map[string]any) {
+	if diag == nil {
+		return details
+	}
+
+	details = map[string]any{}
+
+	if diag.Subject != nil {
+		details["filename"] = diag.Subject.Filename
+	}
+
+	details["summary"] = diag.Summary
+	details["details"] = diag.Detail
+
+	severity := ""
+	switch diag.Severity {
+	case hcl.DiagError:
+		severity = "error"
+	case hcl.DiagWarning:
+		severity = "warning"
+	case hcl.DiagInvalid:
+		severity = "invalid"
+	default:
+		severity = fmt.Sprintf("value=%d", diag.Severity)
+	}
+
+	details["severity"] = severity
+
+	if gojqErr, ok := GetExtra[GoJQError](diag); ok {
+		details["jq_error"] = extractJQErrorDetails(gojqErr)
+	}
+
+	if traceback, ok := GetExtra[TracebackExtra](diag); ok {
+		details["traceback"] = extractTracebackDetails(traceback)
+	}
+
+	if path, ok := GetExtra[PathExtra](diag); ok {
+		details["path"] = path.String()
+	}
+	return details
 }

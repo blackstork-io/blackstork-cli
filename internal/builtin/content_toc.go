@@ -2,9 +2,7 @@ package builtin
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -76,8 +74,8 @@ func makeTOCContentProvider(log *slog.Logger) *plugin.ContentProvider {
 				},
 			},
 		},
-		InvocationOrder: plugin.InvocationOrderEnd,
-		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+		//InvocationOrder: plugin.InvocationOrderEnd,
+		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, diagnostics.Diag) {
 			return genTOC(ctx, log, params)
 		},
 		Doc: `Renders a list of contents (TOC) from the headers found in a defined scope.`,
@@ -102,7 +100,7 @@ func genTOC(
 	ctx context.Context,
 	log *slog.Logger,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	args, err := parseTOCArgs(params.Args)
 	if err != nil {
 		return nil, diagnostics.Diag{{
@@ -111,14 +109,15 @@ func genTOC(
 			Detail:   err.Error(),
 		}}
 	}
-	headings, err := extractContentTitles(log, params.DataContext, args.startLevel, args.endLevel, args.scope)
-	if err != nil {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to find the headings in the content",
-			Detail:   err.Error(),
-		}}
-	}
+	headings := []heading{}
+	// headings, err := extractContentTitles(log, params.DataContext, args.startLevel, args.endLevel, args.scope)
+	// if err != nil {
+	// 	return nil, diagnostics.Diag{{
+	// 		Severity: hcl.DiagError,
+	// 		Summary:  "Failed to find the headings in the content",
+	// 		Detail:   err.Error(),
+	// 	}}
+	// }
 
 	headingsAsData := plugindata.List(utils.FnMap(headings, func(h heading) plugindata.Data {
 		return plugindata.Map{
@@ -127,8 +126,8 @@ func genTOC(
 		}
 	}))
 
-	return &plugin.ContentResult{
-		Content: plugin.NewTOCElement(headingsAsData, args.isOrdered, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewTOCElement(headingsAsData, args.isOrdered),
 	}, nil
 }
 
@@ -206,30 +205,34 @@ func findTitles(log *slog.Logger, section *plugin.ContentSection) []heading {
 	return headings
 }
 
-func extractContentTitles(
-	log *slog.Logger,
-	data plugindata.Map,
-	startLvl, endLvl int,
-	scope string,
-) (headings []heading, err error) {
-	document, section := parseScope(data)
-	if scope == "auto" && section != nil {
-		scope = "section"
-	} else if scope == "auto" && section == nil {
-		scope = "document"
-	}
-
-	if scope == "document" {
-		headings = findTitles(log, document)
-	} else if scope == "section" && section != nil {
-		headings = findTitles(log, section)
-	} else {
-		return nil, fmt.Errorf("no content in the scope")
-	}
-
-	headings = slices.DeleteFunc(headings, func(h heading) bool {
-		toKeep := (startLvl <= h.level) && (h.level <= endLvl)
-		return !toKeep
-	})
-	return headings, nil
-}
+// func extractContentTitles(
+// 	log *slog.Logger,
+// 	data plugindata.Map,
+// 	startLvl, endLvl int,
+// 	scope string,
+// ) (headings []heading, err error) {
+//
+// 	document, err := getDocument(data)
+//
+// 	section, err := getRootSection(data)
+//
+// 	if scope == "auto" && section != nil {
+// 		scope = "section"
+// 	} else if scope == "auto" && section == nil {
+// 		scope = "document"
+// 	}
+//
+// 	if scope == "document" {
+// 		headings = findTitles(log, document)
+// 	} else if scope == "section" && section != nil {
+// 		headings = findTitles(log, section)
+// 	} else {
+// 		return nil, fmt.Errorf("no content in the scope")
+// 	}
+//
+// 	headings = slices.DeleteFunc(headings, func(h heading) bool {
+// 		toKeep := (startLvl <= h.level) && (h.level <= endLvl)
+// 		return !toKeep
+// 	})
+// 	return headings, nil
+// }

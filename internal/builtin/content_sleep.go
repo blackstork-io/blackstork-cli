@@ -32,7 +32,7 @@ func makeSleepContentProvider(log *slog.Logger) *plugin.ContentProvider {
 				},
 			},
 		},
-		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, diagnostics.Diag) {
 			duration, err := time.ParseDuration(params.Args.GetAttrVal("duration").AsString())
 			if err != nil {
 				return nil, diagnostics.Diag{
@@ -47,11 +47,8 @@ func makeSleepContentProvider(log *slog.Logger) *plugin.ContentProvider {
 			log.WarnContext(ctx, "Sleeping", "duration", duration)
 			time.Sleep(duration)
 
-			return &plugin.ContentResult{
-				Content: plugin.NewTextElement(
-					fmt.Sprintf("Slept for %s.", duration),
-					params.DataContext,
-				),
+			return &plugin.ContentProviderResult{
+				Content: plugin.NewTextElement(fmt.Sprintf("Slept for %s.", duration)),
 			}, nil
 		},
 	}

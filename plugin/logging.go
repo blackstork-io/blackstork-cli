@@ -14,105 +14,99 @@ import (
 )
 
 // WithLogging wraps the plugin with logging instrumentation.
-func WithLogging(plugin *Schema, logger *slog.Logger) *Schema {
-	logger = logger.With("component", "plugin")
-	plugin.ContentProviders = makeContentProvidersLogging(plugin.Name, plugin.ContentProviders, logger)
-	plugin.DataSources = makeDataSourcesLogging(plugin.Name, plugin.DataSources, logger)
-	plugin.Formatters = makeFormattersLogging(plugin.Name, plugin.Formatters, logger)
-	plugin.Publishers = makePublishersLogging(plugin.Name, plugin.Publishers, logger)
+func WithLogging(plugin *Schema, log *slog.Logger) *Schema {
+	log = log.With("plugin", plugin.Name)
+	plugin.ContentProviders = makeContentProvidersLogging(plugin.ContentProviders, log)
+	plugin.DataSources = makeDataSourcesLogging(plugin.DataSources, log)
+	plugin.Formatters = makeFormattersLogging(plugin.Formatters, log)
+	plugin.Publishers = makePublishersLogging(plugin.Publishers, log)
 	return plugin
 }
 
-func makeContentProvidersLogging(plugin string, providers ContentProviders, logger *slog.Logger) ContentProviders {
+func makeContentProvidersLogging(providers ContentProviders, log *slog.Logger) ContentProviders {
 	result := make(ContentProviders)
 	for name, provider := range providers {
-		provider.ContentFunc = makeContentProviderLogging(plugin, name, *provider, logger)
+		provider.ContentFunc = makeContentProviderLogging(name, *provider, log)
 		result[name] = provider
 	}
 	return result
 }
 
-func makeDataSourcesLogging(plugin string, sources DataSources, logger *slog.Logger) DataSources {
+func makeDataSourcesLogging(sources DataSources, log *slog.Logger) DataSources {
 	result := make(DataSources)
 	for name, source := range sources {
-		source.DataFunc = makeDataSourceLogging(plugin, name, *source, logger)
+		source.DataFunc = makeDataSourceLogging(name, *source, log)
 		result[name] = source
 	}
 	return result
 }
 
-func makePublishersLogging(plugin string, publishers Publishers, logger *slog.Logger) Publishers {
+func makePublishersLogging(publishers Publishers, log *slog.Logger) Publishers {
 	result := make(Publishers)
 	for name, publisher := range publishers {
-		publisher.PublishFunc = makePublisherLogging(plugin, name, *publisher, logger)
+		publisher.PublishFunc = makePublisherLogging(name, *publisher, log)
 		result[name] = publisher
 	}
 	return result
 }
 
-func makePublisherLogging(plugin, name string, publisher Publisher, logger *slog.Logger) PublishFunc {
+func makePublisherLogging(name string, publisher Publisher, log *slog.Logger) PublishFunc {
 	next := publisher.PublishFunc
 	return func(ctx context.Context, params *PublishParams) diagnostics.Diag {
-		logger.DebugContext(ctx, "Executing a publisher", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
+		log.DebugContext(
+			ctx, "Executing a publisher",
 			slog.String("publisher", name),
-			slog.Any("formats", publisher.Formats),
+			slog.Any("supported_formats", publisher.Formats),
 			slog.Any("config", logDataBlockValue(params.Config)),
 			slog.Any("args", logDataBlockValue(params.Args)),
-			slog.String("document_name", params.DocumentName),
-		))
+			slog.String("document", params.DocumentName),
+		)
 		return next(ctx, params)
 	}
 }
 
-func makeFormattersLogging(plugin string, formatters Formatters, logger *slog.Logger) Formatters {
+func makeFormattersLogging(formatters Formatters, log *slog.Logger) Formatters {
 	result := make(Formatters)
 	for name, formatter := range formatters {
-		formatter.FormatFunc = makeFormatterLogging(plugin, name, *formatter, logger)
+		formatter.FormatFunc = makeFormatterLogging(*formatter, log)
 		result[name] = formatter
 	}
 	return result
 }
 
-
-func makeFormatterLogging(plugin, name string, formatter Formatter, logger *slog.Logger) FormatFunc {
+func makeFormatterLogging(formatter Formatter, log *slog.Logger) FormatFunc {
 	next := formatter.FormatFunc
 	return func(ctx context.Context, params *FormatParams) (*FormattedContent, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing a formatter", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
-			slog.String("formatter", name),
+		log.DebugContext(ctx, "Executing a formatter",
 			slog.Any("format", formatter.Format),
 			slog.Any("file_ext", formatter.FileExt),
 			slog.Any("config", logDataBlockValue(params.Config)),
 			slog.Any("args", logDataBlockValue(params.Args)),
-		))
+		)
 		return next(ctx, params)
 	}
 }
 
-func makeContentProviderLogging(plugin, name string, provider ContentProvider, logger *slog.Logger) ProvideContentFunc {
+func makeContentProviderLogging(name string, provider ContentProvider, log *slog.Logger) ProvideContentFunc {
 	next := provider.ContentFunc
-	return func(ctx context.Context, params *ProvideContentParams) (*ContentResult, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing content provider", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
+	return func(ctx context.Context, params *ProvideContentParams) (*ContentProviderResult, diagnostics.Diag) {
+		log.DebugContext(ctx, "Executing a content provider",
 			slog.String("provider", name),
 			slog.Any("config", logDataBlockValue(params.Config)),
 			slog.Any("args", logDataBlockValue(params.Args)),
-			slog.Uint64("content_id", uint64(params.ContentID)),
-		))
+		)
 		return next(ctx, params)
 	}
 }
 
-func makeDataSourceLogging(plugin, name string, source DataSource, logger *slog.Logger) RetrieveDataFunc {
+func makeDataSourceLogging(name string, source DataSource, log *slog.Logger) RetrieveDataFunc {
 	next := source.DataFunc
 	return func(ctx context.Context, params *RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing datasource", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
-			slog.String("datasource", name),
+		log.DebugContext(ctx, "Executing a data source",
+			slog.String("data_source", name),
 			slog.Any("config", logDataBlockValue(params.Config)),
 			slog.Any("args", logDataBlockValue(params.Args)),
-		))
+		)
 		return next(ctx, params)
 	}
 }

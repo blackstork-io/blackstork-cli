@@ -13,22 +13,22 @@ import (
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 )
 
-// Configuration block.
-type Config struct {
+// Configuration block definition.
+type ConfigDef struct {
 	*hclsyntax.Block
 	once  sync.Once
 	value *dataspec.Block
 }
 
-// Exists implements evaluation.Configuration.
-func (c *Config) Exists() bool {
+// Implements evaluation.Configuration.
+func (c *ConfigDef) Exists() bool {
 	return c != nil
 }
 
-var _ evaluation.Configuration = (*Config)(nil)
+var _ evaluation.Configuration = (*ConfigDef)(nil)
 
 // ParseConfig implements Configuration.
-func (c *Config) ParseConfig(ctx context.Context, spec *dataspec.RootSpec) (val *dataspec.Block, diags diagnostics.Diag) {
+func (c *ConfigDef) ParseConfig(ctx context.Context, spec *dataspec.RootSpec) (val *dataspec.Block, diags diagnostics.Diag) {
 	c.once.Do(func() {
 		var diag diagnostics.Diag
 		c.value, diag = dataspec.DecodeAndEvalBlock(ctx, c.Block, spec, nil)
@@ -44,66 +44,70 @@ func (c *Config) ParseConfig(ctx context.Context, spec *dataspec.RootSpec) (val 
 	return
 }
 
-func (c *Config) GetKey() *Key {
+func (c *ConfigDef) Key() *Key {
 	var name string
-	switch len(c.Block.Labels) {
+	switch len(c.Labels) {
 	case 0:
 		// anonymous config block
 		return nil
 	case 3:
 		// named config block
-		name = c.Block.Labels[2]
+		name = c.Labels[2]
 		fallthrough
 	case 2:
 		// default config block
 		return &Key{
-			PluginKind: c.Block.Labels[0],
-			PluginName: c.Block.Labels[1],
-			BlockName:  name,
+			Kind: c.Labels[0],
+			Runner: c.Labels[1],
+			Name:  name,
 		}
 	default:
-		panic("Invalid parsed config block")
+		panic("Invalid config block definition")
 	}
 }
 
-func (c *Config) ApplicableTo(plugin *Plugin) bool {
-	switch len(c.Block.Labels) {
+func (c *ConfigDef) ApplicableTo(execBlock *ExecBlockDef) bool {
+	switch len(c.Labels) {
 	case 0:
 		// anonymous config block
 		return true
 	case 2, 3:
 		// named config block
-		return plugin.Kind() == c.Block.Labels[0] && plugin.Name() == c.Block.Labels[1]
+		return execBlock.Kind() == c.Labels[0] && execBlock.Name() == c.Labels[1]
 	default:
-		panic("Invalid parsed config block")
+		panic("Config block definitions is invalid")
 	}
 }
 
-var _ FabricBlock = (*Config)(nil)
+func (c *ConfigDef) Kind() string {
+	return BlockKindConfig
+}
 
-func (c *Config) GetHCLBlock() *hclsyntax.Block {
+var _ BlockDef = (*ConfigDef)(nil)
+
+func (c *ConfigDef) GetHCLBlock() *hclsyntax.Block {
 	return c.Block
 }
 
-var ctyConfigType = encapsulator.NewEncoder[Config]("config", nil)
+var ctyConfigType = encapsulator.NewEncoder[ConfigDef]("config", nil)
 
-func (c *Config) CtyType() cty.Type {
+func (c *ConfigDef) CtyType() cty.Type {
 	return ctyConfigType.CtyType()
 }
 
-func DefineConfig(block *hclsyntax.Block) (config *Config, diags diagnostics.Diag) {
-	diags.Append(validatePluginKindLabel(block, 0))
-	diags.Append(validatePluginName(block, 1))
+func DefineConfigDef(block *hclsyntax.Block) (config *ConfigDef, diags diagnostics.Diag) {
+	diags.Append(validateExecBlockKindLabel(block, 0))
+	diags.Append(validateBlockRunnerName(block, 1))
 	diags.Append(validateBlockName(block, 2, false))
 	diags.Append(validateLabelsLength(block, 3, "plugin_kind plugin_name <block_name>"))
 
 	if diags.HasErrors() {
 		return
 	}
-	config = &Config{
+	config = &ConfigDef{
 		Block: block,
 	}
 	return
 }
 
-type ConfigResolver func(pluginKind, pluginName string) (config *Config)
+type ConfigResolver func(execBlockKind, blockRunnerName string) (config *ConfigDef)

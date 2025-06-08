@@ -8,7 +8,7 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 )
 
-func decodeContentResult(src *ContentResult) (*plugin.ContentResult, error) {
+func decodeContentProviderResult(src *ContentProviderResult) (*plugin.ContentProviderResult, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -18,26 +18,23 @@ func decodeContentResult(src *ContentResult) (*plugin.ContentResult, error) {
 		return nil, err
 	}
 
-	return &plugin.ContentResult{Content: content}, nil
+	return &plugin.ContentProviderResult{Content: content}, nil
 }
 
 func decodeContent(src *Content) (plugin.Content, error) {
 	switch val := src.GetValue().(type) {
 	case *Content_Element:
-		id := plugin.ContentID(val.Element.GetId())
 		kind := plugin.ContentKind(val.Element.GetKind())
 
 		meta := decodeMetadata(val.Element.GetMeta())
 		attrs := decodeMapData(val.Element.GetAttrs().GetValue())
-		data := decodeMapData(val.Element.GetDataContext().GetValue())
 
-		el, err := plugin.NewContentElement(id, kind, meta, attrs, data)
+		el, err := plugin.NewContentElement(kind, meta, attrs)
 		if err != nil {
 			return nil, err
 		}
 		return el, nil
 	case *Content_Section:
-		id := plugin.ContentID(val.Section.GetId())
 		meta := decodeMetadata(val.Section.GetMeta())
 
 		children, err := utils.FnMapErr(
@@ -48,13 +45,12 @@ func decodeContent(src *Content) (plugin.Content, error) {
 			return nil, err
 		}
 
-		section := plugin.NewSection(id, meta, children)
+		section := plugin.NewSection(meta, children)
 		return section, nil
 	case *Content_Empty:
-		id := plugin.ContentID(val.Empty.GetId())
 		meta := decodeMetadata(val.Empty.GetMeta())
 
-		return plugin.NewEmptyContent(&id, meta), nil
+		return plugin.NewEmptyContent(meta), nil
 	case nil:
 		slog.Error("Received nil content", "src", src)
 		return nil, nil

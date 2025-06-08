@@ -21,6 +21,25 @@ type GoJQError struct {
 	Query string
 }
 
+
+func extractJQErrorDetails(err GoJQError) map[string]any {
+	var parseErr *gojq.ParseError
+	if !errors.As(err.Err, &parseErr) {
+		return nil
+	}
+
+	if err.Query == "" {
+		return nil
+	}
+
+	return map[string]any{
+		"query": err.Query,
+		"offset": parseErr.Offset,
+		"token": parseErr.Token,
+	}
+}
+
+
 // Rewrites diag and fileMap to improve the error message for GoJQError on a best-effort basis.
 func (gojqErr *GoJQError) improveDiagnostic(diag *hcl.Diagnostic, fileMap map[string]*hcl.File) {
 	var err *gojq.ParseError

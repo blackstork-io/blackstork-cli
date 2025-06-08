@@ -76,7 +76,8 @@ func publishHub(version string, loader hubClientLoadFn, logger *slog.Logger, tra
 			}}
 		}
 
-		content, _ := parseScope(params.DataContext)
+		var content *plugin.ContentSection
+		//content, _ := getDocument(params.DataContext)
 		if content == nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,
@@ -86,9 +87,10 @@ func publishHub(version string, loader hubClientLoadFn, logger *slog.Logger, tra
 		}
 
 		title := "Untitled"
-		if found, ok := firstTitle(content); ok {
-			title = found
-		}
+		// FIXME
+		// if found := firstTitle(content); found != nil {
+		// 	title = found
+		// }
 		if attr := params.Args.GetAttrVal("title"); !attr.IsNull() {
 			title, err = renderText(attr.AsString(), params.DataContext)
 			if err != nil {

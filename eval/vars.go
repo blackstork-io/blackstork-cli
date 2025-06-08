@@ -2,10 +2,8 @@ package eval
 
 import (
 	"context"
-	"maps"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
@@ -13,44 +11,41 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-// getVarsCopy creates a new vars key in the data context if it doesn't exist,
-// or clones the existing one.
-func getVarsCopy(dataCtx plugindata.Map) (vars plugindata.Map) {
-	varsData := dataCtx["vars"]
-	if varsData == nil {
-		vars = plugindata.Map{}
-	} else {
-		// avoid modifying the original vars
-		vars = maps.Clone(varsData.(plugindata.Map))
-	}
-	dataCtx["vars"] = vars
-	return vars
-}
-
 // Evaluates `variables` and stores the results in `dataCtx` under the key "vars".
-func ApplyVars(ctx context.Context, variables *definitions.ParsedVars, dataCtx plugindata.Map) (diags diagnostics.Diag) {
+func ApplyVars(ctx context.Context, variables *definitions.Vars, dataCtx plugindata.Map) (diags diagnostics.Diag) {
 	if variables.Empty() {
 		return
 	}
-	vars := getVarsCopy(dataCtx)
+	varsData := dataCtx[definitions.BlockKindVars]
+
+	var vars plugindata.Map
+	if varsData == nil {
+		vars = plugindata.Map{}
+	} else {
+		vars = varsData.(plugindata.Map)
+	}
 	var diag diagnostics.Diag
-	for _, variable := range variables.Variables {
-		vars[variable.Name], diag = evalVar(ctx, dataCtx, variable)
+	for _, attr := range variables.GetAttrs() {
+		vars[attr.Name], diag = evalVar(ctx, dataCtx, attr)
 		diags.Extend(diag.Refine(
-			diagnostics.DefaultSubject(variable.ValueRange),
+			diagnostics.DefaultSubject(attr.ValueRange),
 		))
 	}
-
+	dataCtx["vars"] = vars
 	return
 }
 
-func evalVar(ctx context.Context, dataCtx plugindata.Map, attr *dataspec.Attr) (data plugindata.Data, diags diagnostics.Diag) {
+func evalVar(
+	ctx context.Context,
+	dataCtx plugindata.Map,
+	attr *dataspec.Attr,
+) (data plugindata.Data, diags diagnostics.Diag) {
 	val, diags := dataspec.EvalAttr(ctx, attr, dataCtx)
 	if diags.HasErrors() {
 		return
 	}
 	dataVal, err := plugindata.Encapsulated.FromCty(val)
-	if diags.AppendErr(err, "Failed to convert variable value") {
+	if diags.AppendErr(err, "Failed to convert a variable value") {
 		return
 	}
 	if dataVal != nil {
@@ -59,15 +54,14 @@ func evalVar(ctx context.Context, dataCtx plugindata.Map, attr *dataspec.Attr) (
 	return
 }
 
-func verifyRequiredVars(docDataCtx plugindata.Map, requiredVars []string, block *hclsyntax.Block) (diag diagnostics.Diag) {
+func verifyRequiredVars(docDataCtx plugindata.Map, requiredVars []string) (diag diagnostics.Diag) {
 	vars, varsPresent := docDataCtx["vars"].(plugindata.Map)
 	for _, reqVar := range requiredVars {
 		if !varsPresent || vars[reqVar] == nil {
 			return diagnostics.FromHcl(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing required variable",
-				Detail:   "block requires '" + reqVar + "' var which is not set.",
-				Subject:  block.Range().Ptr(),
+				Summary:  "Missing a required variable",
+				Detail:   "The block requires `" + reqVar + "` var which is not set.",
 			})
 		}
 	}

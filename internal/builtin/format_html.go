@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -39,17 +40,19 @@ func makeHTMLFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatt
 					Name:        "template_per_type",
 					Doc:         "HTML templates for specific block types (content and section)",
 					Type:        plugindata.Encapsulated.CtyType(),
-					Constraints: constraint.RequiredMeaningful,
+					Constraints: constraint.NonEmpty,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
-						"content.text":  cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
-						"content.image": cty.StringVal(`<img src="{{ .self.src }}" alt="{{ .self.alt }}" class="img-w-10" />`),
+						"content.text": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
+						"content.image": cty.StringVal(
+							`<img src="{{ .self.src }}" alt="{{ .self.alt }}" class="img-w-10" />`,
+						),
 					}),
 				},
 				{
 					Name:        "template_per_block",
 					Doc:         "HTML templates for specific content and section blocks",
 					Type:        plugindata.Encapsulated.CtyType(),
-					Constraints: constraint.RequiredMeaningful,
+					Constraints: constraint.NonEmpty,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
 						"content.text.foo": cty.StringVal(`<span class="text-block">{{ .self.value }}</span>`),
 						"section.bar":      cty.StringVal(`<h1>{{ .self.title.value }}</h1><p>{{ .self.content }}</p>`),
@@ -63,29 +66,30 @@ func makeHTMLFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatt
 
 func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
 	return func(ctx context.Context, params *plugin.FormatParams) (*plugin.FormattedContent, diagnostics.Diag) {
-		document, _ := parseScope(params.DataContext)
-		if document == nil {
+		dataCtx := params.DataContext
+		dataCtx["format"] = plugindata.String(params.Format)
+
+		section, err := parseContentSection(params.Content)
+		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,
-				Summary:  "Failed to parse data context",
-				Detail:   "document is not found",
+				Summary:  "Failed to parse document content",
+				Detail:   fmt.Sprintf("Error while parsing document content: %s", err),
 			}}
 		}
-		// datactx := params.DataContext
-		// datactx["format"] = plugindata.String(params.Format)
 
-		for _, child := range document.Children {
-			childData := child.AsData().(plugindata.Map)
+		for _, child := range section.Children {
+			childData := child.AsData()
 			log.InfoContext(
 				ctx, "CHILD",
 				"data", childData,
 			)
 		}
 
-		log.InfoContext(ctx, "HTML FORMATTER CALLED", "params", params, "document", document)
+		log.InfoContext(ctx, "HTML FORMATTER CALLED", "params", params)
 		return &plugin.FormattedContent{
 			Content: []byte("HELLO FORMATTED HTML"),
-			Format: params.Format,
+			Format:  params.Format,
 		}, nil
 
 		// var printer print.Printer

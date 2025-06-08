@@ -104,10 +104,9 @@ func (srv *grpcServer) ProvideContent(
 		Config:      cfg,
 		Args:        args,
 		DataContext: datactx,
-		ContentID:   req.GetContentId(),
 	})
 	return &ProvideContentResponse{
-		Result:      encodeContentResult(result),
+		Result:      encodeContentProviderResult(result),
 		Diagnostics: encodeDiagnosticList(diags),
 	}, nil
 }
@@ -168,13 +167,22 @@ func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*Publi
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
 	}
 	datactx := decodeMapData(req.GetDataContext().GetValue())
-	content := decodeFormattedContent(req.GetFormattedContent())
+	contentRaw := req.GetContent()
+	var content plugin.Content
+	if contentRaw != nil {
+		content, err = decodeContent(contentRaw)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to decode content: %v", err)
+		}
+	}
+	formattedContent := decodeFormattedContent(req.GetFormattedContent())
 	diags := srv.schema.Publish(ctx, publisher, &plugin.PublishParams{
 		Config:           cfg,
 		Args:             args,
 		DataContext:      datactx,
 		DocumentName:     req.GetDocumentName(),
-		FormattedContent: content,
+		Content:          content,
+		FormattedContent: formattedContent,
 	})
 	return &PublishResponse{
 		Diagnostics: encodeDiagnosticList(diags),

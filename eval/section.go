@@ -2,159 +2,145 @@ package eval
 
 import (
 	"context"
-	"fmt"
-	"maps"
-	"slices"
-
-	"github.com/hashicorp/hcl/v2"
+	"reflect"
 
 	"github.com/blackstork-io/fabric/cmd/fabctx"
+	"github.com/blackstork-io/fabric/parser"
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/deferred"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type Section struct {
+	source *definitions.Section
+
+	blockName string
+
 	meta         *definitions.MetaBlock
-	children     []*Content
-	vars         *definitions.ParsedVars
-	source       *definitions.Section
+	children     []ContentTreeEvalBlock
+	vars         *definitions.Vars
 	requiredVars []string
-	isIncluded   *dataspec.Attr
+
+	dependsOn []EvalKey
+
+	isIncluded *dataspec.Attr
+
+	// To be filled in during unpacking and data propagation
+	dataCtx          *plugindata.Map
+	childrenToRender []RenderableContent
 }
 
-func (block *Section) PrepareData(ctx context.Context, dataCtx plugindata.Map, doc, parent *plugin.ContentSection) (diags diagnostics.Diag) {
-	sectionData := plugindata.Map{}
-	if block.meta != nil {
-		sectionData[definitions.BlockKindMeta] = block.meta.AsPluginData()
+func (s *Section) EvalKey() EvalKey {
+	return EvalKey{
+		kind: definitions.BlockKindSection,
+		name: s.blockName, // can be overriden by ref base or dynamic block
 	}
-	dataCtx[definitions.BlockKindSection] = sectionData
-	diag := ApplyVars(ctx, block.vars, dataCtx)
-	if diags.Extend(diag) {
-		return
-	}
-
-	// verify required vars
-	if len(block.requiredVars) > 0 {
-		diag := verifyRequiredVars(dataCtx, block.requiredVars, block.source.Block)
-		if diags.Extend(diag) {
-			return
-		}
-	}
-
-	return diags
 }
 
-func (block *Section) Unwrap(ctx context.Context, dataCtx plugindata.Map) (include bool, children []*Content, diags diagnostics.Diag) {
-	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, dataCtx)
-	if diags.Extend(diag) {
-		return
-	}
-	if isIncluded.IsNull() || !plugindata.IsTruthy(*plugindata.Encapsulated.MustFromCty(isIncluded)) {
-		return
-	}
-
-	children, diag = UnwrapDynamicContent(ctx, block.children, dataCtx)
-	if diags.Extend(diag) {
-		return false, nil, diags
-	}
-	return true, children, diags
+func (s *Section) Kind() string {
+	return s.source.GetSourceKind()
 }
 
-func (block *Section) RenderContent(ctx context.Context, dataCtx plugindata.Map, doc, parent *plugin.ContentSection, contentID uint32) (diags diagnostics.Diag) {
-	sectionData := plugindata.Map{}
-	if block.meta != nil {
-		sectionData[definitions.BlockKindMeta] = block.meta.AsPluginData()
-	}
-	dataCtx[definitions.BlockKindSection] = sectionData
+func (s *Section) GetDataCtx() *plugindata.Map {
+	return s.dataCtx
+}
+
+func (a *Section) addNameSuffix(val string) {
+	a.blockName += ":" + val
+}
+
+func (s *Section) CtyType() cty.Type {
+	nativeType := reflect.TypeOf(s)
+	return cty.Capsule("section", nativeType)
+}
+
+func (block *Section) RenderContent(
+	ctx context.Context,
+	data plugindata.Map,
+) (_ plugin.Content, diags diagnostics.Diag) {
+
 	section := new(plugin.ContentSection)
-	if parent != nil {
-		err := parent.Add(section, &plugin.Location{
-			Index: contentID,
-		})
-		if err != nil {
-			return diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to place content",
-				Detail:   fmt.Sprintf("Failed to place content: %s", err),
-			}}
-		}
-	}
 
-	diag := ApplyVars(ctx, block.vars, dataCtx)
-	if diags.Extend(diag) {
-		return
-	}
-
-	isIncluded, diag := dataspec.EvalAttr(ctx, block.isIncluded, dataCtx)
-	if diags.Extend(diag) {
-		return
-	}
-	if isIncluded.IsNull() || !plugindata.IsTruthy(*plugindata.Encapsulated.MustFromCty(isIncluded)) {
-		return
-	}
-
-	children, diag := UnwrapDynamicContent(ctx, block.children, dataCtx)
-	if diags.Extend(diag) {
-		return
-	}
-
-	// create a position map for content blocks
-	posMap := make(map[int]uint32)
-	for i := range children {
-		empty := new(plugin.ContentEmpty)
-		section.Add(empty, nil)
-		posMap[i] = empty.ID()
-	}
-	// sort content blocks by invocation order
-	invokeList := make([]int, 0, len(children))
-	for i := range children {
-		invokeList = append(invokeList, i)
-	}
-	slices.SortStableFunc(invokeList, func(a, b int) int {
-		ao := children[a].InvocationOrder()
-		bo := children[b].InvocationOrder()
-		return ao.Weight() - bo.Weight()
-	})
-
-	// verify required vars
-	if len(block.requiredVars) > 0 {
-		diag := verifyRequiredVars(dataCtx, block.requiredVars, block.source.Block)
-		if diags.Extend(diag) {
-			return
-		}
-	}
-
-	// execute content blocks based on the invocation order
-	for _, idx := range invokeList {
-		// update the session data (is propagated to dataCtx, maps are by-ref structures)
-		sectionData[definitions.BlockKindContent] = section.AsData()
-
-		// execute the content block
-		diag := children[idx].RenderContent(ctx, maps.Clone(dataCtx), doc, section, posMap[idx])
-		if diags.Extend(diag) {
-			return
-		}
-	}
+	// // execute content blocks based on the invocation order
+	// for _, child := range children {
+	// 	// update the session data (is propagated to dataCtx, maps are by-ref structures)
+	// 	sectionData[definitions.BlockKindContent] = section.AsData()
+	//
+	// 	// execute the content block
+	// 	childContent, diag := child.RenderContent(ctx, maps.Clone(data))
+	// 	if diags.Extend(diag) {
+	// 		return nil, diags
+	// 	}
+	// 	section.Add(childContent)
+	// }
 	// compact the content tree to remove empty content nodes
 	section.Compact()
-	return
+	return section, nil
 }
 
-func LoadSection(ctx context.Context, providers ContentProviders, node *definitions.ParsedSection) (_ *Section, diags diagnostics.Diag) {
+func (s *Section) GetDef() definitions.BlockDef {
+	return s.source.Source
+}
+
+func (s *Section) isContentTreeEvalBlock() {}
+
+var _ ContentTreeEvalBlock = (*Section)(nil)
+var _ RenderableContent = (*Section)(nil)
+var _ parser.Ctyable = (*Section)(nil)
+
+func LoadSection(
+	ctx context.Context,
+	providers ContentProviders,
+	sectionDef *definitions.Section,
+) (_ *Section, diags diagnostics.Diag) {
+
+	// Evaluate requiredVars lists
+	var requiredVars []string
+	for _, vars := range sectionDef.RequiredVarsCombined {
+		var varNames []string
+		diag := gohcl.DecodeExpression(vars.Expr, nil, &varNames)
+		if diags.Extend(diag) {
+			continue
+		}
+		requiredVars = append(requiredVars, varNames...)
+	}
+
+	// Evaluate dependsOn lists
+	var dependsOn []EvalKey
+	for _, deps := range sectionDef.DependsOnCombined {
+		var depNames []string
+		diag := gohcl.DecodeExpression(deps.Expr, nil, &depNames)
+		if diags.Extend(diag) {
+			continue
+		}
+		for _, name := range depNames {
+			defKey, err := definitions.KeyFromName(name)
+			if err != nil {
+				diags.Extend(diagnostics.FromErr(err))
+				return nil, diags
+			}
+			evalKey := EvalKeyFromDefKey(*defKey)
+			dependsOn = append(dependsOn, evalKey)
+		}
+	}
+
 	block := &Section{
-		meta:         node.Meta,
-		vars:         node.Vars,
-		source:       node.Source,
-		requiredVars: node.RequiredVars,
+		blockName:    sectionDef.BlockName,
+		meta:         sectionDef.Meta,
+		vars:         sectionDef.Vars,
+		source:       sectionDef,
+		requiredVars: requiredVars,
+		dependsOn:    dependsOn,
 	}
 	var diag diagnostics.Diag
-	isIncluded := node.IsIncluded
+	isIncluded := sectionDef.IsIncluded
 	if isIncluded == nil {
-		isIncluded = defaultIsIncluded(node.Source.Block.DefRange())
+		isIncluded = defaultIsIncluded(sectionDef.Source.Block.DefRange())
 	}
 
 	block.isIncluded, diag = dataspec.DecodeAttr(
@@ -166,15 +152,15 @@ func LoadSection(ctx context.Context, providers ContentProviders, node *definiti
 		return
 	}
 
-	if node.Title != nil {
-		title, diag := LoadContent(ctx, providers, node.Title)
+	if sectionDef.Title != nil {
+		title, diag := LoadContent(ctx, providers, sectionDef.Title)
 		if diags.Extend(diag) {
 			return
 		}
 		block.children = append(block.children, title)
 
 	}
-	for _, child := range node.Content {
+	for _, child := range sectionDef.Content {
 		decoded, diag := LoadContent(ctx, providers, child)
 		if diags.Extend(diag) {
 			return

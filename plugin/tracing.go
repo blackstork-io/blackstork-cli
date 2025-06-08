@@ -32,7 +32,7 @@ func makeContentProvidersTracing(plugin string, providers ContentProviders, trac
 
 func makeContentProviderTracing(plugin, name string, provider *ContentProvider, tracer trace.Tracer) ProvideContentFunc {
 	next := provider.ContentFunc
-	return func(ctx context.Context, params *ProvideContentParams) (_ *ContentResult, diags diagnostics.Diag) {
+	return func(ctx context.Context, params *ProvideContentParams) (_ *ContentProviderResult, diags diagnostics.Diag) {
 		ctx, span := tracer.Start(ctx, "ContentProvider.Execute", trace.WithAttributes(
 			attribute.String("plugin", plugin),
 			attribute.String("provider", name),

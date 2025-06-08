@@ -78,7 +78,7 @@ func nopCloser() error {
 
 func (l *loader) loadAll(ctx context.Context) (diags diagnostics.Diag) {
 	ctx, span := l.tracer.Start(ctx, "loader.loadAll")
-	l.logger.DebugContext(ctx, "Loading all plugins")
+	l.logger.DebugContext(ctx, "Loading all plugins", "plugins_count", len(l.binaryMap))
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -124,7 +124,7 @@ func (l *loader) registerDataSource(
 ) diagnostics.Diag {
 	l.logger.DebugContext(
 		ctx,
-		"Registering data source",
+		"Registering a data source",
 		"name",
 		name,
 		"plugin",
@@ -137,7 +137,7 @@ func (l *loader) registerDataSource(
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate data source",
 			Detail: fmt.Sprintf(
-				"Data source %s provided by plugin %s@%s and %s@%s",
+				"Data source `%s` is provided by two plugins: `%s@%s` and `%s@%s`",
 				name,
 				schema.Name,
 				schema.Version,
@@ -161,20 +161,17 @@ func (l *loader) registerContentProvider(
 ) diagnostics.Diag {
 	l.logger.DebugContext(
 		ctx,
-		"Registering content provider",
-		"name",
-		name,
-		"plugin",
-		schema.Name,
-		"version",
-		schema.Version,
+		"Registering a content provider",
+		"name", name,
+		"plugin", schema.Name,
+		"version", schema.Version,
 	)
 	if found, has := l.contentMap[name]; has {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate content provider",
 			Detail: fmt.Sprintf(
-				"Content provider %s provided by plugin %s@%s and %s@%s",
+				"Content provider `%s` provided by two plugins: `%s@%s` and `%s@%s`",
 				name,
 				schema.Name,
 				schema.Version,
@@ -190,10 +187,9 @@ func (l *loader) registerContentProvider(
 			Args:   cp.Args,
 			Doc:    cp.Doc,
 			Tags:   cp.Tags,
-			ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+			ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, diagnostics.Diag) {
 				return schema.ProvideContent(ctx, name, params)
 			},
-			InvocationOrder: cp.InvocationOrder,
 		},
 	}
 	return nil
@@ -205,13 +201,22 @@ func (l *loader) registerPublisher(
 	schema *plugin.Schema,
 	pub *plugin.Publisher,
 ) diagnostics.Diag {
-	l.logger.DebugContext(ctx, "Registering publisher", "name", name, "plugin", schema.Name, "version", schema.Version)
+	l.logger.DebugContext(
+		ctx,
+		"Registering a publisher",
+		"name",
+		name,
+		"plugin",
+		schema.Name,
+		"version",
+		schema.Version,
+	)
 	if found, has := l.publisherMap[name]; has {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate publisher",
 			Detail: fmt.Sprintf(
-				"Publisher %s provided by plugin %s@%s and %s@%s",
+				"Publisher `%s` provided by two plugins: `%s@%s` and `%s@%s`",
 				name,
 				schema.Name,
 				schema.Version,
@@ -233,7 +238,13 @@ func (l *loader) registerFormatter(
 	schema *plugin.Schema,
 	frmt *plugin.Formatter,
 ) diagnostics.Diag {
-	l.logger.DebugContext(ctx, "Registering formatter", "name", name, "plugin", schema.Name, "version", schema.Version)
+	l.logger.DebugContext(
+		ctx,
+		"Registering a formatter",
+		"name", name,
+		"plugin", schema.Name,
+		"version", schema.Version,
+	)
 	if found, has := l.publisherMap[name]; has {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -273,9 +284,9 @@ func (l *loader) registerPlugin(ctx context.Context, schema *plugin.Schema, clos
 	if found, has := l.pluginMap[schema.Name]; has {
 		diags := diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Plugin %s conflict", schema.Name),
+			Summary:  fmt.Sprintf("Duplicate plugin name: `%s`", schema.Name),
 			Detail: fmt.Sprintf(
-				"%s@%s and %s@%s have the same schema name",
+				"Plugins `%s@%s` and `%s@%s` have the same schema name",
 				schema.Name,
 				schema.Version,
 				found.Name,
@@ -286,7 +297,7 @@ func (l *loader) registerPlugin(ctx context.Context, schema *plugin.Schema, clos
 		if err != nil {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Failed to close plugin %s@%s", found.Name, found.Version),
+				Summary:  fmt.Sprintf("Failed to close plugin `%s@%s`", found.Name, found.Version),
 				Detail:   err.Error(),
 			})
 		}
@@ -324,7 +335,7 @@ func (l *loader) loadBinary(ctx context.Context, name, binaryPath string) (diags
 	ctx, span := l.tracer.Start(ctx, "loader.loadBinary", trace.WithAttributes(
 		attribute.String("name", name),
 	))
-	l.logger.InfoContext(ctx, "Loading plugin", "name", name, "path", binaryPath)
+	l.logger.InfoContext(ctx, "Loading a plugin", "name", name, "path", binaryPath)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -337,21 +348,21 @@ func (l *loader) loadBinary(ctx context.Context, name, binaryPath string) (diags
 	if info, err := os.Stat(binaryPath); os.IsNotExist(err) {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Plugin %s binary not found", name),
-			Detail:   fmt.Sprintf("Executable not found at: %s", binaryPath),
+			Summary:  fmt.Sprintf("The binary for plugin `%s` not found", name),
+			Detail:   fmt.Sprintf("Executable not found at `%s`", binaryPath),
 		}}
 	} else if info.IsDir() {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Plugin %s binary path is a directory", name),
-			Detail:   fmt.Sprintf("Path %s is a directory", binaryPath),
+			Summary:  fmt.Sprintf("Binary path for plugin `%s` is a directory", name),
+			Detail:   fmt.Sprintf("Path `%s` is a directory", binaryPath),
 		}}
 	}
 	p, close, err := pluginapiv1.NewClient(name, binaryPath, l.logger)
 	if err != nil {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Failed to load plugin %s", name),
+			Summary:  fmt.Sprintf("Failed to load plugin `%s`", name),
 			Detail:   err.Error(),
 		}}
 	}

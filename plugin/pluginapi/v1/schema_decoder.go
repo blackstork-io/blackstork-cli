@@ -13,10 +13,17 @@ func decodeSchema(src *Schema) (*plugin.Schema, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	contentProviders, err := decodeContentProviderSchemaMap(src.GetContentProviders())
 	if err != nil {
 		return nil, err
 	}
+
+	formatters, err := decodeFormatterSchemaMap(src.GetFormatters())
+	if err != nil {
+		return nil, err
+	}
+
 	publishers, err := decodePublisherSchemaMap(src.GetPublishers())
 	if err != nil {
 		return nil, err
@@ -26,6 +33,7 @@ func decodeSchema(src *Schema) (*plugin.Schema, error) {
 		Version:          src.GetVersion(),
 		DataSources:      dataSources,
 		ContentProviders: contentProviders,
+		Formatters:       formatters,
 		Publishers:       publishers,
 		Doc:              src.GetDoc(),
 		Tags:             src.GetTags(),
@@ -90,11 +98,10 @@ func decodeContentProviderSchema(src *ContentProviderSchema) (*plugin.ContentPro
 		return nil, err
 	}
 	return &plugin.ContentProvider{
-		Args:            dataspec.RootSpecFromBlock(args),
-		Config:          dataspec.RootSpecFromBlock(config),
-		InvocationOrder: decodeInvocationOrder(src.GetInvocationOrder()),
-		Doc:             src.GetDoc(),
-		Tags:            src.GetTags(),
+		Args:   dataspec.RootSpecFromBlock(args),
+		Config: dataspec.RootSpecFromBlock(config),
+		Doc:    src.GetDoc(),
+		Tags:   src.GetTags(),
 	}, nil
 }
 
@@ -131,13 +138,35 @@ func decodePublisherSchema(src *PublisherSchema) (*plugin.Publisher, error) {
 	}, nil
 }
 
-func decodeInvocationOrder(src InvocationOrder) plugin.InvocationOrder {
-	switch src {
-	case InvocationOrder_INVOCATION_ORDER_BEGIN:
-		return plugin.InvocationOrderBegin
-	case InvocationOrder_INVOCATION_ORDER_END:
-		return plugin.InvocationOrderEnd
-	default:
-		return plugin.InvocationOrderUnspecified
+func decodeFormatterSchemaMap(src map[string]*FormatterSchema) (plugin.Formatters, error) {
+	dst := make(plugin.Formatters, len(src))
+	var err error
+	for k, v := range src {
+		dst[k], err = decodeFormatterSchema(v)
+		if err != nil {
+			return nil, err
+		}
 	}
+	return dst, nil
+}
+
+func decodeFormatterSchema(src *FormatterSchema) (*plugin.Formatter, error) {
+	if src == nil {
+		return nil, nil
+	}
+	args, err := decodeBlockSpec(src.GetArgs())
+	if err != nil {
+		return nil, err
+	}
+	config, err := decodeBlockSpec(src.GetConfig())
+	if err != nil {
+		return nil, err
+	}
+	return &plugin.Formatter{
+		Args:    dataspec.RootSpecFromBlock(args),
+		Config:  dataspec.RootSpecFromBlock(config),
+		Doc:     src.GetDoc(),
+		Format:  src.GetFormat(),
+		FileExt: src.GetFileExt(),
+	}, nil
 }

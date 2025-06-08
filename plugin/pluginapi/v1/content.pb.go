@@ -21,27 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ContentResult struct {
+type ContentProviderResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       *Content               `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ContentResult) Reset() {
-	*x = ContentResult{}
+func (x *ContentProviderResult) Reset() {
+	*x = ContentProviderResult{}
 	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ContentResult) String() string {
+func (x *ContentProviderResult) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ContentResult) ProtoMessage() {}
+func (*ContentProviderResult) ProtoMessage() {}
 
-func (x *ContentResult) ProtoReflect() protoreflect.Message {
+func (x *ContentProviderResult) ProtoReflect() protoreflect.Message {
 	mi := &file_pluginapi_v1_content_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,12 +53,12 @@ func (x *ContentResult) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ContentResult.ProtoReflect.Descriptor instead.
-func (*ContentResult) Descriptor() ([]byte, []int) {
+// Deprecated: Use ContentProviderResult.ProtoReflect.Descriptor instead.
+func (*ContentProviderResult) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ContentResult) GetContent() *Content {
+func (x *ContentProviderResult) GetContent() *Content {
 	if x != nil {
 		return x.Content
 	}
@@ -225,9 +225,8 @@ func (x *Metadata) GetProviderPluginVersion() string {
 
 type ContentSection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
-	Children      []*Content             `protobuf:"bytes,3,rep,name=children,proto3" json:"children,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Children      []*Content             `protobuf:"bytes,2,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,13 +261,6 @@ func (*ContentSection) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ContentSection) GetId() []byte {
-	if x != nil {
-		return x.Id
-	}
-	return nil
-}
-
 func (x *ContentSection) GetMeta() *Metadata {
 	if x != nil {
 		return x.Meta
@@ -285,11 +277,10 @@ func (x *ContentSection) GetChildren() []*Content {
 
 type ContentElement struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
-	Kind          string                 `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
-	Attrs         *MapData               `protobuf:"bytes,4,opt,name=attrs,proto3" json:"attrs,omitempty"`
-	DataContext   *MapData               `protobuf:"bytes,5,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Kind          string                 `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	Attrs         *MapData               `protobuf:"bytes,3,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	DataContext   *MapData               `protobuf:"bytes,4,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -324,13 +315,6 @@ func (*ContentElement) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ContentElement) GetId() []byte {
-	if x != nil {
-		return x.Id
-	}
-	return nil
-}
-
 func (x *ContentElement) GetMeta() *Metadata {
 	if x != nil {
 		return x.Meta
@@ -361,8 +345,7 @@ func (x *ContentElement) GetDataContext() *MapData {
 
 type ContentEmpty struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Meta          *Metadata              `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -395,13 +378,6 @@ func (x *ContentEmpty) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ContentEmpty.ProtoReflect.Descriptor instead.
 func (*ContentEmpty) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ContentEmpty) GetId() []byte {
-	if x != nil {
-		return x.Id
-	}
-	return nil
 }
 
 func (x *ContentEmpty) GetMeta() *Metadata {
@@ -467,8 +443,8 @@ var File_pluginapi_v1_content_proto protoreflect.FileDescriptor
 
 const file_pluginapi_v1_content_proto_rawDesc = "" +
 	"\n" +
-	"\x1apluginapi/v1/content.proto\x12\fpluginapi.v1\x1a\x17pluginapi/v1/data.proto\"@\n" +
-	"\rContentResult\x12/\n" +
+	"\x1apluginapi/v1/content.proto\x12\fpluginapi.v1\x1a\x17pluginapi/v1/data.proto\"H\n" +
+	"\x15ContentProviderResult\x12/\n" +
 	"\acontent\x18\x01 \x01(\v2\x15.pluginapi.v1.ContentR\acontent\"\xba\x01\n" +
 	"\aContent\x128\n" +
 	"\aelement\x18\x01 \x01(\v2\x1c.pluginapi.v1.ContentElementH\x00R\aelement\x128\n" +
@@ -478,20 +454,17 @@ const file_pluginapi_v1_content_proto_rawDesc = "" +
 	"\bMetadata\x12#\n" +
 	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x120\n" +
 	"\x14provider_plugin_name\x18\x02 \x01(\tR\x12providerPluginName\x126\n" +
-	"\x17provider_plugin_version\x18\x03 \x01(\tR\x15providerPluginVersion\"\x7f\n" +
-	"\x0eContentSection\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
-	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x121\n" +
-	"\bchildren\x18\x03 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\"\xc7\x01\n" +
-	"\x0eContentElement\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
-	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x12\x12\n" +
-	"\x04kind\x18\x03 \x01(\tR\x04kind\x12+\n" +
-	"\x05attrs\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\x05attrs\x128\n" +
-	"\fdata_context\x18\x05 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\"J\n" +
-	"\fContentEmpty\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\fR\x02id\x12*\n" +
-	"\x04meta\x18\x02 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\"D\n" +
+	"\x17provider_plugin_version\x18\x03 \x01(\tR\x15providerPluginVersion\"o\n" +
+	"\x0eContentSection\x12*\n" +
+	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x121\n" +
+	"\bchildren\x18\x02 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\"\xb7\x01\n" +
+	"\x0eContentElement\x12*\n" +
+	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x12\x12\n" +
+	"\x04kind\x18\x02 \x01(\tR\x04kind\x12+\n" +
+	"\x05attrs\x18\x03 \x01(\v2\x15.pluginapi.v1.MapDataR\x05attrs\x128\n" +
+	"\fdata_context\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\":\n" +
+	"\fContentEmpty\x12*\n" +
+	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\"D\n" +
 	"\x10FormattedContent\x12\x16\n" +
 	"\x06format\x18\x01 \x01(\tR\x06format\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontentB\xb2\x01\n" +
@@ -511,17 +484,17 @@ func file_pluginapi_v1_content_proto_rawDescGZIP() []byte {
 
 var file_pluginapi_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_pluginapi_v1_content_proto_goTypes = []any{
-	(*ContentResult)(nil),    // 0: pluginapi.v1.ContentResult
-	(*Content)(nil),          // 1: pluginapi.v1.Content
-	(*Metadata)(nil),         // 2: pluginapi.v1.Metadata
-	(*ContentSection)(nil),   // 3: pluginapi.v1.ContentSection
-	(*ContentElement)(nil),   // 4: pluginapi.v1.ContentElement
-	(*ContentEmpty)(nil),     // 5: pluginapi.v1.ContentEmpty
-	(*FormattedContent)(nil), // 6: pluginapi.v1.FormattedContent
-	(*MapData)(nil),          // 7: pluginapi.v1.MapData
+	(*ContentProviderResult)(nil), // 0: pluginapi.v1.ContentProviderResult
+	(*Content)(nil),               // 1: pluginapi.v1.Content
+	(*Metadata)(nil),              // 2: pluginapi.v1.Metadata
+	(*ContentSection)(nil),        // 3: pluginapi.v1.ContentSection
+	(*ContentElement)(nil),        // 4: pluginapi.v1.ContentElement
+	(*ContentEmpty)(nil),          // 5: pluginapi.v1.ContentEmpty
+	(*FormattedContent)(nil),      // 6: pluginapi.v1.FormattedContent
+	(*MapData)(nil),               // 7: pluginapi.v1.MapData
 }
 var file_pluginapi_v1_content_proto_depIdxs = []int32{
-	1,  // 0: pluginapi.v1.ContentResult.content:type_name -> pluginapi.v1.Content
+	1,  // 0: pluginapi.v1.ContentProviderResult.content:type_name -> pluginapi.v1.Content
 	4,  // 1: pluginapi.v1.Content.element:type_name -> pluginapi.v1.ContentElement
 	3,  // 2: pluginapi.v1.Content.section:type_name -> pluginapi.v1.ContentSection
 	5,  // 3: pluginapi.v1.Content.empty:type_name -> pluginapi.v1.ContentEmpty

@@ -7,18 +7,41 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/blackstork-io/fabric/cmd/fabctx"
 	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/circularRefDetector"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-func (db *DefinedBlocks) ParseDynamic(ctx context.Context, block *hclsyntax.Block) (parsed *definitions.ParsedDynamic, diags diagnostics.Diag) {
-	res := definitions.ParsedDynamic{
+func (db *DefinedBlocks) ParseDynamic(
+	ctx context.Context,
+	block *hclsyntax.Block,
+	refHist *utils.RefHistory,
+) (parsed *definitions.Dynamic, diags diagnostics.Diag) {
+
+	log := fabctx.GetLog(ctx)
+	log.DebugContext(
+		ctx, "Parsing a dynamic block",
+		"labels", block.Labels,
+		"ref_hist", refHist.Size(),
+	)
+
+	def := &definitions.DynamicDef{
 		Block: block,
 	}
 
-	res.Items, _ = utils.Pop(block.Body.Attributes, definitions.AttrDynamicItems)
+	body := block.Body
+
+	blockName := def.Name()
+	if blockName == "" {
+		blockName = makeNamePlaceholder()
+	}
+
+	res := definitions.Dynamic{
+		Source:    def,
+		BlockName: blockName,
+	}
+	res.Items, _ = utils.Pop(body.Attributes, definitions.AttrDynamicItems)
 
 	if res.Items == nil {
 		diags.Append(&hcl.Diagnostic{
@@ -27,6 +50,10 @@ func (db *DefinedBlocks) ParseDynamic(ctx context.Context, block *hclsyntax.Bloc
 			Detail:   fmt.Sprintf("Dynamic block must have an attribute %q", definitions.AttrDynamicItems),
 			Subject:  block.DefRange().Ptr(),
 		})
+	}
+
+	if depAttr, ok := utils.Pop(body.Attributes, definitions.AttrDependsOn); ok {
+		res.DependsOn = depAttr
 	}
 
 	for k, v := range block.Body.Attributes {
@@ -57,46 +84,39 @@ func (db *DefinedBlocks) ParseDynamic(ctx context.Context, block *hclsyntax.Bloc
 		}
 		switch block.Type {
 		case definitions.BlockKindContent:
-			plugin, diag := definitions.DefinePlugin(block, false)
+			contentDef, diag := definitions.DefineExecBlockDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			call, diag := db.ParsePlugin(ctx, plugin)
+			var content definitions.ContentTreeBlock
+			content, diag = db.ParseContentBlock(ctx, contentDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Plugin: call,
-			})
+			res.Children = append(res.Children, content)
 		case definitions.BlockKindSection:
-			subSection, diag := definitions.DefineSection(block, false)
+			subSection, diag := definitions.DefineSectionDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			circularRefDetector.Add(block, block.DefRange().Ptr())
-			parsedSubSection, diag := db.ParseSection(ctx, subSection)
-			circularRefDetector.Remove(block, &diag)
+			parsedSubSection, diag := db.ParseSection(ctx, subSection, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Section: parsedSubSection,
-			})
+			res.Children = append(res.Children, parsedSubSection)
 		case definitions.BlockKindDynamic:
-			subDynamic, diag := db.ParseDynamic(ctx, block)
+			subDynamic, diag := db.ParseDynamic(ctx, block, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Dynamic: subDynamic,
-			})
+			res.Children = append(res.Children, subDynamic)
 		}
 	}
-	if len(res.Content) == 0 {
+	if len(res.Children) == 0 {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "Dynamic block without content",
-			Detail:   "Dynamic block without any content can be removed, as it has no effect",
+			Summary:  "No content found in the dynamic block",
+			Detail:   "Dynamic block without any content can be removed",
 			Subject:  block.DefRange().Ptr(),
 		})
 	}

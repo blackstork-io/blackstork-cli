@@ -136,7 +136,7 @@ type Response struct {
 	MimeType string
 }
 
-func SendRequest(ctx context.Context, r *Request) (*Response, error) {
+func SendRequest(ctx context.Context, log *slog.Logger, r *Request) (*Response, error) {
 	var u *url.URL
 	var err error
 
@@ -171,8 +171,9 @@ func SendRequest(ctx context.Context, r *Request) (*Response, error) {
 	}
 	client := &http.Client{Transport: transport, Timeout: r.Timeout}
 
-	slog.Debug(
-		"Sending a HTTP request",
+	log.DebugContext(
+		ctx,
+		"Sending HTTP request",
 		"url", r.Url,
 		"method", r.Method,
 		"insecure", r.SkipVerify,
@@ -218,9 +219,15 @@ func fetchHTTPDataWrapper(version string) plugin.RetrieveDataFunc {
 }
 
 func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, version string) (plugindata.Data, diagnostics.Diag) {
+
+	log := slog.Default()
+	log = log.With("data_source", "http")
+
 	url := params.Args.GetAttrVal("url").AsString()
 	method := params.Args.GetAttrVal("method").AsString()
 	insecure := params.Args.GetAttrVal("insecure").True()
+
+	log = log.With("url", url)
 
 	timeout, err := time.ParseDuration(params.Args.GetAttrVal("timeout").AsString())
 	if err != nil {
@@ -262,7 +269,7 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 
 	req.Headers["User-Agent"] = fmt.Sprintf("fabric-data-http/%s", version)
 
-	response, err := SendRequest(ctx, &req)
+	response, err := SendRequest(ctx, log, &req)
 	if err != nil {
 		return nil, diagnostics.Diag{
 			{
@@ -272,15 +279,15 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 			},
 		}
 	}
-	slog.Debug("Response received", "mime_type", response.MimeType, "body_bytes_count", len(response.Body))
+	log.DebugContext(ctx, "Response received", "mime_type", response.MimeType, "body_bytes_count", len(response.Body))
 
 	var result plugindata.Data
 
 	if response.MimeType == "text/csv" {
 		reader := csv.NewReader(bytes.NewBuffer(response.Body))
-		reader.Comma = ',' // Use `,` as a delimiter by default
+		reader.Comma = ',' // Use `,` as a CSV delimiter by default
 
-		slog.Debug("Parsing fetched data as CSV", "mime-type", response.MimeType)
+		log.DebugContext(ctx, "Parsing fetched data as CSV", "mime-type", response.MimeType)
 		result, err = utils.ParseCSVContent(ctx, reader)
 		if err != nil {
 			return nil, diagnostics.Diag{
@@ -293,7 +300,7 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 		}
 	} else if response.MimeType == "application/json" {
 
-		slog.Debug("Parsing fetched data as JSON", "mime-type", response.MimeType)
+		log.DebugContext(ctx, "Parsing fetched data as JSON", "mime-type", response.MimeType)
 
 		result, err = plugindata.UnmarshalJSON(response.Body)
 		if err != nil {
@@ -306,7 +313,7 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 			}
 		}
 	} else {
-		slog.Debug("Returning fetched data as text", "mime-type", response.MimeType)
+		log.DebugContext(ctx, "Returning fetched data as text", "mime-type", response.MimeType)
 		result = plugindata.String(response.Body)
 	}
 	return result, nil

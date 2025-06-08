@@ -67,7 +67,7 @@ func makeTableContentProvider() *plugin.ContentProvider {
 func genTableContent(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	var rows plugindata.List
 	rowsVal := params.Args.GetAttrVal("rows")
 	if !rowsVal.IsNull() {
@@ -219,8 +219,8 @@ func genTableContent(
 		results[rowIdx] = rowResult
 	}
 
-	return &plugin.ContentResult{
-		Content: plugin.NewTableElement(headers, results, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewTableElement(headers, results),
 	}, nil
 }
 

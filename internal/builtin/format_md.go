@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/trace"
@@ -22,24 +25,24 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatter {
-	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+const (
+	formatMarkdown = "md"
+	joinBlocksWith = "\n\n"
+)
+
+func makeMarkdownFormatter(log *slog.Logger, tracer trace.Tracer) *plugin.Formatter {
+	if log == nil {
+		log = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	if tracer == nil {
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Formatter{
 		Doc:     "Formats content in Markdown",
-		Format:  "md",
+		Format:  formatMarkdown,
 		FileExt: "md",
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
-				{
-					Name: "page_title",
-					Doc:  "Markdown Page title",
-					Type: cty.String,
-				},
 				{
 					Name:        "frontmatter",
 					Type:        plugindata.Encapsulated.CtyType(),
@@ -65,63 +68,227 @@ func makeMarkdownFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.For
 				},
 			},
 		},
-		FormatFunc: makeMarkdownFormatterFunc(logger, tracer),
+		FormatFunc: makeMarkdownFormatterFunc(log, tracer),
 	}
 }
 
-func makeMarkdownFormatterFunc(logger *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
-	return func(ctx context.Context, params *plugin.FormatParams) (_ *plugin.FormattedContent, diags diagnostics.Diag) {
-		document, _ := parseScope(params.DataContext)
-		if document == nil {
-			return nil, diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to parse data context",
-				Detail:   "document is not found",
-			}}
+func renderHeadingEl(attrs plugindata.Map, nestingLevel int) string {
+	body := string(attrs["body"].(plugindata.String))
+	// size := attrsMap["size"].(plugindata.Number)
+
+	size := nestingLevel + 1
+	if size > 6 {
+		size = 6
+	}
+
+	prefix := strings.Repeat("#", size)
+
+	body = strings.TrimSpace(body)
+	body = strings.ReplaceAll(body, "\n", " ")
+
+	return fmt.Sprintf("%s %s", prefix, body)
+}
+
+func renderTextEl(attrs plugindata.Map) string {
+	return string(attrs["body"].(plugindata.String))
+}
+
+func renderImageEl(attrs plugindata.Map) string {
+	src := string(attrs["src"].(plugindata.String))
+	src = strings.TrimSpace(src)
+	src = strings.ReplaceAll(src, "\n", " ")
+
+	alt := string(attrs["alt"].(plugindata.String))
+	alt = strings.TrimSpace(alt)
+	alt = strings.ReplaceAll(alt, "\n", " ")
+
+	return fmt.Sprintf("![%s](%s)", alt, src)
+}
+
+func renderCodeEl(attrs plugindata.Map) string {
+	body := string(attrs["body"].(plugindata.String))
+	language := string(attrs["language"].(plugindata.String))
+
+	return fmt.Sprintf("```%s\n%s\n```", language, body)
+}
+
+func renderListEl(attrs plugindata.Map) string {
+	itemsRendered := attrs["items_rendered"].(plugindata.List)
+	format := string(attrs["format"].(plugindata.String))
+
+	prefix := "-"
+	if format == "ordered" {
+		prefix = "1."
+	} else if format == "tasklist" {
+		prefix = "- [ ]"
+	}
+
+	listValues := []string{}
+
+	for _, val := range itemsRendered {
+		valStr := string(val.(plugindata.String))
+
+		listItemVal := fmt.Sprintf("%s %s", prefix, valStr)
+		listValues = append(listValues, listItemVal)
+	}
+
+	return strings.Join(listValues, "\n")
+}
+
+func renderTableEl(attrs plugindata.Map) string {
+
+	headers := attrs["items_rendered"].(plugindata.List)
+	cellValues := string(attrs["format"].(plugindata.String))
+
+	buf := &strings.Builder{}
+
+	// https://github.com/olekukonko/tablewriter?tab=readme-ov-file#2-markdown-table
+
+	table := tablewriter.NewTable(os.Stdout,
+		tablewriter.WithRenderer(renderer.NewMarkdown()),
+	)
+	table.Header(headers)
+	table.Bulk(cellValues)
+	table.Render()
+
+	// https://github.com/nao1215/markdown/blob/main/markdown.go#L348
+	// 	table := tablewriter.NewWriter(buf)
+	// 	table.SetNewLine("\n")
+	// 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	// 	table.SetCenterSeparator("|")
+	// 	table.SetHeader(t.Header)
+
+	return buf.String()
+}
+
+func renderElement(el plugin.Content, nestingLevel int) string {
+
+	var attrs plugindata.Map
+
+	if el.Kind() != plugin.SectionKind {
+		data := el.AsData()
+		attrsData, ok := data["attrs"]
+		if !ok {
+			return "<error-no-attrs>"
 		}
-		// datactx := params.DataContext
-		// datactx["format"] = plugindata.String(params.Format)
+		attrs, ok = attrsData.(plugindata.Map)
+		if !ok {
+			return "<error-unknown-type>"
+		}
+	}
 
-		frontmatterData, err := plugindata.Encapsulated.FromCty(params.Args.GetAttrVal("frontmatter"))
+	switch el.Kind() {
+	case plugin.SectionKind:
+		section := el.(*plugin.ContentSection)
+		outputs := []string{}
+		for _, child := range section.Children {
+			outputs = append(outputs, renderElement(child, nestingLevel+1))
+		}
+		return strings.Join(outputs, joinBlocksWith)
+	case plugin.EmptyKind:
+		// nothing to add
+	case plugin.HeadingKind:
+		output := renderHeadingEl(attrs, nestingLevel)
+		// MD022 - https://github.com/DavidAnson/markdownlint/blob/main/doc/md022.md
+		// return fmt.Sprintf("\n%s\n", output)
+		return output
+	case plugin.TextKind:
+		return renderTextEl(attrs)
+	case plugin.ImageKind:
+		return renderImageEl(attrs)
+	case plugin.CodeKind:
+		output := renderCodeEl(attrs)
+		// MD031 - https://github.com/DavidAnson/markdownlint/blob/main/doc/md031.md
+		// return fmt.Sprintf("\n%s\n", output)
+		return output
+	case plugin.ListKind:
+		output := renderCodeEl(attrs)
+		// MD032 - https://github.com/DavidAnson/markdownlint/blob/main/doc/md032.md
+		//return fmt.Sprintf("\n%s\n", output)
+		return output
+	case plugin.TableKind:
+		output := renderTableEl(attrs)
+		// MD058 - https://github.com/DavidAnson/markdownlint/blob/main/doc/md058.md
+		// return fmt.Sprintf("\n%s\n", output)
+		return output
+	case plugin.TOCKind:
+		return renderCodeEl(attrs)
+	}
+	return "<error-unknown-element>"
+}
 
+func makeMarkdownFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatFunc {
+	return func(ctx context.Context, params *plugin.FormatParams) (_ *plugin.FormattedContent, diags diagnostics.Diag) {
+
+		dataCtx := params.DataContext
+		dataCtx["format"] = plugindata.String(params.Format)
+
+		section, err := parseContentSection(params.Content)
 		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,
-				Summary:  "Failed to parse frontmatter content",
-				Detail:   err.Error(),
+				Summary:  "Failed to parse document content",
+				Detail:   fmt.Sprintf("Error while parsing document content: %s", err),
 			}}
 		}
 
-		var frontmatterString *string
-		var diag diagnostics.Diag
+		outputs := []string{}
 
-		if frontmatterData != nil {
-			frontmatterMap, ok := (*frontmatterData).(plugindata.Map)
-			if !ok {
+		for _, child := range section.Children {
+			out := renderElement(child, 0)
+			outputs = append(outputs, out)
+		}
+
+		var frontmatter *string
+
+		frontmatterVal := params.Args.GetAttrVal("frontmatter")
+		if !frontmatterVal.IsNull() {
+			frontmatterData, err := plugindata.Encapsulated.FromCty(frontmatterVal)
+			if err != nil {
 				return nil, diagnostics.Diag{{
 					Severity: hcl.DiagError,
-					Summary:  "Failed to parse frontmatter content type",
-					Detail: fmt.Sprintf(
-						"Received invalid frontmatter data type `%T` while map is required",
-						frontmatterData,
-					),
+					Summary:  "Failed to parse frontmatter content",
+					Detail:   err.Error(),
 				}}
 			}
-			format := params.Args.GetAttrVal("frontmatter_format").AsString()
 
-			frontmatterString, diag = renderFrontmatter(format, frontmatterMap)
-			if diags.Extend(diag) {
-				return nil, diags
+			if frontmatterData != nil {
+				frontmatterMap, ok := (*frontmatterData).(plugindata.Map)
+				if !ok {
+					return nil, diagnostics.Diag{{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to parse frontmatter content type",
+						Detail: fmt.Sprintf(
+							"Received invalid frontmatter data type `%T` while map is required",
+							frontmatterData,
+						),
+					}}
+				}
+				format := params.Args.GetAttrVal("frontmatter_format").AsString()
+
+				var diag diagnostics.Diag
+				frontmatter, diag = renderFrontmatter(format, frontmatterMap)
+				if diags.Extend(diag) {
+					return nil, diags
+				}
 			}
 		}
 
-		logger.InfoContext(ctx, "Markdown FORMATTER CALLED", "params", params, "frontmatter", frontmatterString)
+		if frontmatter != nil {
+			// Prepend frontmatter to the output
+			outputs = append([]string{*frontmatter}, outputs...)
+		}
 
-		content := fmt.Sprintf("MD CONTENT: %s\n", params.Content)
+		content := strings.Join(outputs, joinBlocksWith)
+		content = strings.TrimSpace(content)
+
+		if content != "" {
+			content += "\n"
+		}
 
 		return &plugin.FormattedContent{
 			Content: []byte(content),
-			Format:  params.Format,
+			Format:  formatMarkdown,
 		}, nil
 
 		// var printer print.Printer

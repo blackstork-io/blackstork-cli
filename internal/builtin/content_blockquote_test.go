@@ -63,7 +63,7 @@ func (s *BlockQuoteTestSuite) TestCallBlockquote() {
 	s.Empty(diags)
 	s.Equal(
 		plugindata.String("> Hello World!"),
-		content.Content.AsData().(plugindata.Map)["markdown"],
+		content.Content.AsData()["markdown"],
 	)
 }
 
@@ -81,7 +81,7 @@ func (s *BlockQuoteTestSuite) TestCallBlockquoteMultiline() {
 	s.Empty(diags)
 	s.Equal(
 		plugindata.String("> Hello\n> World\n> for you!"),
-		content.Content.AsData().(plugindata.Map)["markdown"],
+		content.Content.AsData()["markdown"],
 	)
 }
 
@@ -99,6 +99,6 @@ func (s *BlockQuoteTestSuite) TestCallBlockquoteMultilineDoubleNewline() {
 	s.Empty(diags)
 	s.Equal(
 		plugindata.String("> Hello\n> World\n> \n> for you!"),
-		content.Content.AsData().(plugindata.Map)["markdown"],
+		content.Content.AsData()["markdown"],
 	)
 }

@@ -291,7 +291,7 @@ func (x *ProvideContentRequest) GetContentId() uint32 {
 
 type ProvideContentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        *ContentResult         `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Result        *ContentProviderResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
 	Diagnostics   []*Diagnostic          `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -327,7 +327,7 @@ func (*ProvideContentResponse) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_plugin_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ProvideContentResponse) GetResult() *ContentResult {
+func (x *ProvideContentResponse) GetResult() *ContentProviderResult {
 	if x != nil {
 		return x.Result
 	}
@@ -484,7 +484,8 @@ type PublishRequest struct {
 	Config           *Block                 `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	DataContext      *MapData               `protobuf:"bytes,4,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
 	FormattedContent *FormattedContent      `protobuf:"bytes,5,opt,name=formatted_content,json=formattedContent,proto3,oneof" json:"formatted_content,omitempty"`
-	DocumentName     string                 `protobuf:"bytes,6,opt,name=document_name,json=documentName,proto3" json:"document_name,omitempty"`
+	Content          *Content               `protobuf:"bytes,6,opt,name=content,proto3,oneof" json:"content,omitempty"`
+	DocumentName     string                 `protobuf:"bytes,7,opt,name=document_name,json=documentName,proto3" json:"document_name,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -550,6 +551,13 @@ func (x *PublishRequest) GetDataContext() *MapData {
 func (x *PublishRequest) GetFormattedContent() *FormattedContent {
 	if x != nil {
 		return x.FormattedContent
+	}
+	return nil
+}
+
+func (x *PublishRequest) GetContent() *Content {
+	if x != nil {
+		return x.Content
 	}
 	return nil
 }
@@ -626,9 +634,9 @@ const file_pluginapi_v1_plugin_proto_rawDesc = "" +
 	"\x06config\x18\x03 \x01(\v2\x13.pluginapi.v1.BlockR\x06config\x128\n" +
 	"\fdata_context\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\x12\x1d\n" +
 	"\n" +
-	"content_id\x18\x05 \x01(\rR\tcontentId\"\x89\x01\n" +
-	"\x16ProvideContentResponse\x123\n" +
-	"\x06result\x18\x01 \x01(\v2\x1b.pluginapi.v1.ContentResultR\x06result\x12:\n" +
+	"content_id\x18\x05 \x01(\rR\tcontentId\"\x91\x01\n" +
+	"\x16ProvideContentResponse\x12;\n" +
+	"\x06result\x18\x01 \x01(\v2#.pluginapi.v1.ContentProviderResultR\x06result\x12:\n" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\x8d\x02\n" +
 	"\x14FormatContentRequest\x12\x1c\n" +
 	"\tformatter\x18\x01 \x01(\tR\tformatter\x12\x16\n" +
@@ -639,15 +647,18 @@ const file_pluginapi_v1_plugin_proto_rawDesc = "" +
 	"\acontent\x18\x06 \x01(\v2\x15.pluginapi.v1.MapDataR\acontent\"\x8b\x01\n" +
 	"\x15FormatContentResponse\x126\n" +
 	"\x06result\x18\x01 \x01(\v2\x1e.pluginapi.v1.FormattedContentR\x06result\x12:\n" +
-	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\xcb\x02\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics\"\x8d\x03\n" +
 	"\x0ePublishRequest\x12\x1c\n" +
 	"\tpublisher\x18\x01 \x01(\tR\tpublisher\x12'\n" +
 	"\x04args\x18\x02 \x01(\v2\x13.pluginapi.v1.BlockR\x04args\x12+\n" +
 	"\x06config\x18\x03 \x01(\v2\x13.pluginapi.v1.BlockR\x06config\x128\n" +
 	"\fdata_context\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\x12P\n" +
-	"\x11formatted_content\x18\x05 \x01(\v2\x1e.pluginapi.v1.FormattedContentH\x00R\x10formattedContent\x88\x01\x01\x12#\n" +
-	"\rdocument_name\x18\x06 \x01(\tR\fdocumentNameB\x14\n" +
-	"\x12_formatted_content\"M\n" +
+	"\x11formatted_content\x18\x05 \x01(\v2\x1e.pluginapi.v1.FormattedContentH\x00R\x10formattedContent\x88\x01\x01\x124\n" +
+	"\acontent\x18\x06 \x01(\v2\x15.pluginapi.v1.ContentH\x01R\acontent\x88\x01\x01\x12#\n" +
+	"\rdocument_name\x18\a \x01(\tR\fdocumentNameB\x14\n" +
+	"\x12_formatted_contentB\n" +
+	"\n" +
+	"\b_content\"M\n" +
 	"\x0fPublishResponse\x12:\n" +
 	"\vdiagnostics\x18\x01 \x03(\v2\x18.pluginapi.v1.DiagnosticR\vdiagnostics2\xbd\x03\n" +
 	"\rPluginService\x12N\n" +
@@ -687,8 +698,9 @@ var file_pluginapi_v1_plugin_proto_goTypes = []any{
 	(*Data)(nil),                   // 12: pluginapi.v1.Data
 	(*Diagnostic)(nil),             // 13: pluginapi.v1.Diagnostic
 	(*MapData)(nil),                // 14: pluginapi.v1.MapData
-	(*ContentResult)(nil),          // 15: pluginapi.v1.ContentResult
+	(*ContentProviderResult)(nil),  // 15: pluginapi.v1.ContentProviderResult
 	(*FormattedContent)(nil),       // 16: pluginapi.v1.FormattedContent
+	(*Content)(nil),                // 17: pluginapi.v1.Content
 }
 var file_pluginapi_v1_plugin_proto_depIdxs = []int32{
 	10, // 0: pluginapi.v1.GetSchemaResponse.schema:type_name -> pluginapi.v1.Schema
@@ -699,7 +711,7 @@ var file_pluginapi_v1_plugin_proto_depIdxs = []int32{
 	11, // 5: pluginapi.v1.ProvideContentRequest.args:type_name -> pluginapi.v1.Block
 	11, // 6: pluginapi.v1.ProvideContentRequest.config:type_name -> pluginapi.v1.Block
 	14, // 7: pluginapi.v1.ProvideContentRequest.data_context:type_name -> pluginapi.v1.MapData
-	15, // 8: pluginapi.v1.ProvideContentResponse.result:type_name -> pluginapi.v1.ContentResult
+	15, // 8: pluginapi.v1.ProvideContentResponse.result:type_name -> pluginapi.v1.ContentProviderResult
 	13, // 9: pluginapi.v1.ProvideContentResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
 	11, // 10: pluginapi.v1.FormatContentRequest.args:type_name -> pluginapi.v1.Block
 	11, // 11: pluginapi.v1.FormatContentRequest.config:type_name -> pluginapi.v1.Block
@@ -711,22 +723,23 @@ var file_pluginapi_v1_plugin_proto_depIdxs = []int32{
 	11, // 17: pluginapi.v1.PublishRequest.config:type_name -> pluginapi.v1.Block
 	14, // 18: pluginapi.v1.PublishRequest.data_context:type_name -> pluginapi.v1.MapData
 	16, // 19: pluginapi.v1.PublishRequest.formatted_content:type_name -> pluginapi.v1.FormattedContent
-	13, // 20: pluginapi.v1.PublishResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
-	0,  // 21: pluginapi.v1.PluginService.GetSchema:input_type -> pluginapi.v1.GetSchemaRequest
-	2,  // 22: pluginapi.v1.PluginService.RetrieveData:input_type -> pluginapi.v1.RetrieveDataRequest
-	4,  // 23: pluginapi.v1.PluginService.ProvideContent:input_type -> pluginapi.v1.ProvideContentRequest
-	6,  // 24: pluginapi.v1.PluginService.FormatContent:input_type -> pluginapi.v1.FormatContentRequest
-	8,  // 25: pluginapi.v1.PluginService.Publish:input_type -> pluginapi.v1.PublishRequest
-	1,  // 26: pluginapi.v1.PluginService.GetSchema:output_type -> pluginapi.v1.GetSchemaResponse
-	3,  // 27: pluginapi.v1.PluginService.RetrieveData:output_type -> pluginapi.v1.RetrieveDataResponse
-	5,  // 28: pluginapi.v1.PluginService.ProvideContent:output_type -> pluginapi.v1.ProvideContentResponse
-	7,  // 29: pluginapi.v1.PluginService.FormatContent:output_type -> pluginapi.v1.FormatContentResponse
-	9,  // 30: pluginapi.v1.PluginService.Publish:output_type -> pluginapi.v1.PublishResponse
-	26, // [26:31] is the sub-list for method output_type
-	21, // [21:26] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	17, // 20: pluginapi.v1.PublishRequest.content:type_name -> pluginapi.v1.Content
+	13, // 21: pluginapi.v1.PublishResponse.diagnostics:type_name -> pluginapi.v1.Diagnostic
+	0,  // 22: pluginapi.v1.PluginService.GetSchema:input_type -> pluginapi.v1.GetSchemaRequest
+	2,  // 23: pluginapi.v1.PluginService.RetrieveData:input_type -> pluginapi.v1.RetrieveDataRequest
+	4,  // 24: pluginapi.v1.PluginService.ProvideContent:input_type -> pluginapi.v1.ProvideContentRequest
+	6,  // 25: pluginapi.v1.PluginService.FormatContent:input_type -> pluginapi.v1.FormatContentRequest
+	8,  // 26: pluginapi.v1.PluginService.Publish:input_type -> pluginapi.v1.PublishRequest
+	1,  // 27: pluginapi.v1.PluginService.GetSchema:output_type -> pluginapi.v1.GetSchemaResponse
+	3,  // 28: pluginapi.v1.PluginService.RetrieveData:output_type -> pluginapi.v1.RetrieveDataResponse
+	5,  // 29: pluginapi.v1.PluginService.ProvideContent:output_type -> pluginapi.v1.ProvideContentResponse
+	7,  // 30: pluginapi.v1.PluginService.FormatContent:output_type -> pluginapi.v1.FormatContentResponse
+	9,  // 31: pluginapi.v1.PluginService.Publish:output_type -> pluginapi.v1.PublishResponse
+	27, // [27:32] is the sub-list for method output_type
+	22, // [22:27] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_pluginapi_v1_plugin_proto_init() }

@@ -61,7 +61,7 @@ func makeOpenAITextContentSchema(loader ClientLoadFn) *plugin.ContentProvider {
 }
 
 func genOpenAIText(loader ClientLoadFn) plugin.ProvideContentFunc {
-	return func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, diagnostics.Diag) {
 		cli, err := makeClient(loader, params.Config)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -78,13 +78,18 @@ func genOpenAIText(loader ClientLoadFn) plugin.ProvideContentFunc {
 				Detail:   err.Error(),
 			}}
 		}
-		return &plugin.ContentResult{
-			Content: plugin.NewTextElement(result, params.DataContext),
+		return &plugin.ContentProviderResult{
+			Content: plugin.NewTextElement(result),
 		}, nil
 	}
 }
 
-func renderText(ctx context.Context, cli client.Client, cfg, args *dataspec.Block, dataCtx plugindata.Map) (string, error) {
+func renderText(
+	ctx context.Context,
+	cli client.Client,
+	cfg, args *dataspec.Block,
+	dataCtx plugindata.Map,
+) (string, error) {
 	params := client.ChatCompletionParams{
 		Model: args.GetAttrVal("model").AsString(),
 	}

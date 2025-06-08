@@ -81,7 +81,7 @@ func (p *grpcPlugin) callOptions() []grpc.CallOption {
 }
 
 func (p *grpcPlugin) clientGenerateFunc(name string, client PluginServiceClient) plugin.ProvideContentFunc {
-	return func(ctx context.Context, params *plugin.ProvideContentParams) (result *plugin.ContentResult, diags diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.ProvideContentParams) (result *plugin.ContentProviderResult, diags diagnostics.Diag) {
 		p.logger.DebugContext(ctx, "Calling a content provider", "name", name)
 		defer func(start time.Time) {
 			p.logger.DebugContext(ctx, "Called a content provider", "name", name, "took", time.Since(start))
@@ -102,12 +102,15 @@ func (p *grpcPlugin) clientGenerateFunc(name string, client PluginServiceClient)
 			Config:      cfgEncoded,
 			Args:        argsEncoded,
 			DataContext: encodeMapData(params.DataContext),
-			ContentId:   params.ContentID,
 		}, p.callOptions()...)
 		if diags.AppendErr(err, "Failed to generate content") {
 			return
 		}
-		result = decodeContentResult(res.GetResult())
+		result, err = decodeContentProviderResult(res.GetResult())
+		if err != nil {
+			diags.Add("Error while decoding the content result", "Nil params")
+			return
+		}
 		diags.Extend(decodeDiagnosticList(res.GetDiagnostics()))
 		return result, diags
 	}

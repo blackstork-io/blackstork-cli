@@ -16,13 +16,13 @@ import (
 )
 
 var varsSpec = &dataspec.AttrSpec{
-	Name: "vars",
+	Name: definitions.BlockKindVars,
 	Type: plugindata.Encapsulated.CtyType(),
 }
 
-func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.Attribute) (parsed *definitions.ParsedVars, diags diagnostics.Diag) {
+func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.Attribute) (parsed *definitions.Vars, diags diagnostics.Diag) {
 	if block == nil && localVar == nil {
-		parsed = &definitions.ParsedVars{}
+		parsed = &definitions.Vars{}
 		return
 	}
 	if block != nil && localVar != nil {
@@ -39,19 +39,20 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Local var specified together with vars block",
-				Detail: "It is recommended to use either vars block or local var, not both. " +
-					"You can define a variable `local` in the vars block to achieve the same effect.",
+				Detail: "It's recommended to use either `vars` block or `local_var`, not both at the same time. " +
+					"You can define a variable named `local` in an existing `vars` block if needed.",
 				Subject: localVar.Range().Ptr(),
 			})
 		}
 	}
+
 	var varCount int
 	if block != nil {
 		for _, subBlock := range block.Body.Blocks {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "Unsupported nesting",
-				Detail:   `Vars block does not support nested blocks, did you mean to use nested maps?`,
+				Summary:  "Invalid nested block",
+				Detail:   "`vars` block doesn't support nested blocks.",
 				Subject:  subBlock.Range().Ptr(),
 			})
 		}
@@ -85,13 +86,7 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 			vars = append(vars, val)
 		}
 	}
-	byName := make(map[string]int, len(vars))
-	for i, v := range vars {
-		byName[v.Name] = i
-	}
-	parsed = &definitions.ParsedVars{
-		Variables: vars,
-		ByName:    byName,
-	}
+	parsed = &definitions.Vars{}
+	parsed.Append(vars...)
 	return
 }

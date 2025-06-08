@@ -26,24 +26,10 @@ type PluginPublishAction struct {
 func (block *PluginPublishAction) Publish(
 	ctx context.Context,
 	dataCtx plugindata.Map,
-	content plugindata.Map,
+	content plugin.Content,
+	formattedContent *plugin.FormattedContent,
 	documentName string,
-	formatter *PluginFormatAction,
 ) diagnostics.Diag {
-	log := utils.Log(ctx)
-	var formattedContent *plugin.FormattedContent
-	var diag diagnostics.Diag
-	if formatter != nil {
-		log.InfoContext(
-			ctx, "Formatting content for the publisher",
-			"publisher", block.PluginName,
-			"formatter", formatter.PluginName,
-		)
-		formattedContent, diag = formatter.Execute(ctx, dataCtx, content, documentName)
-		if diag.HasErrors() {
-			return diag
-		}
-	}
 
 	return block.Publisher.Execute(ctx, &plugin.PublishParams{
 		Config:           block.Config,
@@ -57,14 +43,14 @@ func (block *PluginPublishAction) Publish(
 func LoadPluginPublishAction(
 	ctx context.Context,
 	publishers Publishers,
-	node *definitions.ParsedPlugin,
+	node *definitions.PublishBlock,
 ) (_ *PluginPublishAction, diags diagnostics.Diag) {
-	p, ok := publishers.Publisher(node.PluginName)
+	p, ok := publishers.Publisher(node.BlockRunnerName)
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Missing publisher",
-			Detail:   fmt.Sprintf("'%s' not found in any plugin", node.PluginName),
+			Detail:   fmt.Sprintf("'%s' not found in any plugin", node.BlockRunnerName),
 		}}
 	}
 	var cfg *dataspec.Block
@@ -78,16 +64,16 @@ func LoadPluginPublishAction(
 			Severity: hcl.DiagWarning,
 			Summary:  "Publisher doesn't support configuration",
 			Detail: fmt.Sprintf(
-				"Publisher '%s' does not support configuration, but was provided with one.",
-				node.PluginName),
+				"Publisher `%s` doesn't support configuration, but was provided with one.",
+				node.BlockRunnerName),
 			Subject: node.Config.Range().Ptr(),
-			Context: node.Invocation.Range().Ptr(),
+			Context: node.Source.Block.Range().Ptr(),
 		})
 		return nil, diags
 	}
 
 	var format *string
-	formatAttr, found := utils.Pop(node.Invocation.Body.Attributes, "format")
+	formatAttr, found := utils.Pop(node.Source.Block.Body.Attributes, "format")
 
 	if found && len(p.Formats) > 0 {
 		val, diag := dataspec.DecodeAttr(fabctx.GetEvalContext(ctx), formatAttr, &dataspec.AttrSpec{
@@ -111,33 +97,32 @@ func LoadPluginPublishAction(
 			Summary:  "Publisher doesn't support format specification",
 			Detail: fmt.Sprintf(
 				"Publisher '%s' does not support format specification, but was provided with one.",
-				node.PluginName),
+				node.BlockRunnerName,
+			),
 			Subject: node.Config.Range().Ptr(),
-			Context: node.Invocation.Range().Ptr(),
+			Context: node.Source.Block.Range().Ptr(),
 		})
 		return nil, diags
 	} else if !found && len(p.Formats) > 0 {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "No format specified for publisher",
-			Detail: fmt.Sprintf(
-				"Format value must be set for the publisher '%s'",
-				node.PluginName),
+			Detail: fmt.Sprintf("Format value must be set for the publisher '%s'", node.BlockRunnerName),
 			Subject: node.Config.Range().Ptr(),
-			Context: node.Invocation.Range().Ptr(),
+			Context: node.Source.Block.Range().Ptr(),
 		})
 		return nil, diags
 	}
 
-	args, diag := dataspec.DecodeAndEvalBlock(ctx, node.Invocation.Block, p.Args, nil)
+	args, diag := dataspec.DecodeAndEvalBlock(ctx, node.Source.Block, p.Args, nil)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
 	return &PluginPublishAction{
 		PluginAction: &PluginAction{
-			PluginName: node.PluginName,
+			BlockRunnerName: node.BlockRunnerName,
 			BlockName:  node.BlockName,
-			Meta:       node.Meta,
+			meta:       node.Meta,
 			Config:     cfg,
 			Args:       args,
 		},
@@ -148,20 +133,22 @@ func LoadPluginPublishAction(
 
 
 func LoadStdoutPluginPublishAction(ctx context.Context, publishers Publishers, format string) (_ *PluginPublishAction, diags diagnostics.Diag) {
-	pluginName := "stdout"
+	publisherName := "stdout"
+	blockName := "default-stdout"
 
-	publisher, ok := publishers.Publisher(pluginName)
+	publisher, ok := publishers.Publisher(publisherName)
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Missing formatter",
-			Detail:   fmt.Sprintf("'%s' not found in any plugin", pluginName),
+			Summary:  "Missing publisher",
+			Detail:   fmt.Sprintf("Publisher `%s` not found in the installed plugins", publisherName),
 		}}
 	}
 
 	return &PluginPublishAction{
 		PluginAction: &PluginAction{
-			PluginName: pluginName,
+			BlockRunnerName: publisherName,
+			BlockName: blockName,
 		},
 		Publisher: publisher,
 		Format:    &format,

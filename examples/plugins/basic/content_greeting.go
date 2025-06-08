@@ -34,13 +34,13 @@ func makeGreetingContentProvider() *plugin.ContentProvider {
 func renderGreetingMessage(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	// We specified that the "name" attribute is RequiredMeaningful, so we can safely assume
 	// that it exists, non-null and non-empty, with whitespace trimmed
 	name := params.Args.GetAttrVal("name").AsString()
 	text := fmt.Sprintf("Hello, %s!", name)
 
-	return &plugin.ContentResult{
+	return &plugin.ContentProviderResult{
 		Content: plugin.NewTextElement(text, params.DataContext),
 	}, nil
 }

@@ -46,7 +46,7 @@ type AttrSpec struct {
 func (a *AttrSpec) computeMinInclusive() cty.Value {
 	// we have constraint.NonEmpty constraint on a collection type
 	if a.Constraints.Is(constraint.NonEmpty) && // has NonEmpty
-		!(a.Type.IsPrimitiveType() && a.Type == cty.Number) && // is not a number
+		(!a.Type.IsPrimitiveType() || a.Type != cty.Number) && // is not a number
 		(a.MinInclusive.IsNull() || // Has MinInclusive < 1 or not set
 			a.MinInclusive.LessThan(cty.NumberIntVal(1)).True()) {
 		return cty.NumberIntVal(1)
@@ -132,7 +132,7 @@ func (a *AttrSpec) DocComment() hclwrite.Tokens {
 
 	trimmedDoc := strings.Trim(a.Doc, "\n ")
 
-	details := map[string]interface{}{
+	details := map[string]any{
 		"Doc":        trimmedDoc,
 		"IsRequired": isRequired,
 		"Type":       attrType,

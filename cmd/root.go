@@ -2,31 +2,24 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"runtime/debug"
 	"strings"
-	"time"
 
-	"github.com/golang-cz/devslog"
-	"github.com/lmittmann/tint"
-	"github.com/mattn/go-colorable"
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/term"
 
 	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/cmd/internal/multilog"
 	"github.com/blackstork-io/fabric/cmd/internal/telemetry"
 	"github.com/blackstork-io/fabric/engine"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils/slogutil"
+	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
 var (
@@ -58,13 +51,13 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&rawArgs.sourceDir, "source-dir", ".", "a path to a directory with *.fabric files")
+	rootCmd.PersistentFlags().
+		StringVar(&rawArgs.sourceDir, "source-dir", ".", "a path to a directory with *.fabric files")
 	rootCmd.PersistentFlags().StringVar(&rawArgs.logOutput, "log-format", "plain", "format of the logs (plain or json)")
 	rootCmd.PersistentFlags().StringVar(
 		&rawArgs.logLevel, "log-level", "info",
-		fmt.Sprintf("logging level (%s)", validLogLevels.String()),
+		fmt.Sprintf("logging level (%s)", utils.GetLogLevelsString()),
 	)
-	rootCmd.PersistentFlags().BoolVar(&rawArgs.noColor, "no-color", false, "disable colorization of the output (logs and diagnostics), if supported by the terminal and the log format")
 	rootCmd.PersistentFlags().BoolVarP(&rawArgs.verbose, "verbose", "v", false, "a shortcut to --log-level debug")
 	rootCmd.PersistentFlags().BoolVar(&rawArgs.debug, "debug", false, "enables debug mode")
 
@@ -96,76 +89,26 @@ var rootCmd = &cobra.Command{
 		ctx, rootSpan = tracer.Start(ctx, "Command", trace.WithAttributes(
 			attribute.String("command", cmd.Name()),
 		))
-		err = validateDir("source dir", rawArgs.sourceDir)
+		err = validateDir(rawArgs.sourceDir)
 		if err != nil {
 			return
 		}
 		cliArgs.sourceDir = rawArgs.sourceDir
-		cliArgs.noColor = rawArgs.noColor && term.IsTerminal(int(os.Stderr.Fd()))
-		var level slog.Level
-		if rawArgs.verbose || rawArgs.debug {
-			level = slog.LevelDebug
-		} else {
-			level, err = validLogLevels.Find(rawArgs.logLevel)
-			if err != nil {
-				return
-			}
-		}
-		opts := &slog.HandlerOptions{
-			Level: level,
-			// add source if in debug mode
-			AddSource: level == slog.LevelDebug,
-		}
-		var handler slog.Handler
-		switch strings.ToLower(strings.TrimSpace(rawArgs.logOutput)) {
-		case "plain":
-			if !cliArgs.noColor && level <= slog.LevelDebug {
-				handler = devslog.NewHandler(os.Stderr, &devslog.Options{
-					HandlerOptions: opts,
-				})
-			} else {
-				var output io.Writer
-				if cliArgs.noColor {
-					output = os.Stderr
-				} else {
-					// only affects windows, noop on *nix
-					output = colorable.NewColorable(os.Stderr)
-				}
 
-				handler = tint.NewHandler(
-					output,
-					&tint.Options{
-						AddSource:   opts.AddSource,
-						Level:       opts.Level,
-						ReplaceAttr: opts.ReplaceAttr,
-						NoColor:     cliArgs.noColor,
-						TimeFormat:  time.DateTime,
-					},
-				)
-			}
-		case "json":
-			handler = slog.NewJSONHandler(os.Stderr, opts)
-		default:
-			return fmt.Errorf("unknown log output '%s'", rawArgs.logOutput)
+		var levelName string
+		if rawArgs.verbose || rawArgs.debug {
+			levelName = "debug"
+		} else {
+			levelName = rawArgs.logLevel
 		}
-		var logger *slog.Logger
-		if env.otelpEnabled || rawArgs.debug {
-			handler = multilog.Handler{
-				Level: level,
-				Handlers: []slog.Handler{
-					handler,
-					otelslog.NewHandler(
-						"github.com/blackstork-io/fabric",
-						otelslog.WithVersion(version),
-					),
-				},
-			}
+
+		logFormat := strings.ToLower(strings.TrimSpace(rawArgs.logOutput))
+
+		err = utils.ConfigureLogging(version, levelName, logFormat, env.otelpEnabled)
+		if err != nil {
+			return err
 		}
-		handler = slogutil.NewSourceRewriter(handler)
-		logger = slog.New(handler)
-		logger = logger.With("command", cmd.Name())
-		slog.SetDefault(logger)
-		slog.SetLogLoggerLevel(slog.LevelDebug)
+
 		slog.DebugContext(ctx, "Starting the execution")
 		if strings.Contains(version, "-dev") {
 			slog.WarnContext(ctx, "This is a dev version of the software!", "version", version)
@@ -202,7 +145,7 @@ func Execute() {
 func recoverExecute(ctx context.Context, cmd *cobra.Command) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.ErrorContext(rootCtx, "Panic", "error", r, "stack", string(debug.Stack()))
+			slog.ErrorContext(rootCtx, "Panic error caught", "error", r, "stack", string(debug.Stack()))
 			err = fmt.Errorf("panic: %v", r)
 		}
 	}()
@@ -220,4 +163,21 @@ func exitCommand(eng *engine.Engine, cmd *cobra.Command, diags diagnostics.Diag)
 	}
 	eng.PrintDiagnostics(os.Stderr, diags, !cliArgs.noColor)
 	return err
+}
+
+func validateDir(dir string) error {
+	info, err := os.Stat(dir)
+	switch {
+	case err == nil:
+	case errors.Is(err, os.ErrNotExist):
+		return fmt.Errorf("`%s` doesn't exist", dir)
+	case errors.Is(err, os.ErrPermission):
+		return fmt.Errorf("can't access `%s`", dir)
+	default:
+		return fmt.Errorf("error validating `%s`: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("`%s` is not a directory", dir)
+	}
+	return nil
 }

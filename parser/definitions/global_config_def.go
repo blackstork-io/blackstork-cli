@@ -21,15 +21,15 @@ const patternName = "expose_env_vars_with_pattern"
 
 var DefaultEnvVarsPattern = glob.MustCompile("FABRIC_*")
 
-type GlobalConfigDefinition struct {
+type GlobalConfigDef struct {
 	block *hclsyntax.Block
 }
 
-func (g *GlobalConfigDefinition) GetHCLBlock() *hclsyntax.Block {
+func (g *GlobalConfigDef) GetHCLBlock() *hclsyntax.Block {
 	return g.block
 }
 
-func (g *GlobalConfigDefinition) Parse(ctx context.Context) (cfg *GlobalConfig, diags diagnostics.Diag) {
+func (g *GlobalConfigDef) Parse(ctx context.Context) (cfg *GlobalConfig, diags diagnostics.Diag) {
 	var globalCfg GlobalConfig
 	var diag diagnostics.Diag
 
@@ -45,7 +45,7 @@ func (g *GlobalConfigDefinition) Parse(ctx context.Context) (cfg *GlobalConfig, 
 	return &globalCfg, diags
 }
 
-func (g *GlobalConfigDefinition) parseEnvVarPattern(ctx context.Context) (pat glob.Glob, diags diagnostics.Diag) {
+func (g *GlobalConfigDef) parseEnvVarPattern(ctx context.Context) (pat glob.Glob, diags diagnostics.Diag) {
 	attr, found := utils.Pop(g.block.Body.Attributes, patternName)
 	if !found {
 		return DefaultEnvVarsPattern, nil
@@ -92,8 +92,8 @@ func (g *GlobalConfigDefinition) parseEnvVarPattern(ctx context.Context) (pat gl
 	return
 }
 
-func DefineGlobalConfig(block *hclsyntax.Block) (config *GlobalConfigDefinition, diags diagnostics.Diag) {
-	return &GlobalConfigDefinition{
+func DefineGlobalConfig(block *hclsyntax.Block) (config *GlobalConfigDef, diags diagnostics.Diag) {
+	return &GlobalConfigDef{
 		block: block,
 	}, nil
 }

@@ -2,7 +2,6 @@ package builtin
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -37,7 +36,10 @@ func makeCodeContentProvider() *plugin.ContentProvider {
 	}
 }
 
-func genCodeContent(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+func genCodeContent(
+	ctx context.Context,
+	params *plugin.ProvideContentParams,
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value").AsString()
 	lang := params.Args.GetAttrVal("language").AsString()
 	text, err := renderText(value, params.DataContext)
@@ -50,7 +52,7 @@ func genCodeContent(ctx context.Context, params *plugin.ProvideContentParams) (*
 	}
 	//text = fmt.Sprintf("```%s\n%s\n```", lang.AsString(), text)
 
-	return &plugin.ContentResult{
-		Content: plugin.NewCodeElement(text, lang, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewCodeElement(text, lang),
 	}, nil
 }

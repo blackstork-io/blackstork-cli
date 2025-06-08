@@ -22,7 +22,7 @@ type Options struct {
 	registryBaseURL string
 	cacheDir        string
 	builtin         *plugin.Schema
-	logger          *slog.Logger
+	log             *slog.Logger
 	tracer          trace.Tracer
 }
 
@@ -33,7 +33,7 @@ var defaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOption
 var defaultOptions = Options{
 	registryBaseURL: defaultRegistryBaseURL,
 	cacheDir:        defaultCacheDir,
-	logger:          defaultLogger,
+	log:             defaultLogger,
 	tracer:          nooptrace.Tracer{},
 	builtin:         builtin.Plugin("v0.0.0", defaultLogger, nil),
 }
@@ -62,9 +62,9 @@ func WithBuiltIn(builtin *plugin.Schema) Option {
 }
 
 // WithLogger sets the logger. Default is a logger that discards all logs.
-func WithLogger(logger *slog.Logger) Option {
+func WithLogger(log *slog.Logger) Option {
 	return func(o *Options) {
-		o.logger = logger
+		o.log = log
 	}
 }
 

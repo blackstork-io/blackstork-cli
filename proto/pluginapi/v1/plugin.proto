@@ -43,7 +43,7 @@ message ProvideContentRequest {
 }
 
 message ProvideContentResponse {
-    ContentResult       result      = 1;
+    ContentProviderResult result = 1;
     repeated Diagnostic diagnostics = 2;
 }
 
@@ -66,8 +66,11 @@ message PublishRequest {
     Block            args              = 2;
     Block            config            = 3;
     MapData          data_context      = 4;
+
     optional FormattedContent formatted_content = 5;
-    string           document_name     = 6;
+    optional Content          content = 6;
+
+    string           document_name     = 7;
 }
 
 message PublishResponse {

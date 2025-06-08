@@ -83,7 +83,7 @@ func (p *Schema) ProvideContent(
 	ctx context.Context,
 	name string,
 	params *ProvideContentParams,
-) (_ *ContentResult, diags diagnostics.Diag) {
+) (_ *ContentProviderResult, diags diagnostics.Diag) {
 	if p == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/blackstork-io/fabric/cmd/fabctx"
 	"github.com/blackstork-io/fabric/engine"
 	"github.com/blackstork-io/fabric/internal/builtin"
 	"github.com/blackstork-io/fabric/parser/definitions"
@@ -58,7 +59,7 @@ var renderCmd = &cobra.Command{
 		logger := slog.Default()
 
 		ctx := cmd.Context()
-		ctx = utils.WithLog(ctx, logger)
+		ctx = fabctx.WithLog(ctx, logger)
 
 		var diags diagnostics.Diag
 		eng := engine.New(
@@ -82,12 +83,16 @@ var renderCmd = &cobra.Command{
 			return
 		}
 
-		doc, content, dataCtx, diag := eng.RenderContent(ctx, target, requiredTags)
+		doc, content, data, diag := eng.RenderContent(ctx, target, requiredTags)
 		if diags.Extend(diag) {
 			return
 		}
 
-		diag = eng.PublishContent(ctx, target, doc, content, dataCtx, publish)
+		if content.IsEmpty() {
+			return
+		}
+
+		diag = eng.PublishContent(ctx, doc, content, data, publish)
 		if diags.Extend(diag) {
 			return
 		}

@@ -1,6 +1,10 @@
 package definitions
 
 import (
+	"fmt"
+	"slices"
+	"strings"
+
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -18,7 +22,8 @@ const (
 	BlockKindDynamic      = "dynamic"
 	BlockKindFormat       = "format"
 
-	PluginTypeRef    = "ref"
+	BlockTypeRef = "ref"
+
 	AttrRefBase      = "base"
 	AttrTitle        = "title"
 	AttrDependsOn    = "depends_on"
@@ -28,18 +33,67 @@ const (
 	AttrDynamicItems = "items"
 )
 
-type FabricBlock interface {
+type BlockDef interface {
 	GetHCLBlock() *hclsyntax.Block
 	CtyType() cty.Type
+	Kind() string
 }
 
-func ToCtyValue(b FabricBlock) cty.Value {
+func ToCtyValue(b BlockDef) cty.Value {
 	return cty.CapsuleVal(b.CtyType(), b)
 }
 
-// Identifies a plugin block
+// Identifies a defined block
 type Key struct {
-	PluginKind string
-	PluginName string
-	BlockName  string
+	Kind string
+	// Data source, content provider, formatter or publisher
+	Runner string
+	Name   string
+}
+
+func isValidKind(val string) bool {
+	return slices.Contains([]string{
+		BlockKindDocument,
+		BlockKindConfig,
+		BlockKindContent,
+		BlockKindPublish,
+		BlockKindData,
+		BlockKindMeta,
+		BlockKindVars,
+		BlockKindSection,
+		BlockKindGlobalConfig,
+		BlockKindDynamic,
+		BlockKindFormat,
+	}, val)
+}
+
+func KeyFromName(val string) (*Key, error) {
+
+	parts := strings.SplitN(val, ".", 3)
+	var kind string
+	var runner string
+	var name string
+	if len(parts) == 2 {
+		if parts[0] != BlockKindSection {
+			return nil, fmt.Errorf("invalid block type found in a dependency name `%s`", val)
+		}
+		kind = BlockKindSection
+		name = parts[1]
+	} else if len(parts) == 3 {
+		kind = parts[0]
+		runner = parts[1]
+		name = parts[2]
+	} else {
+		return nil, fmt.Errorf("error parsing a dependency name `%s`", val)
+	}
+
+	if !isValidKind(kind) {
+		return nil, fmt.Errorf("invalid block type found in a dependency name `%s`", val)
+	}
+
+	return &Key{
+		Kind:   kind,
+		Runner: runner,
+		Name:   name,
+	}, nil
 }

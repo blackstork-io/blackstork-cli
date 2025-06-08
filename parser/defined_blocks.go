@@ -8,16 +8,16 @@ import (
 
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-// Collection of defined blocks
-
+// Collection of block definitions.
 type DefinedBlocks struct {
-	GlobalConfig *definitions.GlobalConfigDefinition
-	Config       map[definitions.Key]*definitions.Config
-	Documents    map[string]*definitions.Document
-	Sections     map[string]*definitions.Section
-	Plugins      map[definitions.Key]*definitions.Plugin
+	GlobalConfig  *definitions.GlobalConfigDef
+	ConfigDefs    map[definitions.Key]*definitions.ConfigDef
+	DocumentDefs  map[string]*definitions.DocumentDef
+	SectionDefs   map[string]*definitions.SectionDef
+	ExecBlockDefs map[definitions.Key]*definitions.ExecBlockDef
 }
 
 func mapGetOrInit[K1, K2 comparable, V any](m map[K1]map[K2]V, key K1) (innerMap map[K2]V) {
@@ -29,88 +29,100 @@ func mapGetOrInit[K1, K2 comparable, V any](m map[K1]map[K2]V, key K1) (innerMap
 	return
 }
 
-func mapToCty(m map[string]map[string]cty.Value) (res map[string]cty.Value) {
-	res = make(map[string]cty.Value, len(m))
-	for k, v := range m {
-		if len(v) == 0 {
-			continue
-		}
-		res[k] = cty.MapVal(v)
-	}
-	return
-}
+func execBlocksMapToCty[V definitions.BlockDef](
+	execBlocksMap map[definitions.Key]V,
+) (content, data, format, publish cty.Value) {
+	// [runner_name][block_name]ctyVal
 
-func PluginMapToCty[V definitions.FabricBlock](plugins map[definitions.Key]V) (content, data, publish cty.Value) {
-	// [plugin_kind][plugin_name][block_name]*definitions.Plugin
+	contentBlocks := map[string]map[string]cty.Value{}
+	dataBlocks := map[string]map[string]cty.Value{}
+	formatBlocks := map[string]map[string]cty.Value{}
+	publishBlocks := map[string]map[string]cty.Value{}
 
-	pluginMap := [3]map[string]map[string]cty.Value{
-		{},
-		{},
-		{},
-	}
-	for k, v := range plugins {
-		var idx int
-		switch k.PluginKind {
+	for k, v := range execBlocksMap {
+		switch k.Kind {
 		case definitions.BlockKindContent:
-			idx = 0
+			blockNameToVal := mapGetOrInit(contentBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		case definitions.BlockKindData:
-			idx = 1
+			blockNameToVal := mapGetOrInit(dataBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+		case definitions.BlockKindFormat:
+			blockNameToVal := mapGetOrInit(formatBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		case definitions.BlockKindPublish:
-			idx = 2
+			blockNameToVal := mapGetOrInit(publishBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		default:
-			panic("must be exhaustive")
+			panic("Unsupported block kind encountered")
 		}
-		blockNameToVal := mapGetOrInit(pluginMap[idx], k.PluginName)
-		blockNameToVal[k.BlockName] = definitions.ToCtyValue(v)
 	}
-	pluginKindToVal := [3]cty.Value{}
 
-	for idx, pl := range pluginMap {
-		if len(pl) == 0 {
-			continue
-		}
-		pluginKindToVal[idx] = cty.MapVal(mapToCty(pl))
+	var contentBlocksCty cty.Value
+	if len(contentBlocks) > 0 {
+		contentBlocksCty = utils.MapMapToCty(contentBlocks)
 	}
-	return pluginKindToVal[0], pluginKindToVal[1], pluginKindToVal[2]
+
+	var dataBlocksCty cty.Value
+	if len(dataBlocks) > 0 {
+		dataBlocksCty = utils.MapMapToCty(dataBlocks)
+	}
+
+	var formatBlocksCty cty.Value
+	if len(formatBlocks) > 0 {
+		formatBlocksCty = utils.MapMapToCty(formatBlocks)
+	}
+
+	var publishBlocksCty cty.Value
+	if len(publishBlocks) > 0 {
+		publishBlocksCty = utils.MapMapToCty(publishBlocks)
+	}
+
+	return contentBlocksCty, dataBlocksCty, formatBlocksCty, publishBlocksCty
 }
 
+// The map to use in HCL eval context when block definitions are resolved
 func (db *DefinedBlocks) AsValueMap() map[string]cty.Value {
-	content, data, publish := PluginMapToCty(db.Plugins)
-	cfgContent, cfgData, cfgPublish := PluginMapToCty(db.Config)
+
+	content, data, format, publish := execBlocksMapToCty(db.ExecBlockDefs)
+	cfgContent, cfgData, cfgFormat, cfgPublish := execBlocksMapToCty(db.ConfigDefs)
+
 	config := cty.ObjectVal(map[string]cty.Value{
-		definitions.BlockKindContent: cfgContent,
 		definitions.BlockKindData:    cfgData,
+		definitions.BlockKindContent: cfgContent,
+		definitions.BlockKindFormat:  cfgFormat,
 		definitions.BlockKindPublish: cfgPublish,
 	})
 
 	var sections cty.Value
-	if len(db.Sections) == 0 {
-		sections = cty.MapValEmpty(cty.Map((*definitions.Section)(nil).CtyType()))
+	if len(db.SectionDefs) == 0 {
+		sections = cty.MapValEmpty(cty.Map((*definitions.SectionDef)(nil).CtyType()))
 	} else {
-		sect := make(map[string]cty.Value, len(db.Sections))
-		for k, v := range db.Sections {
+		sect := make(map[string]cty.Value, len(db.SectionDefs))
+		for k, v := range db.SectionDefs {
 			sect[k] = definitions.ToCtyValue(v)
 		}
 		sections = cty.MapVal(sect)
 	}
 	return map[string]cty.Value{
-		definitions.BlockKindContent: content,
-		definitions.BlockKindData:    data,
-		definitions.BlockKindSection: sections,
 		definitions.BlockKindConfig:  config,
+		definitions.BlockKindData:    data,
+		definitions.BlockKindContent: content,
+		definitions.BlockKindSection: sections,
+		definitions.BlockKindFormat:  format,
 		definitions.BlockKindPublish: publish,
 	}
 }
 
-func (db *DefinedBlocks) DefaultConfigFor(plugin *definitions.Plugin) (config *definitions.Config) {
-	return db.DefaultConfig(plugin.Kind(), plugin.Name())
+func (db *DefinedBlocks) DefaultConfigFor(plugin *definitions.ExecBlockDef) (config *definitions.ConfigDef) {
+	return db.DefaultConfigDef(plugin.Kind(), plugin.Name())
 }
 
-func (db *DefinedBlocks) DefaultConfig(pluginKind, pluginName string) (config *definitions.Config) {
-	return db.Config[definitions.Key{
-		PluginKind: pluginKind,
-		PluginName: pluginName,
-		BlockName:  "",
+func (db *DefinedBlocks) DefaultConfigDef(blockKind, runnerName string) (config *definitions.ConfigDef) {
+	return db.ConfigDefs[definitions.Key{
+		Kind:   blockKind,
+		Runner: runnerName,
+		Name:   "",
 	}]
 }
 
@@ -121,30 +133,35 @@ func (db *DefinedBlocks) Merge(other *DefinedBlocks) (diags diagnostics.Diag) {
 		}
 		db.GlobalConfig = other.GlobalConfig
 	}
-	for k, v := range other.Config {
-		diags.Append(AddIfMissing(db.Config, k, v))
+	for k, v := range other.ConfigDefs {
+		diags.Append(AddIfMissing(db.ConfigDefs, k, v))
 	}
-	for k, v := range other.Documents {
-		diags.Append(AddIfMissing(db.Documents, k, v))
+	for k, v := range other.DocumentDefs {
+		diags.Append(AddIfMissing(db.DocumentDefs, k, v))
 	}
-	for k, v := range other.Sections {
-		diags.Append(AddIfMissing(db.Sections, k, v))
+	for k, v := range other.SectionDefs {
+		diags.Append(AddIfMissing(db.SectionDefs, k, v))
 	}
-	for k, v := range other.Plugins {
-		diags.Append(AddIfMissing(db.Plugins, k, v))
+	for k, v := range other.ExecBlockDefs {
+		diags.Append(AddIfMissing(db.ExecBlockDefs, k, v))
 	}
 	return
 }
 
-func AddIfMissing[M ~map[K]V, K comparable, V definitions.FabricBlock](m M, key K, newBlock V) *hcl.Diagnostic {
+func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](m M, key K, newBlock V) *hcl.Diagnostic {
 	if origBlock, found := m[key]; found {
 		kind := origBlock.GetHCLBlock().Type
 		origDefRange := origBlock.GetHCLBlock().DefRange()
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Duplicate '%s' declaration", kind),
-			Detail:   fmt.Sprintf("'%s' with the same name originally defined at %s:%d", kind, origDefRange.Filename, origDefRange.Start.Line),
-			Subject:  newBlock.GetHCLBlock().DefRange().Ptr(),
+			Summary:  fmt.Sprintf("Duplicate `%s` declaration", kind),
+			Detail: fmt.Sprintf(
+				"`%s` with the same name defined at %s:%d",
+				kind,
+				origDefRange.Filename,
+				origDefRange.Start.Line,
+			),
+			Subject: newBlock.GetHCLBlock().DefRange().Ptr(),
 		}
 	}
 	m[key] = newBlock
@@ -153,9 +170,9 @@ func AddIfMissing[M ~map[K]V, K comparable, V definitions.FabricBlock](m M, key 
 
 func NewDefinedBlocks() *DefinedBlocks {
 	return &DefinedBlocks{
-		Config:    map[definitions.Key]*definitions.Config{},
-		Documents: map[string]*definitions.Document{},
-		Sections:  map[string]*definitions.Section{},
-		Plugins:   map[definitions.Key]*definitions.Plugin{},
+		ConfigDefs:    map[definitions.Key]*definitions.ConfigDef{},
+		DocumentDefs:  map[string]*definitions.DocumentDef{},
+		SectionDefs:   map[string]*definitions.SectionDef{},
+		ExecBlockDefs: map[definitions.Key]*definitions.ExecBlockDef{},
 	}
 }

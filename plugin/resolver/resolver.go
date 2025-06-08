@@ -172,7 +172,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 // If the lock file is not satisfied, an error is returned.
 func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[string]string, diags diagnostics.Diag) {
 	ctx, span := r.tracer.Start(ctx, "Resolver.Resolve")
-	r.logger.DebugContext(ctx, "Resolving plugins")
+	r.logger.DebugContext(ctx, "Resolving plugins", "lock_file_plugins_count", len(lockFile.Plugins))
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -186,8 +186,8 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		// warn about plugins that are removed from the version constraints
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  fmt.Sprintf("Plugin '%s' is not used", name),
-			Detail:   fmt.Sprintf("Version '%s' is no longer used. Run install to update lock file", lock),
+			Summary:  fmt.Sprintf("Plugin `%s` is not used", name),
+			Detail:   fmt.Sprintf("Version `%s` is not in use. To update the lock file, run `install` command", lock),
 		})
 	}
 	if check.IsInstallRequired() {
@@ -195,7 +195,7 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		for name := range check.Missing {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Plugin '%s' is not locked", name),
+				Summary:  fmt.Sprintf("Plugin `%s` is not locked", name),
 				Detail:   "Run install to resolve missing plugins.",
 			})
 		}
@@ -206,10 +206,10 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 			if pluginIdx == -1 {
 				continue
 			}
-			detailFormat := "Version locked at '%s' does not match the new constraint '%s'\nRun install to update lock file."
+			detailFormat := "Version locked at `%s` does not match the new constraint `%s`. To update the lock file, run `install` command."
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Plugin '%s' version mismatch", name),
+				Summary:  fmt.Sprintf("Plugin `%s` version mismatch", name),
 				Detail:   fmt.Sprintf(detailFormat, lockFile.Plugins[pluginIdx].Version, constraint),
 			})
 		}
@@ -228,7 +228,7 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		if err != nil {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Failed to resolve plugin '%s@%s'", lock.Name, lock.Version),
+				Summary:  fmt.Sprintf("Failed to resolve plugin `%s@%s`", lock.Name, lock.Version),
 				Detail:   err.Error(),
 			})
 			return nil, diags

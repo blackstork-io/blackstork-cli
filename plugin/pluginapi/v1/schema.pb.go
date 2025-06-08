@@ -21,55 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type InvocationOrder int32
-
-const (
-	InvocationOrder_INVOCATION_ORDER_UNSPECIFIED InvocationOrder = 0
-	InvocationOrder_INVOCATION_ORDER_BEGIN       InvocationOrder = 2
-	InvocationOrder_INVOCATION_ORDER_END         InvocationOrder = 3
-)
-
-// Enum value maps for InvocationOrder.
-var (
-	InvocationOrder_name = map[int32]string{
-		0: "INVOCATION_ORDER_UNSPECIFIED",
-		2: "INVOCATION_ORDER_BEGIN",
-		3: "INVOCATION_ORDER_END",
-	}
-	InvocationOrder_value = map[string]int32{
-		"INVOCATION_ORDER_UNSPECIFIED": 0,
-		"INVOCATION_ORDER_BEGIN":       2,
-		"INVOCATION_ORDER_END":         3,
-	}
-)
-
-func (x InvocationOrder) Enum() *InvocationOrder {
-	p := new(InvocationOrder)
-	*p = x
-	return p
-}
-
-func (x InvocationOrder) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (InvocationOrder) Descriptor() protoreflect.EnumDescriptor {
-	return file_pluginapi_v1_schema_proto_enumTypes[0].Descriptor()
-}
-
-func (InvocationOrder) Type() protoreflect.EnumType {
-	return &file_pluginapi_v1_schema_proto_enumTypes[0]
-}
-
-func (x InvocationOrder) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use InvocationOrder.Descriptor instead.
-func (InvocationOrder) EnumDescriptor() ([]byte, []int) {
-	return file_pluginapi_v1_schema_proto_rawDescGZIP(), []int{0}
-}
-
 type Schema struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Name    string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -173,10 +124,10 @@ func (x *Schema) GetTags() []string {
 
 type DataSourceSchema struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Args          *BlockSpec             `protobuf:"bytes,3,opt,name=args,proto3" json:"args,omitempty"`
-	Config        *BlockSpec             `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
-	Doc           string                 `protobuf:"bytes,5,opt,name=doc,proto3" json:"doc,omitempty"`
-	Tags          []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
+	Args          *BlockSpec             `protobuf:"bytes,1,opt,name=args,proto3" json:"args,omitempty"`
+	Config        *BlockSpec             `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	Doc           string                 `protobuf:"bytes,3,opt,name=doc,proto3" json:"doc,omitempty"`
+	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -240,14 +191,13 @@ func (x *DataSourceSchema) GetTags() []string {
 }
 
 type ContentProviderSchema struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Args            *BlockSpec             `protobuf:"bytes,4,opt,name=args,proto3" json:"args,omitempty"`
-	Config          *BlockSpec             `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
-	InvocationOrder InvocationOrder        `protobuf:"varint,3,opt,name=invocation_order,json=invocationOrder,proto3,enum=pluginapi.v1.InvocationOrder" json:"invocation_order,omitempty"`
-	Doc             string                 `protobuf:"bytes,6,opt,name=doc,proto3" json:"doc,omitempty"`
-	Tags            []string               `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Args          *BlockSpec             `protobuf:"bytes,1,opt,name=args,proto3" json:"args,omitempty"`
+	Config        *BlockSpec             `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	Doc           string                 `protobuf:"bytes,3,opt,name=doc,proto3" json:"doc,omitempty"`
+	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ContentProviderSchema) Reset() {
@@ -292,13 +242,6 @@ func (x *ContentProviderSchema) GetConfig() *BlockSpec {
 		return x.Config
 	}
 	return nil
-}
-
-func (x *ContentProviderSchema) GetInvocationOrder() InvocationOrder {
-	if x != nil {
-		return x.InvocationOrder
-	}
-	return InvocationOrder_INVOCATION_ORDER_UNSPECIFIED
 }
 
 func (x *ContentProviderSchema) GetDoc() string {
@@ -398,7 +341,6 @@ type FormatterSchema struct {
 	Doc           string                 `protobuf:"bytes,3,opt,name=doc,proto3" json:"doc,omitempty"`
 	Format        string                 `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"`
 	FileExt       string                 `protobuf:"bytes,5,opt,name=file_ext,json=fileExt,proto3" json:"file_ext,omitempty"`
-	Tags          []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -468,13 +410,6 @@ func (x *FormatterSchema) GetFileExt() string {
 	return ""
 }
 
-func (x *FormatterSchema) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
 var File_pluginapi_v1_schema_proto protoreflect.FileDescriptor
 
 const file_pluginapi_v1_schema_proto_rawDesc = "" +
@@ -506,33 +441,27 @@ const file_pluginapi_v1_schema_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x123\n" +
 	"\x05value\x18\x02 \x01(\v2\x1d.pluginapi.v1.FormatterSchemaR\x05value:\x028\x01\"\x96\x01\n" +
 	"\x10DataSourceSchema\x12+\n" +
-	"\x04args\x18\x03 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
-	"\x06config\x18\x04 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
-	"\x03doc\x18\x05 \x01(\tR\x03doc\x12\x12\n" +
-	"\x04tags\x18\x06 \x03(\tR\x04tags\"\xe5\x01\n" +
+	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
+	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
+	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x12\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\"\x9b\x01\n" +
 	"\x15ContentProviderSchema\x12+\n" +
-	"\x04args\x18\x04 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
-	"\x06config\x18\x05 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12H\n" +
-	"\x10invocation_order\x18\x03 \x01(\x0e2\x1d.pluginapi.v1.InvocationOrderR\x0finvocationOrder\x12\x10\n" +
-	"\x03doc\x18\x06 \x01(\tR\x03doc\x12\x12\n" +
-	"\x04tags\x18\a \x03(\tR\x04tags\"\xaf\x01\n" +
+	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
+	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
+	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x12\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\"\xaf\x01\n" +
 	"\x0fPublisherSchema\x12+\n" +
 	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
 	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x12\n" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x18\n" +
-	"\aformats\x18\x05 \x03(\tR\aformats\"\xc8\x01\n" +
+	"\aformats\x18\x05 \x03(\tR\aformats\"\xb4\x01\n" +
 	"\x0fFormatterSchema\x12+\n" +
 	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
 	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x16\n" +
 	"\x06format\x18\x04 \x01(\tR\x06format\x12\x19\n" +
-	"\bfile_ext\x18\x05 \x01(\tR\afileExt\x12\x12\n" +
-	"\x04tags\x18\x06 \x03(\tR\x04tags*i\n" +
-	"\x0fInvocationOrder\x12 \n" +
-	"\x1cINVOCATION_ORDER_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16INVOCATION_ORDER_BEGIN\x10\x02\x12\x18\n" +
-	"\x14INVOCATION_ORDER_END\x10\x03B\xb1\x01\n" +
+	"\bfile_ext\x18\x05 \x01(\tR\afileExtB\xb1\x01\n" +
 	"\x10com.pluginapi.v1B\vSchemaProtoP\x01Z?github.com/blackstork-io/fabric/plugin/pluginapi/v1;pluginapiv1\xa2\x02\x03PXX\xaa\x02\fPluginapi.V1\xca\x02\fPluginapi\\V1\xe2\x02\x18Pluginapi\\V1\\GPBMetadata\xea\x02\rPluginapi::V1b\x06proto3"
 
 var (
@@ -547,44 +476,41 @@ func file_pluginapi_v1_schema_proto_rawDescGZIP() []byte {
 	return file_pluginapi_v1_schema_proto_rawDescData
 }
 
-var file_pluginapi_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_pluginapi_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_pluginapi_v1_schema_proto_goTypes = []any{
-	(InvocationOrder)(0),          // 0: pluginapi.v1.InvocationOrder
-	(*Schema)(nil),                // 1: pluginapi.v1.Schema
-	(*DataSourceSchema)(nil),      // 2: pluginapi.v1.DataSourceSchema
-	(*ContentProviderSchema)(nil), // 3: pluginapi.v1.ContentProviderSchema
-	(*PublisherSchema)(nil),       // 4: pluginapi.v1.PublisherSchema
-	(*FormatterSchema)(nil),       // 5: pluginapi.v1.FormatterSchema
-	nil,                           // 6: pluginapi.v1.Schema.DataSourcesEntry
-	nil,                           // 7: pluginapi.v1.Schema.ContentProvidersEntry
-	nil,                           // 8: pluginapi.v1.Schema.PublishersEntry
-	nil,                           // 9: pluginapi.v1.Schema.FormattersEntry
-	(*BlockSpec)(nil),             // 10: pluginapi.v1.BlockSpec
+	(*Schema)(nil),                // 0: pluginapi.v1.Schema
+	(*DataSourceSchema)(nil),      // 1: pluginapi.v1.DataSourceSchema
+	(*ContentProviderSchema)(nil), // 2: pluginapi.v1.ContentProviderSchema
+	(*PublisherSchema)(nil),       // 3: pluginapi.v1.PublisherSchema
+	(*FormatterSchema)(nil),       // 4: pluginapi.v1.FormatterSchema
+	nil,                           // 5: pluginapi.v1.Schema.DataSourcesEntry
+	nil,                           // 6: pluginapi.v1.Schema.ContentProvidersEntry
+	nil,                           // 7: pluginapi.v1.Schema.PublishersEntry
+	nil,                           // 8: pluginapi.v1.Schema.FormattersEntry
+	(*BlockSpec)(nil),             // 9: pluginapi.v1.BlockSpec
 }
 var file_pluginapi_v1_schema_proto_depIdxs = []int32{
-	6,  // 0: pluginapi.v1.Schema.data_sources:type_name -> pluginapi.v1.Schema.DataSourcesEntry
-	7,  // 1: pluginapi.v1.Schema.content_providers:type_name -> pluginapi.v1.Schema.ContentProvidersEntry
-	8,  // 2: pluginapi.v1.Schema.publishers:type_name -> pluginapi.v1.Schema.PublishersEntry
-	9,  // 3: pluginapi.v1.Schema.formatters:type_name -> pluginapi.v1.Schema.FormattersEntry
-	10, // 4: pluginapi.v1.DataSourceSchema.args:type_name -> pluginapi.v1.BlockSpec
-	10, // 5: pluginapi.v1.DataSourceSchema.config:type_name -> pluginapi.v1.BlockSpec
-	10, // 6: pluginapi.v1.ContentProviderSchema.args:type_name -> pluginapi.v1.BlockSpec
-	10, // 7: pluginapi.v1.ContentProviderSchema.config:type_name -> pluginapi.v1.BlockSpec
-	0,  // 8: pluginapi.v1.ContentProviderSchema.invocation_order:type_name -> pluginapi.v1.InvocationOrder
-	10, // 9: pluginapi.v1.PublisherSchema.args:type_name -> pluginapi.v1.BlockSpec
-	10, // 10: pluginapi.v1.PublisherSchema.config:type_name -> pluginapi.v1.BlockSpec
-	10, // 11: pluginapi.v1.FormatterSchema.args:type_name -> pluginapi.v1.BlockSpec
-	10, // 12: pluginapi.v1.FormatterSchema.config:type_name -> pluginapi.v1.BlockSpec
-	2,  // 13: pluginapi.v1.Schema.DataSourcesEntry.value:type_name -> pluginapi.v1.DataSourceSchema
-	3,  // 14: pluginapi.v1.Schema.ContentProvidersEntry.value:type_name -> pluginapi.v1.ContentProviderSchema
-	4,  // 15: pluginapi.v1.Schema.PublishersEntry.value:type_name -> pluginapi.v1.PublisherSchema
-	5,  // 16: pluginapi.v1.Schema.FormattersEntry.value:type_name -> pluginapi.v1.FormatterSchema
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	5,  // 0: pluginapi.v1.Schema.data_sources:type_name -> pluginapi.v1.Schema.DataSourcesEntry
+	6,  // 1: pluginapi.v1.Schema.content_providers:type_name -> pluginapi.v1.Schema.ContentProvidersEntry
+	7,  // 2: pluginapi.v1.Schema.publishers:type_name -> pluginapi.v1.Schema.PublishersEntry
+	8,  // 3: pluginapi.v1.Schema.formatters:type_name -> pluginapi.v1.Schema.FormattersEntry
+	9,  // 4: pluginapi.v1.DataSourceSchema.args:type_name -> pluginapi.v1.BlockSpec
+	9,  // 5: pluginapi.v1.DataSourceSchema.config:type_name -> pluginapi.v1.BlockSpec
+	9,  // 6: pluginapi.v1.ContentProviderSchema.args:type_name -> pluginapi.v1.BlockSpec
+	9,  // 7: pluginapi.v1.ContentProviderSchema.config:type_name -> pluginapi.v1.BlockSpec
+	9,  // 8: pluginapi.v1.PublisherSchema.args:type_name -> pluginapi.v1.BlockSpec
+	9,  // 9: pluginapi.v1.PublisherSchema.config:type_name -> pluginapi.v1.BlockSpec
+	9,  // 10: pluginapi.v1.FormatterSchema.args:type_name -> pluginapi.v1.BlockSpec
+	9,  // 11: pluginapi.v1.FormatterSchema.config:type_name -> pluginapi.v1.BlockSpec
+	1,  // 12: pluginapi.v1.Schema.DataSourcesEntry.value:type_name -> pluginapi.v1.DataSourceSchema
+	2,  // 13: pluginapi.v1.Schema.ContentProvidersEntry.value:type_name -> pluginapi.v1.ContentProviderSchema
+	3,  // 14: pluginapi.v1.Schema.PublishersEntry.value:type_name -> pluginapi.v1.PublisherSchema
+	4,  // 15: pluginapi.v1.Schema.FormattersEntry.value:type_name -> pluginapi.v1.FormatterSchema
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_pluginapi_v1_schema_proto_init() }
@@ -598,14 +524,13 @@ func file_pluginapi_v1_schema_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pluginapi_v1_schema_proto_rawDesc), len(file_pluginapi_v1_schema_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_pluginapi_v1_schema_proto_goTypes,
 		DependencyIndexes: file_pluginapi_v1_schema_proto_depIdxs,
-		EnumInfos:         file_pluginapi_v1_schema_proto_enumTypes,
 		MessageInfos:      file_pluginapi_v1_schema_proto_msgTypes,
 	}.Build()
 	File_pluginapi_v1_schema_proto = out.File

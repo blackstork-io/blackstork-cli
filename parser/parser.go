@@ -1,9 +1,11 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"path/filepath"
 	"strings"
 
@@ -12,26 +14,26 @@ import (
 
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/parexec"
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
 // FS-level parsing of fabric files
 
-const FabricFileExt = ".fabric"
+const (
+	templateFileExt     = ".fabric"
+	maxReadParseWorkers = 10
+)
 
-// Calls fn with paths to every *.fabric files and collects errors into the returned diags.
-func FindFabricFiles(rootDir fs.FS, recursive bool, fn func(path string)) (diags diagnostics.Diag) {
+// Calls fn with paths to every template file and collects errors into the returned diags.
+func findTemplateFiles(rootDir fs.FS, recursive bool) (paths []string, diags diagnostics.Diag) {
+	paths = []string{}
 	err := fs.WalkDir(rootDir, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Directory traversal error",
-				Detail: fmt.Sprintf(
-					"Error while looking at '%s': %s",
-					path, err,
-				),
-				Extra: err,
+				Detail:   fmt.Sprintf("Error while reading `%s`: %s", path, err),
+				Extra:    err,
 			})
 			return nil
 		}
@@ -41,20 +43,20 @@ func FindFabricFiles(rootDir fs.FS, recursive bool, fn func(path string)) (diags
 			}
 			return nil
 		}
-		if strings.EqualFold(filepath.Ext(path), FabricFileExt) {
-			fn(path)
+		if strings.EqualFold(filepath.Ext(path), templateFileExt) {
+			paths = append(paths, path)
 		}
 		return nil
 	})
 	if err != nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "fs.WalkDir error",
+			Summary:  "Error while walking a directory",
 			Detail:   err.Error(),
 			Extra:    err,
 		})
 	}
-	return
+	return paths, diags
 }
 
 type fileParseResult struct {
@@ -64,11 +66,13 @@ type fileParseResult struct {
 	blocks *DefinedBlocks
 }
 
-func parseHclBytes(bytes []byte, path string) (res fileParseResult) {
+func parseHclBytes(bytes []byte, path string) (res *fileParseResult) {
 	file, diag := hclsyntax.ParseConfig(bytes, path, hcl.InitialPos)
-	res.file = file
-	res.path = path
-	res.Diag = diagnostics.Diag(diag)
+	res = &fileParseResult{
+		file: file,
+		path: path,
+		Diag: diagnostics.Diag(diag),
+	}
 	if res.HasErrors() {
 		return
 	}
@@ -79,96 +83,76 @@ func parseHclBytes(bytes []byte, path string) (res fileParseResult) {
 	res.Extend(diags)
 	res.blocks = blocks
 
-	return
+	return res
 }
 
 func readFile(rootDir fs.FS, path string) ([]byte, error) {
 	file, err := rootDir.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, fmt.Errorf("failed to open a file: %w", err)
 	}
 	defer file.Close()
 	bytes, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+		return nil, fmt.Errorf("failed to read a file: %w", err)
 	}
 	return bytes, nil
 }
 
-func readFabricFile(dirFs fs.FS, path string) ([]byte, diagnostics.Diag) {
-	bytes, err := readFile(dirFs, path)
-	if err != nil {
-		return nil, diagnostics.FromHcl(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "File read error",
-			Detail: fmt.Sprintf(
-				"Error while looking at '%s': %s",
-				path, err,
-			),
-			Extra: err,
-		})
-	}
-	return bytes, nil
-}
+func ParseDir(
+	ctx context.Context,
+	log *slog.Logger,
+	dir fs.FS,
+) (*DefinedBlocks, map[string]*hcl.File, diagnostics.Diag) {
 
-func ParseDir(dir fs.FS) (*DefinedBlocks, map[string]*hcl.File, diagnostics.Diag) {
+	var diags diagnostics.Diag
+
+	templateFiles, readDiags := findTemplateFiles(dir, true)
+	log.DebugContext(ctx, "Template files found", "files_count", len(templateFiles), "dir", dir)
+
+	diags = append(diags, readDiags...)
+
+	workersCount := min(len(templateFiles), maxReadParseWorkers)
+
+	parseResults, _ := utils.RunWorkers(
+		ctx,
+		log.With("task", "parsing_templates"),
+		templateFiles,
+		workersCount,
+		func(path string) (*fileParseResult, error) {
+			body, err := readFile(dir, path)
+			if err != nil {
+				return &fileParseResult{
+					Diag: diagnostics.Diag{{
+						Severity: hcl.DiagError,
+						Summary:  "File read error",
+						Detail:   fmt.Sprintf("Error while looking at `%s`: %s", path, err),
+						Extra:    err,
+					}},
+					path: path,
+				}, nil
+			}
+			return parseHclBytes(body, path), nil
+		},
+	)
+
 	blocks := NewDefinedBlocks()
 	fileMap := map[string]*hcl.File{}
-	var parseDiags diagnostics.Diag
 
-	// Collects parsed results
-	parsePE := parexec.New(
-		parexec.CPULimiter,
-		func(res fileParseResult, _ int) (cmd parexec.Command) {
-			parseDiags.Extend(res.Diag)
-			parseDiags.Extend(blocks.Merge(res.blocks))
-			fileMap[res.path] = res.file
-			return
-		},
-	)
-
-	// Schedules read file to be parsed
-	goParseHCL := parexec.GoWithArgs(parsePE, func(bytes []byte, path string) fileParseResult {
-		res := parseHclBytes(bytes, path)
-		return res
-	})
-
-	var readDiags diagnostics.Diag
-
-	readPE := parexec.New(
-		parexec.DiskIOLimiter,
-		func(diags diagnostics.Diag, _ int) (_ parexec.Command) {
-			readDiags.Extend(diags)
-			return
-		},
-	)
-
-	// Reads files in readPE and schedules them to be parsed in parsePE
-	goReadFabricFile := parexec.GoWithArg(readPE, func(path string) diagnostics.Diag {
-		bytes, diag := readFabricFile(dir, path)
-		if !diag.HasErrors() {
-			goParseHCL(bytes, path)
+	for _, result := range parseResults {
+		diags.Extend(result.Diag)
+		if result.HasErrors() {
+			continue
 		}
-		return diag
-	})
 
-	// Walks the given dir and schedules files to be read in readPE
-	readPE.Go(func() diagnostics.Diag {
-		return FindFabricFiles(dir, true, goReadFabricFile)
-	})
-
-	// All files have been read
-	readPE.WaitDoneAndLock()
-	// All files have been parsed
-	parsePE.WaitDoneAndLock()
-
-	// prepending read diags, since they logically happen earlier
-	diags := append(readDiags, parseDiags...) //nolint:gocritic
+		blocks.Merge(result.blocks)
+		fileMap[result.path] = result.file
+	}
 
 	if len(fileMap) == 0 {
 		diags.Add(
-			"No valid fabric files found",
-			fmt.Sprintf("No valid *.fabric files found at '%s'", dir),
+			"No valid templates files found",
+			fmt.Sprintf("No valid template files found in `%s`", dir),
 		)
 	}
 
@@ -180,38 +164,36 @@ func parseBlockDefinitions(body *hclsyntax.Body) (res *DefinedBlocks, diags diag
 
 	for _, block := range body.Blocks {
 		switch block.Type {
-		case definitions.BlockKindData, definitions.BlockKindContent, definitions.BlockKindPublish:
-			plugin, dgs := definitions.DefinePlugin(block, true)
+		// Standalone top level outside-document blocks
+		case definitions.BlockKindData, definitions.BlockKindContent, definitions.BlockKindFormat, definitions.BlockKindPublish:
+			execBlock, dgs := definitions.DefineExecBlockDef(block, true)
 			if diags.Extend(dgs) {
 				continue
 			}
-			key := plugin.GetKey()
-			if key == nil {
-				panic("unable to get the key of the top-level block")
-			}
-			diags.Append(AddIfMissing(res.Plugins, *key, plugin))
+			key := execBlock.Key()
+			diags.Append(AddIfMissing(res.ExecBlockDefs, key, execBlock))
 		case definitions.BlockKindDocument:
-			blk, dgs := definitions.DefineDocument(block)
+			blk, dgs := definitions.DefineDocumentDef(block)
 			if diags.Extend(dgs) {
 				continue
 			}
-			diags.Append(AddIfMissing(res.Documents, blk.Name, blk))
+			diags.Append(AddIfMissing(res.DocumentDefs, blk.Name, blk))
 		case definitions.BlockKindSection:
-			blk, dgs := definitions.DefineSection(block, true)
+			blk, dgs := definitions.DefineSectionDef(block, true)
 			if diags.Extend(dgs) {
 				continue
 			}
-			diags.Append(AddIfMissing(res.Sections, blk.Name(), blk))
+			diags.Append(AddIfMissing(res.SectionDefs, blk.Name(), blk))
 		case definitions.BlockKindConfig:
-			cfg, dgs := definitions.DefineConfig(block)
+			cfg, dgs := definitions.DefineConfigDef(block)
 			if diags.Extend(dgs) {
 				continue
 			}
-			key := cfg.GetKey()
+			key := cfg.Key()
 			if key == nil {
-				panic("unable to get the key of the top-level block")
+				panic("unable to get the key of the top-level config block")
 			}
-			diags.Append(AddIfMissing(res.Config, *key, cfg))
+			diags.Append(AddIfMissing(res.ConfigDefs, *key, cfg))
 		case definitions.BlockKindGlobalConfig:
 			if res.GlobalConfig != nil {
 				origRng := res.GlobalConfig.GetHCLBlock().DefRange()
@@ -233,7 +215,7 @@ func parseBlockDefinitions(body *hclsyntax.Body) (res *DefinedBlocks, diags diag
 			res.GlobalConfig = cfg
 		default:
 			diags.Append(definitions.NewNestingDiag(
-				"Top level of the document",
+				"Top level of the document template",
 				block,
 				body,
 				[]string{
@@ -241,11 +223,13 @@ func parseBlockDefinitions(body *hclsyntax.Body) (res *DefinedBlocks, diags diag
 					definitions.BlockKindContent,
 					definitions.BlockKindPublish,
 					definitions.BlockKindDocument,
+					definitions.BlockKindFormat,
 					definitions.BlockKindSection,
 					definitions.BlockKindConfig,
 					definitions.BlockKindGlobalConfig,
 				}))
 		}
 	}
+
 	return
 }

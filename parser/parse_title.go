@@ -12,7 +12,10 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-func (db *DefinedBlocks) ParseTitle(ctx context.Context, title *hclsyntax.Attribute) (res *definitions.ParsedContent, diags diagnostics.Diag) {
+func (db *DefinedBlocks) ParseTitle(
+	ctx context.Context,
+	title *hclsyntax.Attribute,
+) (res *definitions.ContentBlock, diags diagnostics.Diag) {
 	const pluginName = "title"
 
 	value := *title
@@ -21,7 +24,7 @@ func (db *DefinedBlocks) ParseTitle(ctx context.Context, title *hclsyntax.Attrib
 	relativeSize := *title
 	relativeSize.Name = "relative_size"
 	relativeSize.Expr = &hclsyntax.LiteralValueExpr{
-		Val:      cty.NumberIntVal(-1),
+		Val:      cty.NumberIntVal(0),
 		SrcRange: title.Expr.Range(),
 	}
 
@@ -41,16 +44,14 @@ func (db *DefinedBlocks) ParseTitle(ctx context.Context, title *hclsyntax.Attrib
 		OpenBraceRange:  utils.RangeStart(title.NameRange),
 		CloseBraceRange: utils.RangeEnd(title.Expr.Range()),
 	}
-	def, diag := definitions.DefinePlugin(block, false)
+
+	def, diag := definitions.DefineExecBlockDef(block, false)
 	if diags.Extend(diag) {
 		return
 	}
-	parsed, diag := db.ParsePlugin(ctx, def)
+	contentBlock, diag := db.ParseContentBlock(ctx, def, nil)
 	if diags.Extend(diag) {
 		return
 	}
-	res = &definitions.ParsedContent{
-		Plugin: parsed,
-	}
-	return
+	return contentBlock, diags
 }

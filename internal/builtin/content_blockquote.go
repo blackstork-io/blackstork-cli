@@ -30,7 +30,7 @@ func makeBlockQuoteContentProvider() *plugin.ContentProvider {
 func genBlockQuoteContent(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value")
 	text, err := renderText(value.AsString(), params.DataContext)
 	if err != nil {
@@ -41,7 +41,7 @@ func genBlockQuoteContent(
 		}}
 	}
 	// text = "> " + strings.ReplaceAll(text, "\n", "\n> ")
-	return &plugin.ContentResult{
-		Content: plugin.NewBlockquoteElement(text, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewQuoteElement(text),
 	}, nil
 }

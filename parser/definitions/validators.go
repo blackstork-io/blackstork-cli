@@ -2,6 +2,8 @@ package definitions
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -37,43 +39,50 @@ func validateBlockName(block *hclsyntax.Block, idx int, required bool) *hcl.Diag
 	return nil
 }
 
-func validatePluginKind(block *hclsyntax.Block, kind string, kindRange hcl.Range) *hcl.Diagnostic {
-	switch kind {
-	case BlockKindContent, BlockKindData, BlockKindPublish, BlockKindFormat:
+func validateExecBlockKind(block *hclsyntax.Block, kind string, kindRange hcl.Range) *hcl.Diagnostic {
+
+	supportedKinds := []string{
+		BlockKindContent, BlockKindData, BlockKindPublish, BlockKindFormat,
+	}
+
+	if slices.Contains(supportedKinds, kind) {
 		return nil
-	default:
-		return &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid plugin kind",
-			Detail: fmt.Sprintf(
-				"Unknown plugin kind '%s', valid plugin kinds are: '%s', '%s', '%s', '%s'",
-				kind, BlockKindContent, BlockKindData, BlockKindFormat, BlockKindPublish,
-			),
-			Subject: kindRange.Ptr(),
-			Context: block.DefRange().Ptr(),
-		}
+	}
+
+	kindsStr := strings.Join(supportedKinds, ", ")
+
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid block type",
+		Detail: fmt.Sprintf(
+			"Unknown block type `%s` does not match supported typese: %s",
+			kind,
+			kindsStr,
+		),
+		Subject: kindRange.Ptr(),
+		Context: block.DefRange().Ptr(),
 	}
 }
 
-func validatePluginKindLabel(block *hclsyntax.Block, idx int) *hcl.Diagnostic {
+func validateExecBlockKindLabel(block *hclsyntax.Block, idx int) *hcl.Diagnostic {
 	if idx >= len(block.Labels) {
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Missing block type",
-			Detail:   "Block type was not specified",
+			Detail:   "Block type is not specified",
 			Subject:  block.DefRange().Ptr(),
 		}
 	}
 
-	return validatePluginKind(block, block.Labels[idx], block.LabelRanges[idx])
+	return validateExecBlockKind(block, block.Labels[idx], block.LabelRanges[idx])
 }
 
-func validatePluginName(block *hclsyntax.Block, idx int) *hcl.Diagnostic {
+func validateBlockRunnerName(block *hclsyntax.Block, idx int) *hcl.Diagnostic {
 	if idx >= len(block.Labels) {
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Missing plugin name",
-			Detail:   "Plugin name was not specified",
+			Summary:  "Missing a block runner name",
+			Detail:   "Either a data source, a content provider, a publisher or a formatter name must be provided",
 			Subject:  block.DefRange().Ptr(),
 		}
 	}
@@ -90,7 +99,7 @@ func validateLabelsLength(block *hclsyntax.Block, maxLabels int, labelUsage stri
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("Invalid %s block", block.Type),
-			Detail:   fmt.Sprintf("Too many labels, usage: '%s'", labelUsage),
+			Detail:   fmt.Sprintf("Too many labels provided for the block. Usage: '%s'", labelUsage),
 			Subject:  hcl.RangeBetween(block.LabelRanges[maxLabels], block.LabelRanges[len(block.LabelRanges)-1]).Ptr(),
 			Context:  block.DefRange().Ptr(),
 		}

@@ -179,7 +179,12 @@ func DecodeBlock(ctx context.Context, block *hclsyntax.Block, rootSpec *RootSpec
 
 // Decodes hclsyntax.Block into a Block according to the given RootSpec.
 // Deferred evaluation is performed immediatly.
-func DecodeAndEvalBlock(ctx context.Context, block *hclsyntax.Block, rootSpec *RootSpec, dataCtx plugindata.Map) (res *Block, diags diagnostics.Diag) {
+func DecodeAndEvalBlock(
+	ctx context.Context,
+	block *hclsyntax.Block,
+	rootSpec *RootSpec,
+	dataCtx plugindata.Map,
+) (res *Block, diags diagnostics.Diag) {
 	res, diags = decodeBlock(block, rootSpec.BlockSpec(), fabctx.GetEvalContext(ctx))
 	if diags.HasErrors() {
 		res = nil
@@ -195,7 +200,11 @@ func DecodeAndEvalBlock(ctx context.Context, block *hclsyntax.Block, rootSpec *R
 
 // EvalBlockCopy evaluates deferred values in the given block and validates the attributes.
 // The original block is not modified.
-func EvalBlockCopy(ctx context.Context, block *Block, dataCtx plugindata.Map) (evaluatedBlock *Block, diags diagnostics.Diag) {
+func EvalBlockCopy(
+	ctx context.Context,
+	block *Block,
+	dataCtx plugindata.Map,
+) (evaluatedBlock *Block, diags diagnostics.Diag) {
 	if block == nil {
 		return
 	}
@@ -232,20 +241,25 @@ func EvalBlock(ctx context.Context, block *Block, dataCtx plugindata.Map) (diags
 	return
 }
 
-func decodeBlock(block *hclsyntax.Block, blockSpec *BlockSpec, ctx *hcl.EvalContext) (res *Block, diags diagnostics.Diag) {
+func decodeBlock(
+	block *hclsyntax.Block,
+	blockSpec *BlockSpec,
+	ctx *hcl.EvalContext,
+) (res *Block, diags diagnostics.Diag) {
+
 	if block == nil {
 		if blockSpec == nil {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing block and blockspec",
-				Detail:   "Block and blockspec are both nil, can't decode a block",
+				Summary:  "Missing a block and a block spec",
+				Detail:   "A block and a blockspec are both missing, can't decode",
 			})
 			return
 		}
 		if blockSpec.Required {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing block",
+				Summary:  "Missing a block",
 				Detail:   fmt.Sprintf("Block of type %s is required", formatHeader(blockSpec.Header.AsDocLabels())),
 			})
 			return
@@ -258,6 +272,7 @@ func decodeBlock(block *hclsyntax.Block, blockSpec *BlockSpec, ctx *hcl.EvalCont
 			Body:   &hclsyntax.Body{},
 		}
 	}
+
 	res = &Block{
 		Header:        make([]string, 1, len(block.Labels)+1),
 		HeaderRanges:  make([]hcl.Range, 1, len(block.Labels)+1),
@@ -265,9 +280,11 @@ func decodeBlock(block *hclsyntax.Block, blockSpec *BlockSpec, ctx *hcl.EvalCont
 		Blocks:        make(Blocks, 0, len(block.Body.Blocks)),
 		ContentsRange: block.Body.SrcRange,
 	}
+
 	res.Header[0] = block.Type
-	res.HeaderRanges[0] = block.TypeRange
 	res.Header = append(res.Header, block.Labels...)
+
+	res.HeaderRanges[0] = block.TypeRange
 	res.HeaderRanges = append(res.HeaderRanges, block.LabelRanges...)
 
 	if blockSpec == nil {
@@ -289,43 +306,51 @@ func decodeBlock(block *hclsyntax.Block, blockSpec *BlockSpec, ctx *hcl.EvalCont
 		return
 	}
 
-	wasUsed := make([]bool, len(blockSpec.Blocks))
+	specWasUsed := make([]bool, len(blockSpec.Blocks))
 nextBlock:
-	for _, subB := range block.Body.Blocks {
-		for i, bSpec := range blockSpec.Blocks {
-			if !bSpec.Repeatable && wasUsed[i] {
+	for _, subBlock := range block.Body.Blocks {
+
+		for i, subSpec := range blockSpec.Blocks {
+			if !subSpec.Repeatable && specWasUsed[i] {
 				continue
 			}
-			if !bSpec.Header.Match(subB.Type, subB.Labels) {
+			if !subSpec.Header.Match(subBlock.Type, subBlock.Labels) {
 				continue
 			}
-			wasUsed[i] = true
-			b, diag := decodeBlock(subB, bSpec, ctx)
+			specWasUsed[i] = true
+			b, diag := decodeBlock(subBlock, subSpec, ctx)
 			diags.Extend(diag)
 			res.Blocks = append(res.Blocks, b)
 			continue nextBlock
 		}
+
 		if !blockSpec.AllowUnspecifiedBlocks {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unexpected block",
+				Summary:  "Unexpected block found",
 				Detail:   fmt.Sprintf("%s can not contain this block", formatHeader(block.Type, block.Labels)),
-				Subject:  &subB.TypeRange,
+				Subject:  &subBlock.TypeRange,
 				Context:  &block.Body.SrcRange,
 			})
 			continue nextBlock
 		}
-		b, diag := decodeBlock(subB, nil, ctx)
+
+		b, diag := decodeBlock(subBlock, nil, ctx)
 		res.Blocks = append(res.Blocks, b)
 		diags.Extend(diag)
 	}
-	for i, bSpec := range blockSpec.Blocks {
-		if bSpec.Required && !wasUsed[i] {
+
+	for i, subSpec := range blockSpec.Blocks {
+		if subSpec.Required && !specWasUsed[i] {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing block",
-				Detail:   fmt.Sprintf("%s requires a block of type %s", formatHeader(block.Type, block.Labels), formatHeader(bSpec.Header.AsDocLabels())),
-				Subject:  block.Body.MissingItemRange().Ptr(),
+				Summary:  "Missing a block",
+				Detail: fmt.Sprintf(
+					"%s requires a block of type %s to be defined",
+					formatHeader(block.Type, block.Labels),
+					formatHeader(subSpec.Header.AsDocLabels()),
+				),
+				Subject: block.Body.MissingItemRange().Ptr(),
 			})
 		}
 	}
@@ -333,6 +358,7 @@ nextBlock:
 	attrs := maps.Clone(block.Body.Attributes)
 	for _, spec := range blockSpec.Attrs {
 		attr, found := utils.Pop(attrs, spec.Name)
+
 		if !found {
 			if spec.Constraints.Is(constraint.Required) {
 				diags.Append(&hcl.Diagnostic{
@@ -355,6 +381,7 @@ nextBlock:
 			}
 			continue
 		}
+
 		if spec.Deprecated != "" {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
@@ -364,23 +391,23 @@ nextBlock:
 				Context:  &attr.SrcRange,
 			})
 		}
+
 		decAttr, diag := DecodeAttr(ctx, attr, spec)
 		if diags.Extend(diag) {
 			continue
 		}
 		res.Attrs[spec.Name] = decAttr
 	}
+
 	for name, attr := range attrs {
+		slog.Warn("ATTR", "name", name, "attr", attr, "block", block)
 		if !blockSpec.AllowUnspecifiedAttributes {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unsupported attribute",
-				Detail: fmt.Sprintf(
-					"Unsupported attribute %q",
-					name,
-				),
-				Subject: &attr.NameRange,
-				Context: hcl.RangeBetween(attr.NameRange, attr.Expr.Range()).Ptr(),
+				Summary:  "Provided attribute is not supported",
+				Detail:   fmt.Sprintf("Unsupported attribute `%q` encountered", name),
+				Subject:  &attr.NameRange,
+				Context:  hcl.RangeBetween(attr.NameRange, attr.Expr.Range()).Ptr(),
 			})
 			continue
 		}
@@ -455,7 +482,12 @@ func EvalAttr(ctx context.Context, attr *Attr, dataCtx plugindata.Map) (val cty.
 }
 
 // DecodeAndEvalAttr decodes hclsyntax.Attribute into a Attr according to the given AttrSpec and evaluates it.
-func DecodeAndEvalAttr(ctx context.Context, hclAttr *hclsyntax.Attribute, spec *AttrSpec, dataCtx plugindata.Map) (val cty.Value, diags diagnostics.Diag) {
+func DecodeAndEvalAttr(
+	ctx context.Context,
+	hclAttr *hclsyntax.Attribute,
+	spec *AttrSpec,
+	dataCtx plugindata.Map,
+) (val cty.Value, diags diagnostics.Diag) {
 	evalCtx := fabctx.GetEvalContext(ctx)
 	attr, diags := DecodeAttr(evalCtx, hclAttr, spec)
 	if diags.HasErrors() {

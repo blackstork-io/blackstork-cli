@@ -8,60 +8,87 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/blackstork-io/fabric/cmd/fabctx"
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 )
 
-func (db *DefinedBlocks) ParseDocument(ctx context.Context, d *definitions.Document) (doc *definitions.ParsedDocument, diags diagnostics.Diag) {
-	doc = &definitions.ParsedDocument{}
-	doc.Source = d
+func (db *DefinedBlocks) ParseDocument(
+	ctx context.Context,
+	docDef *definitions.DocumentDef,
+) (doc *definitions.Document, diags diagnostics.Diag) {
 
-	if title := d.Block.Body.Attributes[definitions.AttrTitle]; title != nil {
+	log := fabctx.GetLog(ctx)
+	log = log.With("document", docDef.Name)
+	log.InfoContext(ctx, "Parsing a document template")
+
+	body := docDef.Block.Body
+
+	doc = &definitions.Document{}
+	doc.Source = docDef
+
+	if title := body.Attributes[definitions.AttrTitle]; title != nil {
 		titleContent, diag := db.ParseTitle(ctx, title)
 		if !diag.Extend(diags) {
-			doc.Content = append(doc.Content, titleContent)
+			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, titleContent)
 		}
 	}
 
 	var origMeta *hcl.Range
 	var varsBlock *hclsyntax.Block
 
-	for _, block := range d.Block.Body.Blocks {
+	for _, block := range body.Blocks {
+		log.DebugContext(ctx, "Parsing a block", "block_type", block.Type)
+
 		switch block.Type {
-		case definitions.BlockKindContent, definitions.BlockKindData, definitions.BlockKindPublish, definitions.BlockKindFormat:
-			plugin, diag := definitions.DefinePlugin(block, false)
+		// Document-level blocks
+		case definitions.BlockKindContent:
+			blockDef, diag := definitions.DefineExecBlockDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			call, diag := db.ParsePlugin(ctx, plugin)
+			var content definitions.ContentTreeBlock
+			content, diags = db.ParseContentBlock(ctx, blockDef, nil)
+			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, content)
+
+		case definitions.BlockKindData:
+			blockDef, diag := definitions.DefineExecBlockDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			switch block.Type {
-			case definitions.BlockKindContent:
-				doc.Content = append(doc.Content, &definitions.ParsedContent{
-					Plugin: call,
-				})
-			case definitions.BlockKindData:
-				doc.Data = append(doc.Data, call)
-			case definitions.BlockKindPublish:
-				doc.Publish = append(doc.Publish, call)
-			case definitions.BlockKindFormat:
-				doc.Format = append(doc.Format, call)
-			default:
-				panic(fmt.Sprintf("unknown block type: %s", block.Type))
+			var data *definitions.DataBlock
+			data, diags = db.ParseDataBlock(ctx, blockDef, nil)
+			doc.DataBlocks = append(doc.DataBlocks, data)
+
+		case definitions.BlockKindPublish:
+			blockDef, diag := definitions.DefineExecBlockDef(block, false)
+			if diags.Extend(diag) {
+				continue
 			}
+			var publish *definitions.PublishBlock
+			publish, diags = db.ParsePublishBlock(ctx, blockDef, nil)
+			doc.PublishBlocks = append(doc.PublishBlocks, publish)
+
+		case definitions.BlockKindFormat:
+			blockDef, diag := definitions.DefineExecBlockDef(block, false)
+			if diags.Extend(diag) {
+				continue
+			}
+			var format *definitions.FormatBlock
+			format, diags = db.ParseFormatBlock(ctx, blockDef, nil)
+			doc.FormatBlocks = append(doc.FormatBlocks, format)
+
 		case definitions.BlockKindVars:
 			if varsBlock != nil {
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Vars block redefinition",
 					Detail: fmt.Sprintf(
-						"%s block allows at most one vars block, original vars block was defined at %s:%d",
-						d.Block.Type, varsBlock.DefRange().Filename, varsBlock.DefRange().Start.Line,
+						"Only one `vars` block allowed in `%s` and one is already defined at %s:%d",
+						docDef.Block.Type, varsBlock.DefRange().Filename, varsBlock.DefRange().Start.Line,
 					),
 					Subject: block.DefRange().Ptr(),
-					Context: d.Block.Body.Range().Ptr(),
+					Context: body.Range().Ptr(),
 				})
 				continue
 			}
@@ -72,11 +99,11 @@ func (db *DefinedBlocks) ParseDocument(ctx context.Context, d *definitions.Docum
 					Severity: hcl.DiagError,
 					Summary:  "Meta block redefinition",
 					Detail: fmt.Sprintf(
-						"%s block allows at most one meta block, original meta block was defined at %s:%d",
-						d.Block.Type, origMeta.Filename, origMeta.Start.Line,
+						"Only one `meta` block allowed in `%s` and one is already defined at %s:%d",
+						docDef.Block.Type, origMeta.Filename, origMeta.Start.Line,
 					),
 					Subject: block.DefRange().Ptr(),
-					Context: d.Block.Body.Range().Ptr(),
+					Context: body.Range().Ptr(),
 				})
 				continue
 			}
@@ -87,51 +114,49 @@ func (db *DefinedBlocks) ParseDocument(ctx context.Context, d *definitions.Docum
 			doc.Meta = &meta
 			origMeta = block.DefRange().Ptr()
 		case definitions.BlockKindSection:
-			section, diag := definitions.DefineSection(block, false)
+			section, diag := definitions.DefineSectionDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			parsedSection, diag := db.ParseSection(ctx, section)
+			parsedSection, diag := db.ParseSection(ctx, section, nil)
 			if diags.Extend(diag) {
 				continue
 			}
-			doc.Content = append(doc.Content, &definitions.ParsedContent{
-				Section: parsedSection,
-			})
-		case definitions.BlockKindDynamic:
-			dynamic, diag := db.ParseDynamic(ctx, block)
-			if diags.Extend(diag) {
-				continue
-			}
-			doc.Content = append(doc.Content, &definitions.ParsedContent{
-				Dynamic: dynamic,
-			})
+			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, parsedSection)
 
+		case definitions.BlockKindDynamic:
+			dynamic, diag := db.ParseDynamic(ctx, block, nil)
+			if diags.Extend(diag) {
+				continue
+			}
+			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, dynamic)
 		default:
 			diags.Append(definitions.NewNestingDiag(
-				d.Block.Type,
+				docDef.Block.Type,
 				block,
-				d.Block.Body,
+				body,
 				[]string{
 					definitions.BlockKindContent,
 					definitions.BlockKindData,
 					definitions.BlockKindMeta,
 					definitions.BlockKindVars,
 					definitions.BlockKindSection,
+					definitions.BlockKindFormat,
 					definitions.BlockKindPublish,
 					definitions.BlockKindDynamic,
-					definitions.BlockKindFormat,
 				},
 			))
 			continue
 		}
 	}
 
+	// Extract `vars` block
 	var diag diagnostics.Diag
-	doc.Vars, diag = ParseVars(ctx, varsBlock, d.Block.Body.Attributes[definitions.AttrLocalVar])
+	doc.Vars, diag = ParseVars(ctx, varsBlock, body.Attributes[definitions.AttrLocalVar])
 	diags.Extend(diag)
 
-	if requiredVarsAttr := d.Block.Body.Attributes[definitions.AttrRequiredVars]; requiredVarsAttr != nil {
+	// Extract `required_vars` block
+	if requiredVarsAttr := body.Attributes[definitions.AttrRequiredVars]; requiredVarsAttr != nil {
 		diag := gohcl.DecodeExpression(requiredVarsAttr.Expr, nil, &doc.RequiredVars)
 		diags.Extend(diag)
 	}

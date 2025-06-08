@@ -15,12 +15,12 @@ import (
 
 type PluginDataAction struct {
 	*PluginAction
-	Source   *plugin.DataSource
+	DataSource   *plugin.DataSource
 	SrcRange hcl.Range
 }
 
 func (action *PluginDataAction) FetchData(ctx context.Context) (plugindata.Data, diagnostics.Diag) {
-	res, diags := action.Source.Execute(ctx, &plugin.RetrieveDataParams{
+	res, diags := action.DataSource.Execute(ctx, &plugin.RetrieveDataParams{
 		Config: action.Config,
 		Args:   action.Args,
 	})
@@ -31,18 +31,18 @@ func (action *PluginDataAction) FetchData(ctx context.Context) (plugindata.Data,
 func LoadDataAction(
 	ctx context.Context,
 	sources DataSources,
-	node *definitions.ParsedPlugin,
+	node *definitions.DataBlock,
 ) (_ *PluginDataAction, diags diagnostics.Diag) {
 	defer func() {
-		diags.Refine(diagnostics.DefaultSubject(node.Invocation.Range()))
+		diags.Refine(diagnostics.DefaultSubject(node.Source.Block.Range()))
 	}()
 
-	ds, ok := sources.DataSource(node.PluginName)
+	ds, ok := sources.DataSource(node.BlockRunnerName)
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Missing datasource",
-			Detail:   fmt.Sprintf("'%s' not found in any plugin", node.PluginName),
+			Summary:  "Missing data source",
+			Detail:   fmt.Sprintf("`%s` data source not found in installed plugins", node.BlockRunnerName),
 		}}
 	}
 	var cfgBlock *dataspec.Block
@@ -56,24 +56,25 @@ func LoadDataAction(
 			Severity: hcl.DiagWarning,
 			Summary:  "Data source doesn't support configuration",
 			Detail: fmt.Sprintf(
-				"Data source '%s' does not support configuration, but was provided with one.",
-				node.PluginName),
+				"Data source `%s` doesn't support configuration, but was provided with one.",
+				node.BlockRunnerName),
 			Subject: node.Config.Range().Ptr(),
-			Context: node.Invocation.Range().Ptr(),
+			Context: node.Source.Block.Range().Ptr(),
 		})
 	}
-	args, diag := dataspec.DecodeAndEvalBlock(ctx, node.Invocation.Block, ds.Args, nil)
+	args, diag := dataspec.DecodeAndEvalBlock(ctx, node.Source.Block, ds.Args, nil)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
 	return &PluginDataAction{
 		PluginAction: &PluginAction{
-			PluginName: node.PluginName,
+			BlockRunnerName: node.BlockRunnerName,
 			BlockName:  node.BlockName,
-			Meta:       node.Meta,
+			meta:       node.Meta,
 			Config:     cfgBlock,
 			Args:       args,
+			Source:     node,
 		},
-		Source: ds,
+		DataSource: ds,
 	}, diags
 }

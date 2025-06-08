@@ -35,14 +35,6 @@ func makeStdoutPublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publishe
 
 func publishToStdout(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc {
 	return func(ctx context.Context, params *plugin.PublishParams) diagnostics.Diag {
-		document, _ := parseScope(params.DataContext)
-		if document == nil {
-			return diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to parse document",
-				Detail:   "document is required",
-			}}
-		}
 
 		if params.FormattedContent == nil {
 			return diagnostics.Diag{{
@@ -58,7 +50,7 @@ func publishToStdout(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc {
 		content := params.FormattedContent.Content
 		format := params.FormattedContent.Format
 
-		log.InfoContext(ctx, "PUBLISHING TO STDOUT", "format", format)
+		log.InfoContext(ctx, "Publishing the content", "format", format)
 
 		bytesCount, err := os.Stdout.Write(content)
 

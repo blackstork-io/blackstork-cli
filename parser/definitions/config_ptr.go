@@ -12,7 +12,7 @@ import (
 
 // Attribute referencing a configuration block (`config = path.to.config`).
 type ConfigPtr struct {
-	Cfg *Config
+	Cfg *ConfigDef
 	Ptr *hcl.Attribute
 }
 

@@ -61,7 +61,7 @@ func makeListContentProvider() *plugin.ContentProvider {
 func genListContent(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	format := params.Args.GetAttrVal("format").AsString()
 
 	items, err := utils.FnMapErr(
@@ -114,8 +114,8 @@ func genListContent(
 		renderedItems[i] = value
 	}
 
-	return &plugin.ContentResult{
-		Content: plugin.NewListElement(items, renderedItems, format, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewListElement(items, renderedItems, format),
 	}, nil
 }
 

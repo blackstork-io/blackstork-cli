@@ -81,7 +81,7 @@ func makeAzureOpenAITextContentSchema(loader AzureOpenAIClientLoadFn) *plugin.Co
 }
 
 func genOpenAIText(clientLoader AzureOpenAIClientLoadFn) plugin.ProvideContentFunc {
-	return func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentResult, diagnostics.Diag) {
+	return func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, diagnostics.Diag) {
 		apiKey := params.Config.GetAttrVal("api_key").AsString()
 		resourceEndpoint := params.Config.GetAttrVal("resource_endpoint").AsString()
 		client, err := clientLoader(apiKey, resourceEndpoint)
@@ -100,8 +100,8 @@ func genOpenAIText(clientLoader AzureOpenAIClientLoadFn) plugin.ProvideContentFu
 				Detail:   err.Error(),
 			}}
 		}
-		return &plugin.ContentResult{
-			Content: plugin.NewTextElement(result, params.DataContext),
+		return &plugin.ContentProviderResult{
+			Content: plugin.NewTextElement(result),
 		}, nil
 	}
 }

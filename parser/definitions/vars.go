@@ -1,57 +1,67 @@
 package definitions
 
 import (
-	"maps"
-	"slices"
-
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 )
 
 const LocalVarName = "local"
 
-type ParsedVars struct {
+type Vars struct {
 	// stored in the order of definition
-	Variables []*dataspec.Attr
-	ByName    map[string]int
+	attrs           []*dataspec.Attr
+	attrIndexByName map[string]int
 }
 
-func (pv *ParsedVars) Empty() bool {
-	return pv == nil || len(pv.Variables) == 0
+func (vrs *Vars) Empty() bool {
+	return vrs == nil || len(vrs.attrs) == 0
 }
 
 // MergeWithBaseVars handles merging with vars from ref base.
 // Shadowing has different rules, and will be handled at the evaluation stage.
-func (pv *ParsedVars) MergeWithBaseVars(baseVars *ParsedVars) *ParsedVars {
-	if pv.Empty() {
-		return baseVars
-	}
-	if baseVars.Empty() {
-		return pv
-	}
+// func (vrs *Vars) MergeWithBaseVars(baseVars *Vars) *Vars {
+// 	if vrs.Empty() {
+// 		return baseVars
+// 	}
+// 	if baseVars.Empty() {
+// 		return vrs
+// 	}
+//
+// 	bVars := slices.Clone(baseVars.attrs)
+// 	bVarsattrIndexByName := maps.Clone(baseVars.attrIndexByName)
+// 	for _, v := range vrs.attrs {
+// 		if idx, found := bVarsattrIndexByName[v.Name]; found {
+// 			// redefine, but keep the definition order
+// 			bVars[idx] = v
+// 		} else {
+// 			bVarsattrIndexByName[v.Name] = len(bVars)
+// 			bVars = append(bVars, v)
+// 		}
+// 	}
+// 	return &Vars{
+// 		attrs: bVars,
+// 		attrIndexByName:    bVarsattrIndexByName,
+// 	}
+// }
 
-	vars := slices.Clone(baseVars.Variables)
-	byName := maps.Clone(baseVars.ByName)
-	for _, v := range pv.Variables {
-		if idx, found := byName[v.Name]; found {
-			// redefine, but keep the definition order
-			vars[idx] = v
-		} else {
-			byName[v.Name] = len(vars)
-			vars = append(vars, v)
-		}
+// AppendVar appends a variable to the vars struct, last in the evaluation order.
+func (vrs *Vars) Append(vars ...*dataspec.Attr) {
+	if len(vrs.attrs) == 0 {
+		vrs.attrIndexByName = make(map[string]int)
 	}
-	return &ParsedVars{
-		Variables: vars,
-		ByName:    byName,
+	for _, v := range vars {
+		vrs.attrs = append(vrs.attrs, v)
+		vrs.attrIndexByName[v.Name] = len(vrs.attrs) - 1
 	}
 }
 
-// AppendVar append a variable to the parsed vars struct (last in evaluation order).
-func (pv *ParsedVars) AppendVar(variable *dataspec.Attr) {
-	idx := len(pv.Variables)
-	pv.Variables = append(pv.Variables, variable)
-	if idx == 0 {
-		pv.ByName = make(map[string]int)
+func (vrs *Vars) Extend(vars *Vars) *Vars {
+	if vars == nil {
+		return vrs
 	}
-	pv.ByName[variable.Name] = idx
+	vrs.Append(vars.attrs...)
+	return vrs
+}
+
+func (vrs *Vars) GetAttrs() []*dataspec.Attr {
+	return vrs.attrs
 }

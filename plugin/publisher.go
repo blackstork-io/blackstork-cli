@@ -13,10 +13,12 @@ import (
 type PublishFunc func(ctx context.Context, params *PublishParams) diagnostics.Diag
 
 type PublishParams struct {
-	DocumentName     string
-	Config           *dataspec.Block
-	Args             *dataspec.Block
-	DataContext      plugindata.Map
+	DocumentName string
+	Config       *dataspec.Block
+	Args         *dataspec.Block
+	DataContext  plugindata.Map
+
+	Content          Content
 	FormattedContent *FormattedContent
 }
 

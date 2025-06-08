@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -11,50 +12,78 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
-type Content struct {
-	Section *Section
-	Plugin  *PluginContentAction
-	Dynamic *Dynamic
+// Identifies a content tree block
+type EvalKey struct {
+	kind   string
+	runner string
+	name   string
 }
 
-func (action *Content) InvocationOrder() plugin.InvocationOrder {
-	if action.Plugin != nil {
-		return action.Plugin.Provider.InvocationOrder
+func (key EvalKey) AsName() string {
+	name := key.kind
+	if key.runner != "" {
+		name += "." + key.runner
 	}
-	return plugin.InvocationOrderUnspecified
+	name += "." + key.name
+	return name
 }
 
-func (action *Content) RenderContent(ctx context.Context, dataCtx plugindata.Map, doc, parent *plugin.ContentSection, contentID uint32) diagnostics.Diag {
-	if action.Section != nil {
-		return action.Section.RenderContent(ctx, dataCtx, doc, parent, contentID)
+func (key EvalKey) AsPath() []string {
+	path := []string{key.kind}
+	if key.runner != "" {
+		path = append(path, key.runner)
 	}
-	if action.Plugin != nil {
-		return action.Plugin.RenderContent(ctx, dataCtx, doc, parent, contentID)
-	}
-	return diagnostics.Diag{{
-		Severity: hcl.DiagError,
-		Summary:  "Content block not found",
-	}}
+	path = append(path, key.name)
+	return path
 }
 
-func LoadContent(ctx context.Context, providers ContentProviders, node *definitions.ParsedContent) (_ *Content, diags diagnostics.Diag) {
-	var block Content
-	switch {
-	case node.Plugin != nil:
-		block.Plugin, diags = LoadPluginContentAction(ctx, providers, node.Plugin)
-	case node.Section != nil:
-		block.Section, diags = LoadSection(ctx, providers, node.Section)
-	case node.Dynamic != nil:
-		block.Dynamic, diags = LoadDynamic(ctx, providers, node.Dynamic)
+func EvalKeyFromDefKey(key definitions.Key) EvalKey {
+	return EvalKey{
+		kind:   key.Kind,
+		runner: key.Runner,
+		name:   key.Name,
+	}
+}
+
+type ContentTreeEvalBlock interface {
+	isContentTreeEvalBlock()
+
+	EvalKey() EvalKey
+	Kind() string
+
+	addNameSuffix(val string)
+}
+
+type RenderableContent interface {
+	RenderContent(ctx context.Context, data plugindata.Map) (plugin.Content, diagnostics.Diag)
+	//GetDef() definitions.BlockDef
+	EvalKey() EvalKey
+	Kind() string
+	GetDataCtx() *plugindata.Map
+}
+
+func LoadContent(
+	ctx context.Context,
+	providers ContentProviders,
+	block definitions.ContentTreeBlock,
+) (_ ContentTreeEvalBlock, diags diagnostics.Diag) {
+	var treeBlock ContentTreeEvalBlock
+	switch block := block.(type) {
+	case *definitions.ContentBlock:
+		treeBlock, diags = LoadPluginContentAction(ctx, providers, block)
+	case *definitions.Section:
+		treeBlock, diags = LoadSection(ctx, providers, block)
+	case *definitions.Dynamic:
+		treeBlock, diags = LoadDynamic(ctx, providers, block)
 	default:
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Unsupported content block",
-			Detail:   "Content block must be either 'content', 'section' or 'dynamic'",
+			Summary:  fmt.Sprintf("Error while loading content: unsupported content tree block type: %T", block),
+			Detail:   "Content tree block must be either `content`, `section` or `dynamic`",
 		})
 	}
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	return &block, diags
+	return treeBlock, diags
 }

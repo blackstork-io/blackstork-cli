@@ -2,7 +2,6 @@ package builtin
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -67,7 +66,7 @@ func makeTitleContentProvider() *plugin.ContentProvider {
 func genTitleContent(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	value := params.Args.GetAttrVal("value")
 	if value.IsNull() {
 		return nil, diagnostics.Diag{{
@@ -76,29 +75,42 @@ func genTitleContent(
 			Detail:   "value is required",
 		}}
 	}
-	absoluteSize := params.Args.GetAttrVal("absolute_size")
-	if absoluteSize.IsNull() {
-		absoluteSize = cty.NumberIntVal(findDefaultTitleSize(params.DataContext) + 1)
-	}
-	relativeSize := params.Args.GetAttrVal("relative_size")
 
-	titleSize, _ := absoluteSize.AsBigFloat().Int64()
-	relationSize, _ := relativeSize.AsBigFloat().Int64()
-	titleSize += relationSize
-	if titleSize < minAbsoluteTitleSize {
-		titleSize = minAbsoluteTitleSize
+	size := int64(0)
+	isRelative := false
+
+	if val := params.Args.GetAttrVal("relative_size"); !val.IsNull() {
+		isRelative = true
+		size, _ = val.AsBigFloat().Int64()
 	}
-	if titleSize < minAbsoluteTitleSize || titleSize > maxAbsoluteTitleSize {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to parse the arguments",
-			Detail: fmt.Sprintf(
-				"`absolute_size` value must be between %d and %d",
-				minAbsoluteTitleSize,
-				maxAbsoluteTitleSize,
-			),
-		}}
+
+	// if `absolute_size` set, it overrides `relative_size`
+	if val := params.Args.GetAttrVal("absolute_size"); !val.IsNull() {
+		isRelative = false
+		size, _ = val.AsBigFloat().Int64()
 	}
+
+	// 	if absoluteSize.IsNull() {
+	// 		absoluteSize = cty.NumberIntVal(findDefaultTitleSize(params.DataContext) + 1)
+	// 	}
+
+	// 	titleSize, _ := absoluteSize.AsBigFloat().Int64()
+	// 	relationSize, _ := relativeSize.AsBigFloat().Int64()
+	// 	titleSize += relationSize
+	// 	if titleSize < minAbsoluteTitleSize {
+	// 		titleSize = minAbsoluteTitleSize
+	// 	}
+	// 	if titleSize < minAbsoluteTitleSize || titleSize > maxAbsoluteTitleSize {
+	// 		return nil, diagnostics.Diag{{
+	// 			Severity: hcl.DiagError,
+	// 			Summary:  "Failed to parse the arguments",
+	// 			Detail: fmt.Sprintf(
+	// 				"`absolute_size` value must be between %d and %d",
+	// 				minAbsoluteTitleSize,
+	// 				maxAbsoluteTitleSize,
+	// 			),
+	// 		}}
+	// 	}
 
 	text, err := renderText(value.AsString(), params.DataContext)
 	if err != nil {
@@ -111,18 +123,20 @@ func genTitleContent(
 	// remove all newlines
 	// text = strings.ReplaceAll(text, "\n", " ")
 	// text = strings.Repeat("#", int(titleSize)+1) + " " + text
-	return &plugin.ContentResult{
-		Content: plugin.NewHeadingElement(text, titleSize, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewHeadingElement(text, size, isRelative),
 	}, nil
 }
 
 func findDefaultTitleSize(datactx plugindata.Map) int64 {
-	document, section := parseScope(datactx)
-	if section == nil {
-		return defaultAbsoluteTitleSize
-	}
-
-	depth := findDepth(document, section.ID(), 1)
+	// FIXME: fix depth
+	// document, section := parseScope(datactx)
+	// if section == nil {
+	// 	return defaultAbsoluteTitleSize
+	// }
+	//
+	// depth := findDepth(document, section.ID(), 1)
+	depth := 1
 	if depth == 0 {
 		return defaultAbsoluteTitleSize
 	}

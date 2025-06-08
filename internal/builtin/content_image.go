@@ -1,13 +1,8 @@
 package builtin
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"strings"
-	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -15,7 +10,6 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 	"github.com/blackstork-io/fabric/plugin/dataspec"
 	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
 func makeImageContentProvider() *plugin.ContentProvider {
@@ -45,7 +39,7 @@ func makeImageContentProvider() *plugin.ContentProvider {
 func genImageContent(
 	ctx context.Context,
 	params *plugin.ProvideContentParams,
-) (*plugin.ContentResult, diagnostics.Diag) {
+) (*plugin.ContentProviderResult, diagnostics.Diag) {
 	src := params.Args.GetAttrVal("src").AsString()
 	alt := params.Args.GetAttrVal("alt").AsString()
 
@@ -70,7 +64,7 @@ func genImageContent(
 	// Make sure there are no line breaks in the values
 	// srcStr = strings.TrimSpace(strings.ReplaceAll(srcStr, "\n", ""))
 	// altStr = strings.TrimSpace(strings.ReplaceAll(altStr, "\n", ""))
-	return &plugin.ContentResult{
-		Content: plugin.NewImageElement(srcStr, altStr, params.DataContext),
+	return &plugin.ContentProviderResult{
+		Content: plugin.NewImageElement(srcStr, altStr),
 	}, nil
 }

@@ -6,10 +6,10 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
+	"github.com/blackstork-io/fabric/internal/utils/diagnostics"
+	"github.com/blackstork-io/fabric/internal/plugin"
+	"github.com/blackstork-io/fabric/internal/plugin/dataspec"
+	"github.com/blackstork-io/fabric/internal/plugin/dataspec/constraint"
 )
 
 // makeGreetingContentProvider creates a new content provider that prints out a greeting message

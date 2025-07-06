@@ -7,7 +7,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	plugindata "github.com/blackstork-io/fabric/plugin/plugindata"
+	plugindata "github.com/blackstork-io/fabric/internal/plugin/plugindata"
 
 	url "net/url"
 )

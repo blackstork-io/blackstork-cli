@@ -8,12 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/engine"
-	"github.com/blackstork-io/fabric/internal/builtin"
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
+	"github.com/blackstork-io/fabric/internal/engine"
+	"github.com/blackstork-io/fabric/internal/fabctx"
+	"github.com/blackstork-io/fabric/internal/parser/definitions"
+	"github.com/blackstork-io/fabric/internal/utils"
+	"github.com/blackstork-io/fabric/internal/utils/diagnostics"
+
+	"github.com/blackstork-io/fabric/plugins/builtin"
 )
 
 var (

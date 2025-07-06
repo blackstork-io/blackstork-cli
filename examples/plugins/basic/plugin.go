@@ -1,6 +1,6 @@
 package basic
 
-import "github.com/blackstork-io/fabric/plugin"
+import "github.com/blackstork-io/fabric/internal/plugin"
 
 // Plugin returns the schema and version for the plugin
 // This is the entry point for the plugin

@@ -15,11 +15,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/cmd/internal/telemetry"
-	"github.com/blackstork-io/fabric/engine"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
+	"github.com/blackstork-io/fabric/internal/fabctx"
+	"github.com/blackstork-io/fabric/internal/engine"
+	"github.com/blackstork-io/fabric/internal/utils/diagnostics"
+	"github.com/blackstork-io/fabric/internal/utils"
 )
 
 var (
@@ -75,9 +74,9 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		ctx := cmd.Context()
 		if rawArgs.debug {
-			rootCleanup, err = telemetry.SetupStdout(ctx, debugDir, version)
+			rootCleanup, err = utils.SetupStdout(ctx, debugDir, version)
 		} else if env.otelpEnabled {
-			rootCleanup, err = telemetry.SetupOtelp(ctx, env.otelpURL, version)
+			rootCleanup, err = utils.SetupOtelp(ctx, env.otelpURL, version)
 		}
 		if err != nil {
 			return err
@@ -89,6 +88,7 @@ var rootCmd = &cobra.Command{
 		ctx, rootSpan = tracer.Start(ctx, "Command", trace.WithAttributes(
 			attribute.String("command", cmd.Name()),
 		))
+
 		err = validateDir(rawArgs.sourceDir)
 		if err != nil {
 			return
@@ -123,7 +123,10 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	var ctx context.Context = fabctx.New()
 	exitCode := 0
-	err := recoverExecute(ctx, rootCmd)
+
+	ctx = fabctx.WithTracer(ctx, tracer)
+
+	err := executeWithRecover(ctx, rootCmd)
 	if err != nil {
 		exitCode = 1
 	}
@@ -142,7 +145,7 @@ func Execute() {
 	os.Exit(exitCode)
 }
 
-func recoverExecute(ctx context.Context, cmd *cobra.Command) (err error) {
+func executeWithRecover(ctx context.Context, cmd *cobra.Command) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.ErrorContext(rootCtx, "Panic error caught", "error", r, "stack", string(debug.Stack()))

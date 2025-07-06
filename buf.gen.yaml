@@ -2,7 +2,7 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/blackstork-io/fabric/plugin
+    default: github.com/blackstork-io/fabric/internal/plugin
 plugins:
   - plugin: buf.build/protocolbuffers/go
     out: .

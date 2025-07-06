@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/blackstork-io/fabric/examples/plugins/basic"
-	pluginapiv1 "github.com/blackstork-io/fabric/plugin/pluginapi/v1"
+	pluginapiv1 "github.com/blackstork-io/fabric/internal/plugin/pluginapi/v1"
 )
 
 func main() {

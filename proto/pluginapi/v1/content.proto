@@ -16,32 +16,39 @@ message Content {
     };
 }
 
-message Metadata {
-    string provider_name = 1;
-    string provider_plugin_name = 2;
-    string provider_plugin_version = 3;
+message BlockSelf {
+    string plugin_name = 1;
+    string plugin_version = 2;
+    string provider_name = 3;
+    string name = 4;
 }
 
 message ContentSection {
-    Metadata meta = 1;
-    repeated Content children = 2;
+    BlockSelf self = 1;
+    MapData meta   = 2;
+    repeated Content children = 3;
 }
 
 message ContentElement {
-    Metadata meta = 1;
+    BlockSelf self = 1;
+    MapData meta = 2;
 
-    string kind = 2;
+    string kind = 3;
 
-    MapData attrs = 3;
-    MapData data_context = 4;
+    MapData attrs = 4;
+    MapData data_context = 5;
 }
 
 message ContentEmpty {
-    Metadata meta = 1;
+    BlockSelf self = 1;
+    MapData meta   = 2;
 }
 
 
 message FormattedContent {
-    string format = 1;
-    bytes content = 2;
+    BlockSelf self = 1;
+    MapData meta   = 2;
+
+    string format = 3;
+    bytes content = 4;
 }

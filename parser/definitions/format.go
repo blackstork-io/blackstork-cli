@@ -24,5 +24,17 @@ func (b *FormatBlock) GetSourceKind() string {
 	return b.Source.Kind()
 }
 
+func (b *FormatBlock) GetMeta() *MetaBlock {
+	return b.Meta
+}
+
+func (b *FormatBlock) GetRunner() string {
+	return b.BlockRunnerName
+}
+
+func (b *FormatBlock) GetName() string {
+	return b.BlockName
+}
+
 var _ ExecBlock = (*FormatBlock)(nil)
 var _ RefTargetBlock = (*FormatBlock)(nil)

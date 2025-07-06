@@ -11,13 +11,37 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
+type BlocksRegistry interface {
+	IsBlocksRegistry()
+
+	GetDefaultRunnerConfigForBlock(block *definitions.ExecBlockDef) *definitions.ConfigDef
+
+	ResolveRefBase(base hcl.Expression, target Ctyable) (definitions.BlockDef, diagnostics.Diag)
+}
+
 // Collection of block definitions.
 type DefinedBlocks struct {
-	GlobalConfig  *definitions.GlobalConfigDef
-	ConfigDefs    map[definitions.Key]*definitions.ConfigDef
-	DocumentDefs  map[string]*definitions.DocumentDef
-	SectionDefs   map[string]*definitions.SectionDef
-	ExecBlockDefs map[definitions.Key]*definitions.ExecBlockDef
+	globalConfig  *definitions.GlobalConfigDef
+	configDefs    map[definitions.Key]*definitions.ConfigDef
+	documentDefs  map[string]*definitions.DocumentDef
+	sectionDefs   map[string]*definitions.SectionDef
+	execBlockDefs map[definitions.Key]*definitions.ExecBlockDef
+}
+
+func (db *DefinedBlocks) IsBlocksRegistry() {}
+
+func (db *DefinedBlocks) GetDefaultRunnerConfigForBlock(
+	blockDef *definitions.ExecBlockDef,
+) (config *definitions.ConfigDef) {
+	return db.defaultConfigDef(blockDef.Kind(), blockDef.Name())
+}
+
+func (db *DefinedBlocks) defaultConfigDef(kind, runner string) (config *definitions.ConfigDef) {
+	return db.configDefs[definitions.Key{
+		Kind:   kind,
+		Runner: runner,
+		Name:   "",
+	}]
 }
 
 func mapGetOrInit[K1, K2 comparable, V any](m map[K1]map[K2]V, key K1) (innerMap map[K2]V) {
@@ -84,8 +108,8 @@ func execBlocksMapToCty[V definitions.BlockDef](
 // The map to use in HCL eval context when block definitions are resolved
 func (db *DefinedBlocks) AsValueMap() map[string]cty.Value {
 
-	content, data, format, publish := execBlocksMapToCty(db.ExecBlockDefs)
-	cfgContent, cfgData, cfgFormat, cfgPublish := execBlocksMapToCty(db.ConfigDefs)
+	content, data, format, publish := execBlocksMapToCty(db.execBlockDefs)
+	cfgContent, cfgData, cfgFormat, cfgPublish := execBlocksMapToCty(db.configDefs)
 
 	config := cty.ObjectVal(map[string]cty.Value{
 		definitions.BlockKindData:    cfgData,
@@ -95,11 +119,11 @@ func (db *DefinedBlocks) AsValueMap() map[string]cty.Value {
 	})
 
 	var sections cty.Value
-	if len(db.SectionDefs) == 0 {
+	if len(db.sectionDefs) == 0 {
 		sections = cty.MapValEmpty(cty.Map((*definitions.SectionDef)(nil).CtyType()))
 	} else {
-		sect := make(map[string]cty.Value, len(db.SectionDefs))
-		for k, v := range db.SectionDefs {
+		sect := make(map[string]cty.Value, len(db.sectionDefs))
+		for k, v := range db.sectionDefs {
 			sect[k] = definitions.ToCtyValue(v)
 		}
 		sections = cty.MapVal(sect)
@@ -114,43 +138,82 @@ func (db *DefinedBlocks) AsValueMap() map[string]cty.Value {
 	}
 }
 
-func (db *DefinedBlocks) DefaultConfigFor(plugin *definitions.ExecBlockDef) (config *definitions.ConfigDef) {
-	return db.DefaultConfigDef(plugin.Kind(), plugin.Name())
-}
-
-func (db *DefinedBlocks) DefaultConfigDef(blockKind, runnerName string) (config *definitions.ConfigDef) {
-	return db.ConfigDefs[definitions.Key{
-		Kind:   blockKind,
-		Runner: runnerName,
-		Name:   "",
-	}]
-}
-
-func (db *DefinedBlocks) Merge(other *DefinedBlocks) (diags diagnostics.Diag) {
-	if other.GlobalConfig != nil {
-		if db.GlobalConfig != nil {
+func (db *DefinedBlocks) merge(other *DefinedBlocks) (diags diagnostics.Diag) {
+	if other.globalConfig != nil {
+		if db.globalConfig != nil {
 			diags.Add("Global config declared multiple times", "")
 		}
-		db.GlobalConfig = other.GlobalConfig
+		db.globalConfig = other.globalConfig
 	}
-	for k, v := range other.ConfigDefs {
-		diags.Append(AddIfMissing(db.ConfigDefs, k, v))
+	for k, v := range other.configDefs {
+		diags.Append(AddIfMissing(db.configDefs, k, v))
 	}
-	for k, v := range other.DocumentDefs {
-		diags.Append(AddIfMissing(db.DocumentDefs, k, v))
+	for k, v := range other.documentDefs {
+		diags.Append(AddIfMissing(db.documentDefs, k, v))
 	}
-	for k, v := range other.SectionDefs {
-		diags.Append(AddIfMissing(db.SectionDefs, k, v))
+	for k, v := range other.sectionDefs {
+		diags.Append(AddIfMissing(db.sectionDefs, k, v))
 	}
-	for k, v := range other.ExecBlockDefs {
-		diags.Append(AddIfMissing(db.ExecBlockDefs, k, v))
+	for k, v := range other.execBlockDefs {
+		diags.Append(AddIfMissing(db.execBlockDefs, k, v))
 	}
 	return
 }
 
+func (db *DefinedBlocks) ResolveRefBase(expr hcl.Expression, result Ctyable) (definitions.BlockDef, diagnostics.Diag) {
+	blockMap := db.AsValueMap()
+	switch result.(type) {
+	case *definitions.ExecBlockDef:
+		return Resolve[*definitions.ExecBlockDef](blockMap, expr)
+	case *definitions.SectionDef:
+		return Resolve[*definitions.SectionDef](blockMap, expr)
+	case *definitions.ConfigDef:
+		return Resolve[*definitions.ConfigDef](blockMap, expr)
+	default:
+		var diags diagnostics.Diag
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported ref target block type",
+			Detail:   fmt.Sprintf("Error while trying to resolve a ref base expression. Unsupported target block type: `%T`", result),
+		})
+		return nil, diags
+	}
+}
+
+func Resolve[B Ctyable](blockMap map[string]cty.Value, expr hcl.Expression) (B, diagnostics.Diag) {
+
+	var res B
+
+	val, diag := expr.Value(&hcl.EvalContext{
+		Variables: blockMap,
+	})
+	var diags diagnostics.Diag
+	if diags.Extend(diag) {
+		return res, diags
+	}
+	expectedType := res.CtyType()
+
+	ty := val.Type()
+	if !ty.Equals(expectedType) {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Incorrect reference",
+			Detail: fmt.Sprintf(
+				"Expected reference to `%s` but got a reference to `%s`",
+				expectedType.FriendlyName(),
+				ty.FriendlyName(),
+			),
+			Subject: expr.Range().Ptr(),
+		})
+		return res, diags
+	}
+	res = val.EncapsulatedValue().(B)
+	return res, diags
+}
+
 func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](m M, key K, newBlock V) *hcl.Diagnostic {
 	if origBlock, found := m[key]; found {
-		kind := origBlock.GetHCLBlock().Type
+		kind := origBlock.Kind()
 		origDefRange := origBlock.GetHCLBlock().DefRange()
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -170,9 +233,9 @@ func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](m M, key K, 
 
 func NewDefinedBlocks() *DefinedBlocks {
 	return &DefinedBlocks{
-		ConfigDefs:    map[definitions.Key]*definitions.ConfigDef{},
-		DocumentDefs:  map[string]*definitions.DocumentDef{},
-		SectionDefs:   map[string]*definitions.SectionDef{},
-		ExecBlockDefs: map[definitions.Key]*definitions.ExecBlockDef{},
+		configDefs:    map[definitions.Key]*definitions.ConfigDef{},
+		documentDefs:  map[string]*definitions.DocumentDef{},
+		sectionDefs:   map[string]*definitions.SectionDef{},
+		execBlockDefs: map[definitions.Key]*definitions.ExecBlockDef{},
 	}
 }

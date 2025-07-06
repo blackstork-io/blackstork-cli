@@ -35,15 +35,18 @@ func (b *ContentBlock) GetSourceKind() string {
 	return b.Source.Kind()
 }
 
-//
-// func (b ContentBlock) GetBlockName() string {
-// 	return b.BlockName
-// }
-//
-// func (b ContentBlock) GetRunnerName() string {
-// 	return b.BlockRunnerName
-// }
-//
+func (b *ContentBlock) GetMeta() *MetaBlock {
+	return b.Meta
+}
+
+func (b *ContentBlock) GetRunner() string {
+	return b.BlockRunnerName
+}
+
+func (b *ContentBlock) GetName() string {
+	return b.BlockName
+}
+
 // func (b ContentBlock) GetConfig() evaluation.Configuration {
 // 	return b.Config
 // }

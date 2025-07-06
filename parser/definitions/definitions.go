@@ -75,7 +75,7 @@ func KeyFromName(val string) (*Key, error) {
 	var name string
 	if len(parts) == 2 {
 		if parts[0] != BlockKindSection {
-			return nil, fmt.Errorf("invalid block type found in a dependency name `%s`", val)
+			return nil, fmt.Errorf("invalid block type found in block name `%s`", val)
 		}
 		kind = BlockKindSection
 		name = parts[1]
@@ -84,11 +84,11 @@ func KeyFromName(val string) (*Key, error) {
 		runner = parts[1]
 		name = parts[2]
 	} else {
-		return nil, fmt.Errorf("error parsing a dependency name `%s`", val)
+		return nil, fmt.Errorf("error parsing block name `%s`", val)
 	}
 
 	if !isValidKind(kind) {
-		return nil, fmt.Errorf("invalid block type found in a dependency name `%s`", val)
+		return nil, fmt.Errorf("invalid block type found in a block name `%s`", val)
 	}
 
 	return &Key{

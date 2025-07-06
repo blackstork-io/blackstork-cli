@@ -56,11 +56,14 @@ type ContentTreeEvalBlock interface {
 
 type RenderableContent interface {
 	RenderContent(ctx context.Context, data plugindata.Map) (plugin.Content, diagnostics.Diag)
-	//GetDef() definitions.BlockDef
 	EvalKey() EvalKey
 	Kind() string
+
+	Meta() plugindata.Map
+
 	GetDataCtx() *plugindata.Map
 }
+
 
 func LoadContent(
 	ctx context.Context,

@@ -50,6 +50,13 @@ func (s *Section) GetDataCtx() *plugindata.Map {
 	return s.dataCtx
 }
 
+func (s *Section) Meta() plugindata.Map {
+	if s.meta == nil {
+		return plugindata.Map{}
+	}
+	return s.meta.AsPluginData()
+}
+
 func (a *Section) addNameSuffix(val string) {
 	a.blockName += ":" + val
 }
@@ -63,23 +70,8 @@ func (block *Section) RenderContent(
 	ctx context.Context,
 	data plugindata.Map,
 ) (_ plugin.Content, diags diagnostics.Diag) {
-
+	// Section's children are rendered async
 	section := new(plugin.ContentSection)
-
-	// // execute content blocks based on the invocation order
-	// for _, child := range children {
-	// 	// update the session data (is propagated to dataCtx, maps are by-ref structures)
-	// 	sectionData[definitions.BlockKindContent] = section.AsData()
-	//
-	// 	// execute the content block
-	// 	childContent, diag := child.RenderContent(ctx, maps.Clone(data))
-	// 	if diags.Extend(diag) {
-	// 		return nil, diags
-	// 	}
-	// 	section.Add(childContent)
-	// }
-	// compact the content tree to remove empty content nodes
-	section.Compact()
 	return section, nil
 }
 

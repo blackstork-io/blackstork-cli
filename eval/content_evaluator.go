@@ -495,7 +495,12 @@ func renderContentAsync(ctx context.Context, nodes []*ExecNode) (map[string]plug
 
 			if node.evalKey.kind == definitions.BlockKindSection && node.isEnd {
 
-				contentSection := plugin.NewEmptySection()
+				contentSection := plugin.NewEmptySection(
+					plugin.BlockSelf{
+						Name: node.evalKey.AsName(),
+					},
+					node.block.Meta(),
+				)
 				section := node.block.(*Section)
 
 				resultsMtx.Lock()
@@ -629,7 +634,11 @@ func executeContentBlocksAsync(
 		return nil, diagnostics.FromErr(err)
 	}
 
-	rootSection = plugin.NewEmptySection()
+	rootSelf := plugin.BlockSelf{
+		Name: doc.GetName(),
+	}
+
+	rootSection = plugin.NewEmptySection(rootSelf, doc.Meta())
 	for _, branch := range branches {
 		for _, node := range nodes {
 			if node.block == branch && !node.isStart { // Section start nodes do not output content
@@ -691,9 +700,10 @@ func evalIsIncludedAttr(
 
 func applyBlockDataToDataCtx(
 	ctx context.Context,
+	name string,
 	vars *definitions.Vars,
 	requiredVars []string,
-	meta *definitions.MetaBlock,
+	meta plugindata.Map,
 	dataCtx plugindata.Map,
 ) (diags diagnostics.Diag) {
 
@@ -703,12 +713,14 @@ func applyBlockDataToDataCtx(
 	}
 	if len(requiredVars) > 0 {
 		diag = verifyRequiredVars(dataCtx, requiredVars)
-		//diag[0].Subject = block.Source.GetSource().Block.Range().Ptr()
 		diags.Extend(diag)
 	}
 
-	if meta != nil {
-		dataCtx[definitions.BlockKindMeta] = meta.AsPluginData()
+	dataCtx[definitions.BlockKindMeta] = meta
+
+	// Setting details about the block itself
+	dataCtx[plugin.SelfDataCtxKey] = plugindata.Map{
+		plugin.SelfNameDataCtxKey: plugindata.String(name),
 	}
 
 	return diags
@@ -738,12 +750,14 @@ func evaluateContentTree(
 
 		diag := applyBlockDataToDataCtx(
 			ctx,
+			contentBlock.EvalKey().AsName(),
 			contentBlock.vars,
 			contentBlock.requiredVars,
-			contentBlock.meta,
+			contentBlock.Meta(),
 			blockDataCtx,
 		)
 		if diags.Extend(diag) {
+			// diag[0].Subject = contentBlock.Source.GetSource().Block.Range().Ptr()
 			return nil, diags
 		}
 
@@ -776,9 +790,10 @@ func evaluateContentTree(
 
 		diag := applyBlockDataToDataCtx(
 			ctx,
+			section.EvalKey().AsName(),
 			section.vars,
 			section.requiredVars,
-			section.meta,
+			section.Meta(),
 			secDataCtx,
 		)
 		if diags.Extend(diag) {

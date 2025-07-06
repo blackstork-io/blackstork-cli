@@ -20,7 +20,7 @@ type Formatters interface {
 	Formatter(name string) (*plugin.Formatter, bool)
 }
 
-type Plugins interface {
+type Runners interface {
 	DataSources
 	ContentProviders
 	Publishers

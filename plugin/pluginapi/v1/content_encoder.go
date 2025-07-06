@@ -26,10 +26,17 @@ func EncodeContent(src plugin.Content) *Content {
 		if val == nil {
 			break
 		}
+
+		attrs := encodeMapData(val.Attrs())
+
+		self := encodeBlockSelf(val.Self())
+		meta := encodeMapData(val.Meta())
+
 		el := &ContentElement{
-			Meta:        encodeMetadata(val.Meta()),
-			Kind:        string(val.Kind()),
-			Attrs:       encodeMapData(val.Attrs()),
+			Self:  &self,
+			Meta:  &meta,
+			Kind:  string(val.Kind()),
+			Attrs: &attrs,
 			//DataContext: encodeMapData(val.DataContext()),
 		}
 		variant = &Content_Element{
@@ -39,16 +46,26 @@ func EncodeContent(src plugin.Content) *Content {
 		if val == nil {
 			break
 		}
+
+		self := encodeBlockSelf(val.Self())
+		meta := encodeMapData(val.Meta())
+
 		variant = &Content_Section{
 			Section: &ContentSection{
+				Self:     &self,
 				Children: utils.FnMap(val.Children, EncodeContent),
-				Meta:     encodeMetadata(val.Meta()),
+				Meta:     &meta,
 			},
 		}
 	case *plugin.ContentEmpty:
+
+		self := encodeBlockSelf(val.Self())
+		meta := encodeMapData(val.Meta())
+
 		variant = &Content_Empty{
 			Empty: &ContentEmpty{
-				Meta: encodeMetadata(val.Meta()),
+				Self: &self,
+				Meta: &meta,
 			},
 		}
 	default:
@@ -60,13 +77,11 @@ func EncodeContent(src plugin.Content) *Content {
 	}
 }
 
-func encodeMetadata(src *plugin.ContentMeta) *Metadata {
-	if src == nil {
-		return nil
-	}
-	return &Metadata{
-		ProviderName:          src.ProviderName,
-		ProviderPluginName:    src.ProviderPluginName,
-		ProviderPluginVersion: src.ProviderPluginVersion,
+func encodeBlockSelf(src plugin.BlockSelf) BlockSelf {
+	return BlockSelf{
+		Name:          src.Name,
+		PluginName:    src.PluginName,
+		PluginVersion: src.PluginVersion,
+		ProviderName:  src.ProviderName,
 	}
 }

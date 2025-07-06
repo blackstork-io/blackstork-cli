@@ -12,8 +12,9 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-func (db *DefinedBlocks) ParseTitle(
+func parseTitle(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	title *hclsyntax.Attribute,
 ) (res *definitions.ContentBlock, diags diagnostics.Diag) {
 	const pluginName = "title"
@@ -49,7 +50,7 @@ func (db *DefinedBlocks) ParseTitle(
 	if diags.Extend(diag) {
 		return
 	}
-	contentBlock, diag := db.ParseContentBlock(ctx, def, nil)
+	contentBlock, diag := parseContentBlock(ctx, blocksRegistry, def, nil)
 	if diags.Extend(diag) {
 		return
 	}

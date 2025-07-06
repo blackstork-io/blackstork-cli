@@ -33,9 +33,10 @@ func encodeData(d plugindata.Data) *Data {
 			},
 		}
 	case plugindata.Map:
+		mapData := encodeMapData(v)
 		return &Data{
 			Data: &Data_MapVal{
-				encodeMapData(v),
+				&mapData,
 			},
 		}
 	case plugindata.List:
@@ -60,8 +61,8 @@ func encodeData(d plugindata.Data) *Data {
 	panic(fmt.Errorf("unexpected plugin data type: %T", d))
 }
 
-func encodeMapData(m plugindata.Map) *MapData {
-	return &MapData{
+func encodeMapData(m plugindata.Map) MapData {
+	return MapData{
 		Value: utils.MapMap(m, encodeData),
 	}
 }

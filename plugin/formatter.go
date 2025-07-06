@@ -30,6 +30,9 @@ type Formatter struct {
 }
 
 type FormattedContent struct {
+	Self BlockSelf
+	Meta plugindata.Map
+
 	Format  string
 	Content []byte
 }

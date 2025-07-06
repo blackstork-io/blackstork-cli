@@ -14,9 +14,10 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-// Evaluates a section block
-func (db *DefinedBlocks) ParseSection(
+// Parses a section block
+func parseSection(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	sectionDef *definitions.SectionDef,
 	refHist *utils.RefHistory,
 ) (res *definitions.Section, diags diagnostics.Diag) {
@@ -97,7 +98,7 @@ func (db *DefinedBlocks) ParseSection(
 			definitions.BlockKindMeta,
 			definitions.BlockKindVars,
 		}
-		targetBlock, diag := db.parseRefBase(ctx, sectionDef, refBase.Expr, refHist)
+		targetBlock, diag := parseRefBase(ctx, blocksRegistry, sectionDef, refBase.Expr, refHist)
 		if diags.Extend(diag) {
 			break
 		}
@@ -107,7 +108,6 @@ func (db *DefinedBlocks) ParseSection(
 		if res.Source.Name() == "" {
 			res.BlockName = targetSection.BlockName
 		}
-
 	}
 
 	if diags.Extend(diag) {
@@ -115,11 +115,11 @@ func (db *DefinedBlocks) ParseSection(
 	}
 
 	if title := body.Attributes["title"]; title != nil {
-		titleContent, diag := db.ParseTitle(ctx, title)
+		titleContent, diag := parseTitle(ctx, blocksRegistry, title)
 		if !diag.Extend(diags) {
 			res.Title = titleContent
 		}
-	} else if targetSection.Title != nil {
+	} else if targetSection != nil && targetSection.Title != nil {
 		res.Title = targetSection.Title
 	}
 
@@ -144,7 +144,7 @@ func (db *DefinedBlocks) ParseSection(
 			if diags.Extend(diag) {
 				continue
 			}
-			content, diag := db.ParseContentBlock(ctx, contentDef, refHist)
+			content, diag := parseContentBlock(ctx, blocksRegistry, contentDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
@@ -198,13 +198,13 @@ func (db *DefinedBlocks) ParseSection(
 			if diags.Extend(diag) {
 				continue
 			}
-			subSection, diag := db.ParseSection(ctx, subSectionDef, refHist)
+			subSection, diag := parseSection(ctx, blocksRegistry, subSectionDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
 			res.Content = append(res.Content, subSection)
 		case definitions.BlockKindDynamic:
-			dynamic, diag := db.ParseDynamic(ctx, block, refHist)
+			dynamic, diag := parseDynamic(ctx, blocksRegistry, block, refHist)
 			if diags.Extend(diag) {
 				continue
 			}

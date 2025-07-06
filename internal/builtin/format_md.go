@@ -259,7 +259,7 @@ func makeMarkdownFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.For
 						Severity: hcl.DiagError,
 						Summary:  "Failed to parse frontmatter content type",
 						Detail: fmt.Sprintf(
-							"Received invalid frontmatter data type `%T` while map is required",
+							"Received invalid frontmatter data type `%T` while map is expected",
 							frontmatterData,
 						),
 					}}

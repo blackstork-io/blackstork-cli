@@ -10,13 +10,13 @@ import (
 
 // options for the resolver.
 type options struct {
-	logger  *slog.Logger
+	log     *slog.Logger
 	tracer  trace.Tracer
 	sources []Source
 }
 
 var defaultOptions = options{
-	logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+	log:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 	sources: []Source{},
 	tracer:  tracenoop.Tracer{},
 }
@@ -24,10 +24,10 @@ var defaultOptions = options{
 // Option is a functional option for the resolver.
 type Option func(*options)
 
-// WithLogger sets the logger for the resolver.
-func WithLogger(logger *slog.Logger) Option {
+// WithLogger sets the log for the resolver.
+func WithLogger(log *slog.Logger) Option {
 	return func(o *options) {
-		o.logger = logger
+		o.log = log
 	}
 }
 

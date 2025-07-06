@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/blackstork-io/fabric/cmd/fabctx"
 	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 	"github.com/blackstork-io/fabric/pkg/utils"
@@ -60,30 +62,35 @@ func findTemplateFiles(rootDir fs.FS, recursive bool) (paths []string, diags dia
 }
 
 type fileParseResult struct {
-	diagnostics.Diag
 	file   *hcl.File
 	path   string
 	blocks *DefinedBlocks
 }
 
-func parseHclBytes(bytes []byte, path string) (res *fileParseResult) {
-	file, diag := hclsyntax.ParseConfig(bytes, path, hcl.InitialPos)
+func parseHclBytes(ctx context.Context, bytes []byte, path string) (res *fileParseResult, err error) {
+
+	log := fabctx.GetLog(ctx)
+	log = log.With("path", path)
+
+	file, err := hclsyntax.ParseConfig(bytes, path, hcl.InitialPos)
+	if err != nil {
+		log.ErrorContext(ctx, "Error while parsing HCL file", "err", err)
+		return nil, err
+	}
 	res = &fileParseResult{
 		file: file,
 		path: path,
-		Diag: diagnostics.Diag(diag),
 	}
-	if res.HasErrors() {
-		return
-	}
-
 	body := utils.ToHclsyntaxBody(res.file.Body)
+	blocks, err := parseBlockDefinitions(ctx, body)
 
-	blocks, diags := parseBlockDefinitions(body)
-	res.Extend(diags)
+	if err != nil {
+		log.ErrorContext(ctx, "Error while parsing HCL blocks", "err", err)
+		return nil, err
+	}
+
 	res.blocks = blocks
-
-	return res
+	return res, nil
 }
 
 func readFile(rootDir fs.FS, path string) ([]byte, error) {
@@ -108,13 +115,23 @@ func ParseDir(
 	var diags diagnostics.Diag
 
 	templateFiles, readDiags := findTemplateFiles(dir, true)
-	log.DebugContext(ctx, "Template files found", "files_count", len(templateFiles), "dir", dir)
+
+	if len(templateFiles) == 0 {
+		log.WarnContext(ctx, "No templates found", "dir_path", dir)
+		return nil, nil, diagnostics.Diag{{
+			Severity: hcl.DiagWarning,
+			Summary:  "No templates found",
+			Detail:   fmt.Sprintf("No templates found in the provided directory `%s`", dir),
+		}}
+	}
+
+	log.DebugContext(ctx, "Template files found", "count", len(templateFiles), "dir_path", dir)
 
 	diags = append(diags, readDiags...)
 
 	workersCount := min(len(templateFiles), maxReadParseWorkers)
 
-	parseResults, _ := utils.RunWorkers(
+	parseResults, errs := utils.RunWorkers(
 		ctx,
 		log.With("task", "parsing_templates"),
 		templateFiles,
@@ -122,30 +139,22 @@ func ParseDir(
 		func(path string) (*fileParseResult, error) {
 			body, err := readFile(dir, path)
 			if err != nil {
-				return &fileParseResult{
-					Diag: diagnostics.Diag{{
-						Severity: hcl.DiagError,
-						Summary:  "File read error",
-						Detail:   fmt.Sprintf("Error while looking at `%s`: %s", path, err),
-						Extra:    err,
-					}},
-					path: path,
-				}, nil
+				log.ErrorContext(ctx, "Error while reading a file", "dir", dir, "path", path)
+				return nil, errors.New("error while reading a file")
 			}
-			return parseHclBytes(body, path), nil
+			return parseHclBytes(ctx, body, path)
 		},
 	)
+
+	if len(errs) > 0 {
+		log.ErrorContext(ctx, "Errors while parsing files", "errs", errs)
+	}
 
 	blocks := NewDefinedBlocks()
 	fileMap := map[string]*hcl.File{}
 
 	for _, result := range parseResults {
-		diags.Extend(result.Diag)
-		if result.HasErrors() {
-			continue
-		}
-
-		blocks.Merge(result.blocks)
+		blocks.merge(result.blocks)
 		fileMap[result.path] = result.file
 	}
 
@@ -159,31 +168,57 @@ func ParseDir(
 	return blocks, fileMap, diags
 }
 
-func parseBlockDefinitions(body *hclsyntax.Body) (res *DefinedBlocks, diags diagnostics.Diag) {
+func parseBlockDefinitions(ctx context.Context, body *hclsyntax.Body) (res *DefinedBlocks, diags diagnostics.Diag) {
+
+	log := fabctx.GetLog(ctx)
+
 	res = NewDefinedBlocks()
 
 	for _, block := range body.Blocks {
 		switch block.Type {
 		// Standalone top level outside-document blocks
-		case definitions.BlockKindData, definitions.BlockKindContent, definitions.BlockKindFormat, definitions.BlockKindPublish:
+		case definitions.BlockKindData,
+			definitions.BlockKindContent,
+			definitions.BlockKindFormat,
+			definitions.BlockKindPublish:
 			execBlock, dgs := definitions.DefineExecBlockDef(block, true)
 			if diags.Extend(dgs) {
 				continue
 			}
 			key := execBlock.Key()
-			diags.Append(AddIfMissing(res.ExecBlockDefs, key, execBlock))
+
+			if origBlock, found := res.execBlockDefs[key]; found {
+				kind := origBlock.Kind()
+				origDefRange := origBlock.GetHCLBlock().DefRange()
+				diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate `%s` declaration", kind),
+					Detail: fmt.Sprintf(
+						"`%s` with the same name defined at %s:%d",
+						kind,
+						origDefRange.Filename,
+						origDefRange.Start.Line,
+					),
+					Subject: execBlock.GetHCLBlock().DefRange().Ptr(),
+				})
+			} else {
+				res.execBlockDefs[key] = execBlock
+			}
+
 		case definitions.BlockKindDocument:
 			blk, dgs := definitions.DefineDocumentDef(block)
 			if diags.Extend(dgs) {
 				continue
 			}
-			diags.Append(AddIfMissing(res.DocumentDefs, blk.Name, blk))
+			diag := AddIfMissing(res.DocumentDefs, blk.Name, blk)
+			diags.Append(diag)
 		case definitions.BlockKindSection:
 			blk, dgs := definitions.DefineSectionDef(block, true)
 			if diags.Extend(dgs) {
 				continue
 			}
-			diags.Append(AddIfMissing(res.SectionDefs, blk.Name(), blk))
+			diag := AddIfMissing(res.SectionDefs, blk.Name(), blk)
+			diags.Append(diag)
 		case definitions.BlockKindConfig:
 			cfg, dgs := definitions.DefineConfigDef(block)
 			if diags.Extend(dgs) {
@@ -194,6 +229,7 @@ func parseBlockDefinitions(body *hclsyntax.Body) (res *DefinedBlocks, diags diag
 				panic("unable to get the key of the top-level config block")
 			}
 			diags.Append(AddIfMissing(res.ConfigDefs, *key, cfg))
+			diags.Append(diag)
 		case definitions.BlockKindGlobalConfig:
 			if res.GlobalConfig != nil {
 				origRng := res.GlobalConfig.GetHCLBlock().DefRange()

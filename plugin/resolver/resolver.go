@@ -35,14 +35,18 @@ func NewResolver(constraints map[string]string, opts ...Option) (*Resolver, diag
 	for _, opt := range opts {
 		opt(&res.options)
 	}
-	res.options.logger = res.options.logger.With("component", "resolver")
+	res.options.log = res.options.log.With("component", "resolver")
 	return res, nil
 }
 
 // Install all plugins based the version constraints and return updated a lock file.
-func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool) (_ *LockFile, diags diagnostics.Diag) {
+func (r *Resolver) Install(
+	ctx context.Context,
+	lockFile *LockFile,
+	upgrade bool,
+) (_ *LockFile, diags diagnostics.Diag) {
 	ctx, span := r.tracer.Start(ctx, "Resolver.Install")
-	r.logger.InfoContext(ctx, "Resolving and installing plugin dependencies", "upgrade", upgrade)
+	r.log.InfoContext(ctx, "Resolving and installing plugin dependencies", "upgrade", upgrade)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -64,7 +68,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 	chain := makeSourceChain(r.sources...)
 	// resolve the plugins by the latest version that matches the constraints
 	for name, constraint := range lookupMap {
-		r.logger.InfoContext(ctx, "Looking for a plugin", "name", name.String(), "constraints", constraint.String())
+		r.log.InfoContext(ctx, "Looking for a plugin", "name", name.String(), "constraints", constraint.String())
 		list, err := chain.Lookup(ctx, name)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -94,7 +98,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 		max := slices.MaxFunc(matches, func(a, b Version) int {
 			return a.Compare(b)
 		})
-		r.logger.InfoContext(ctx, "Installing the plugin", "name", name.String(), "version", max.String())
+		r.log.InfoContext(ctx, "Installing the plugin", "name", name.String(), "version", max.String())
 		var checksums []Checksum
 		// check if the plugin with the same version is already in the lock file
 		lockIdx := slices.IndexFunc(lockFile.Plugins, func(lock PluginLock) bool {
@@ -140,7 +144,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 		if _, ok := check.Removed[lock.Name]; ok {
 			continue
 		}
-		r.logger.InfoContext(ctx, "Installing the plugin", "name", lock.Name.String(), "version", lock.Version.String())
+		r.log.InfoContext(ctx, "Installing the plugin", "name", lock.Name.String(), "version", lock.Version.String())
 		_, err := chain.Resolve(ctx, lock.Name, lock.Version, lock.Checksums)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -172,7 +176,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 // If the lock file is not satisfied, an error is returned.
 func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[string]string, diags diagnostics.Diag) {
 	ctx, span := r.tracer.Start(ctx, "Resolver.Resolve")
-	r.logger.DebugContext(ctx, "Resolving plugins", "lock_file_plugins_count", len(lockFile.Plugins))
+	r.log.DebugContext(ctx, "Resolving plugins", "lock_file_plugins_count", len(lockFile.Plugins))
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)

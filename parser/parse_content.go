@@ -15,8 +15,9 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-func (db *DefinedBlocks) ParseContentBlock(
+func parseContentBlock(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	execBlockDef *definitions.ExecBlockDef,
 	refHist *utils.RefHistory,
 ) (res *definitions.ContentBlock, diags diagnostics.Diag) {
@@ -87,7 +88,7 @@ func (db *DefinedBlocks) ParseContentBlock(
 	case !isRef && !refBaseFound: // happy path, no ref
 		// do nothing
 	case isRef && refBaseFound: // happy path, a correct ref block
-		baseEval, diag := db.parseRefBase(ctx, execBlockDef, refBase.Expr, refHist)
+		baseEval, diag := parseRefBase(ctx, blocksRegistry, execBlockDef, refBase.Expr, refHist)
 		if diags.Extend(diag) {
 			return
 		}
@@ -154,7 +155,7 @@ func (db *DefinedBlocks) ParseContentBlock(
 			// Collect `config` attr and pop it to avoid validation errors when
 			// checking runner-specific attrs later
 			configAttr, _ := utils.Pop(body.Attributes, definitions.BlockKindConfig)
-			configBlock, diag := db.parseExecBlockDefConfig(execBlockDef, configAttr, block)
+			configBlock, diag := parseExecBlockDefConfig(blocksRegistry, execBlockDef, configAttr, block)
 			if diags.Extend(diag) {
 				break
 			}
@@ -214,7 +215,7 @@ func (db *DefinedBlocks) ParseContentBlock(
 	}
 	// Set default config if no config provided
 	if res.Config == nil {
-		if defaultCfg := db.DefaultConfigFor(execBlockDef); defaultCfg != nil {
+		if defaultCfg := blocksRegistry.GetDefaultRunnerConfigForBlock(execBlockDef); defaultCfg != nil {
 			// Apply default configs to non-refs only
 			res.Config = defaultCfg
 		} else {

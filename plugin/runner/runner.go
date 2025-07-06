@@ -13,7 +13,7 @@ import (
 	"github.com/blackstork-io/fabric/plugin"
 )
 
-type Runner struct {
+type RunnersRegistry struct {
 	pluginMap    map[string]loadedPlugin
 	dataMap      map[string]loadedDataSource
 	contentMap   map[string]loadedContentProvider
@@ -27,7 +27,7 @@ func Load(
 	builtin *plugin.Schema,
 	log *slog.Logger,
 	tracer trace.Tracer,
-) (_ *Runner, diags diagnostics.Diag) {
+) (_ *RunnersRegistry, diags diagnostics.Diag) {
 	ctx, span := tracer.Start(ctx, "runner.Load")
 	defer func() {
 		if diags.HasErrors() {
@@ -40,7 +40,7 @@ func Load(
 	if diags = loader.loadAll(ctx); diags.HasErrors() {
 		return nil, diags
 	}
-	return &Runner{
+	return &RunnersRegistry{
 		pluginMap:    loader.pluginMap,
 		dataMap:      loader.dataMap,
 		contentMap:   loader.contentMap,
@@ -49,7 +49,7 @@ func Load(
 	}, nil
 }
 
-func (m *Runner) Plugins() []*plugin.Schema {
+func (m *RunnersRegistry) Plugins() []*plugin.Schema {
 	var plugins []*plugin.Schema
 	for _, p := range m.pluginMap {
 		plugins = append(plugins, p.Schema)
@@ -57,7 +57,7 @@ func (m *Runner) Plugins() []*plugin.Schema {
 	return plugins
 }
 
-func (m *Runner) Schema(name string) (*plugin.Schema, bool) {
+func (m *RunnersRegistry) Schema(name string) (*plugin.Schema, bool) {
 	p, ok := m.pluginMap[name]
 	if !ok {
 		return nil, false
@@ -65,7 +65,7 @@ func (m *Runner) Schema(name string) (*plugin.Schema, bool) {
 	return p.Schema, true
 }
 
-func (m *Runner) DataSource(name string) (*plugin.DataSource, bool) {
+func (m *RunnersRegistry) DataSource(name string) (*plugin.DataSource, bool) {
 	source, ok := m.dataMap[name]
 	if !ok {
 		return nil, false
@@ -73,7 +73,7 @@ func (m *Runner) DataSource(name string) (*plugin.DataSource, bool) {
 	return source.DataSource, true
 }
 
-func (m *Runner) ContentProvider(name string) (*plugin.ContentProvider, bool) {
+func (m *RunnersRegistry) ContentProvider(name string) (*plugin.ContentProvider, bool) {
 	provider, ok := m.contentMap[name]
 	if !ok {
 		return nil, false
@@ -81,7 +81,7 @@ func (m *Runner) ContentProvider(name string) (*plugin.ContentProvider, bool) {
 	return provider.ContentProvider, true
 }
 
-func (m *Runner) Publisher(name string) (*plugin.Publisher, bool) {
+func (m *RunnersRegistry) Publisher(name string) (*plugin.Publisher, bool) {
 	publisher, ok := m.publisherMap[name]
 	if !ok {
 		return nil, false
@@ -89,7 +89,7 @@ func (m *Runner) Publisher(name string) (*plugin.Publisher, bool) {
 	return publisher.Publisher, true
 }
 
-func (m *Runner) Formatter(name string) (*plugin.Formatter, bool) {
+func (m *RunnersRegistry) Formatter(name string) (*plugin.Formatter, bool) {
 	formatter, ok := m.formatterMap[name]
 	if !ok {
 		return nil, false
@@ -97,7 +97,7 @@ func (m *Runner) Formatter(name string) (*plugin.Formatter, bool) {
 	return formatter.Formatter, true
 }
 
-func (m *Runner) Close() diagnostics.Diag {
+func (m *RunnersRegistry) Close() diagnostics.Diag {
 	var diags diagnostics.Diag
 	for _, p := range m.pluginMap {
 		if err := p.closefn(); err != nil {

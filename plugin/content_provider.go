@@ -10,6 +10,10 @@ import (
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
+const (
+	blockNameDataCtxKey = "block_name"
+)
+
 type ContentProviders map[string]*ContentProvider
 
 func (cp ContentProviders) Validate() diagnostics.Diag {

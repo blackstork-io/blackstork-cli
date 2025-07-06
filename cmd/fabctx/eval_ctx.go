@@ -82,7 +82,7 @@ func GetEvalContext(ctx context.Context) *hcl.EvalContext {
 			return ec
 		}
 	}
-	slog.InfoContext(ctx, "No eval context found, using base eval context")
+	// slog.InfoContext(ctx, "No eval context found, using base eval context")
 	return baseEvalContext
 }
 

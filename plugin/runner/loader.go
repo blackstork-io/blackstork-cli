@@ -88,6 +88,7 @@ func (l *loader) loadAll(ctx context.Context) (diags diagnostics.Diag) {
 		}
 		span.End()
 	}()
+
 	diags = l.registerPlugin(ctx, l.builtin, nopCloser)
 	if diags.HasErrors() {
 		diags = append(diags, l.closeAll()...)
@@ -123,14 +124,10 @@ func (l *loader) registerDataSource(
 	ds *plugin.DataSource,
 ) diagnostics.Diag {
 	l.logger.DebugContext(
-		ctx,
-		"Registering a data source",
-		"name",
-		name,
-		"plugin",
-		schema.Name,
-		"version",
-		schema.Version,
+		ctx, "Registering a data source",
+		"name", name,
+		"plugin", schema.Name,
+		"version", schema.Version,
 	)
 	if found, has := l.dataMap[name]; has {
 		return diagnostics.Diag{{
@@ -267,15 +264,16 @@ func (l *loader) registerFormatter(
 }
 
 func (l *loader) registerPlugin(ctx context.Context, schema *plugin.Schema, closefn func() error) diagnostics.Diag {
-	l.logger.DebugContext(ctx, "Registering a plugin", "name", schema.Name, "version", schema.Version)
+	l.logger.DebugContext(
+		ctx, "Registering a plugin",
+		"name", schema.Name,
+		"version", schema.Version,
+	)
 	if diags := schema.Validate(); diags.HasErrors() {
 		l.logger.ErrorContext(
-			ctx,
-			"Validation errors while registering a plugin",
-			"name",
-			schema.Name,
-			"version",
-			schema.Version,
+			ctx, "Schema validation errors while registering a plugin",
+			"name", schema.Name,
+			"version", schema.Version,
 		)
 		return diags
 	}

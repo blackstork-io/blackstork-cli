@@ -6,6 +6,7 @@ import (
 
 	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin"
+	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
 
 func decodeContentProviderResult(src *ContentProviderResult) (*plugin.ContentProviderResult, error) {
@@ -26,16 +27,25 @@ func decodeContent(src *Content) (plugin.Content, error) {
 	case *Content_Element:
 		kind := plugin.ContentKind(val.Element.GetKind())
 
-		meta := decodeMetadata(val.Element.GetMeta())
+		self := decodeBlockSelf(val.Element.GetSelf())
+		var meta plugindata.Map
+		if val.Element.GetMeta() != nil {
+			meta = decodeMapData(val.Element.GetMeta().GetValue())
+		}
 		attrs := decodeMapData(val.Element.GetAttrs().GetValue())
 
-		el, err := plugin.NewContentElement(kind, meta, attrs)
+		el, err := plugin.NewContentElement(kind, self, meta, attrs)
 		if err != nil {
 			return nil, err
 		}
 		return el, nil
 	case *Content_Section:
-		meta := decodeMetadata(val.Section.GetMeta())
+
+		self := decodeBlockSelf(val.Section.GetSelf())
+		var meta plugindata.Map
+		if val.Section.GetMeta() != nil {
+			meta = decodeMapData(val.Section.GetMeta().GetValue())
+		}
 
 		children, err := utils.FnMapErr(
 			val.Section.GetChildren(),
@@ -45,12 +55,17 @@ func decodeContent(src *Content) (plugin.Content, error) {
 			return nil, err
 		}
 
-		section := plugin.NewSection(meta, children)
+		section := plugin.NewSection(self, meta, children)
 		return section, nil
 	case *Content_Empty:
-		meta := decodeMetadata(val.Empty.GetMeta())
 
-		return plugin.NewEmptyContent(meta), nil
+		self := decodeBlockSelf(val.Empty.GetSelf())
+		var meta plugindata.Map
+		if val.Empty.GetMeta() != nil {
+			meta = decodeMapData(val.Empty.GetMeta().GetValue())
+		}
+
+		return plugin.NewEmptyContent(self, meta), nil
 	case nil:
 		slog.Error("Received nil content", "src", src)
 		return nil, nil
@@ -60,20 +75,22 @@ func decodeContent(src *Content) (plugin.Content, error) {
 	}
 }
 
-func decodeMetadata(src *Metadata) *plugin.ContentMeta {
-	if src == nil {
-		return nil
-	}
-	return &plugin.ContentMeta{
-		ProviderName: src.ProviderName,
-		ProviderPluginName: src.ProviderPluginName,
-		ProviderPluginVersion: src.ProviderPluginVersion,
+func decodeBlockSelf(src *BlockSelf) plugin.BlockSelf {
+	return plugin.BlockSelf{
+		Name:          src.Name,
+		PluginName:    src.PluginName,
+		PluginVersion: src.PluginVersion,
+		ProviderName:  src.ProviderName,
 	}
 }
 
 func decodeFormattedContent(src *FormattedContent) *plugin.FormattedContent {
+	meta := decodeMapData(src.GetMeta().GetValue())
+
 	return &plugin.FormattedContent{
+		Self:    decodeBlockSelf(src.Self),
+		Meta:    meta,
 		Content: src.Content,
-		Format: src.Format,
+		Format:  src.Format,
 	}
 }

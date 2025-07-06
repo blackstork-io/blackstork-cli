@@ -24,6 +24,18 @@ func (b *DataBlock) GetSourceKind() string {
 	return b.Source.Kind()
 }
 
+func (b *DataBlock) GetMeta() *MetaBlock {
+	return b.Meta
+}
+
+func (b *DataBlock) GetRunner() string {
+	return b.BlockRunnerName
+}
+
+func (b *DataBlock) GetName() string {
+	return b.BlockName
+}
+
 var _ ContentTreeBlock = (*DataBlock)(nil)
 var _ ExecBlock = (*DataBlock)(nil)
 var _ RefTargetBlock = (*DataBlock)(nil)

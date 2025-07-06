@@ -13,8 +13,9 @@ import (
 	"github.com/blackstork-io/fabric/pkg/utils"
 )
 
-func (db *DefinedBlocks) ParseDynamic(
+func parseDynamic(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	block *hclsyntax.Block,
 	refHist *utils.RefHistory,
 ) (parsed *definitions.Dynamic, diags diagnostics.Diag) {
@@ -89,7 +90,7 @@ func (db *DefinedBlocks) ParseDynamic(
 				continue
 			}
 			var content definitions.ContentTreeBlock
-			content, diag = db.ParseContentBlock(ctx, contentDef, refHist)
+			content, diag = parseContentBlock(ctx, blocksRegistry, contentDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
@@ -99,13 +100,13 @@ func (db *DefinedBlocks) ParseDynamic(
 			if diags.Extend(diag) {
 				continue
 			}
-			parsedSubSection, diag := db.ParseSection(ctx, subSection, refHist)
+			parsedSubSection, diag := parseSection(ctx, blocksRegistry, subSection, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
 			res.Children = append(res.Children, parsedSubSection)
 		case definitions.BlockKindDynamic:
-			subDynamic, diag := db.ParseDynamic(ctx, block, refHist)
+			subDynamic, diag := parseDynamic(ctx, blocksRegistry, block, refHist)
 			if diags.Extend(diag) {
 				continue
 			}

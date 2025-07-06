@@ -3,6 +3,7 @@ package builtin
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"strings"
 	"text/template"
 
@@ -81,6 +82,22 @@ func parseContentSection(data plugindata.Map) (*plugin.ContentSection, error) {
 // 	}
 // 	return -1
 // }
+
+func walkTree(el plugin.Content) *plugin.ContentElement {
+	switch el := el.(type) {
+	case *plugin.ContentSection:
+		slog.Debug("In section", "self", el.Self(), "meta", el.Meta())
+		for _, c := range el.Children {
+			walkTree(c)
+		}
+	case *plugin.ContentElement:
+		slog.Debug("In element", "self", el.Self(), "meta", el.Meta())
+		// if el.Kind() == plugin.HeadingKind {
+		// 	return el
+		// }
+	}
+	return nil
+}
 
 func firstTitle(el plugin.Content) *plugin.ContentElement {
 	switch el := el.(type) {

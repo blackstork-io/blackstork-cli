@@ -15,7 +15,7 @@ import (
 
 type Document struct {
 	Source       *definitions.Document
-	Meta         *definitions.MetaBlock
+	meta         *definitions.MetaBlock
 	Vars         *definitions.Vars
 	RequiredVars []string
 	DataBlocks   []*PluginDataAction
@@ -41,6 +41,17 @@ func (doc *Document) GetTemplateName() string {
 	return doc.Source.Source.Name
 }
 
+func (doc *Document) GetName() string {
+	return fmt.Sprintf("%s.%s", definitions.BlockKindDocument, doc.GetTemplateName())
+}
+
+func (doc *Document) Meta() plugindata.Map {
+	if doc.meta == nil {
+		return plugindata.Map{}
+	}
+	return doc.meta.AsPluginData()
+}
+
 func (doc *Document) RenderContent(
 	ctx context.Context,
 	docDataCtx plugindata.Map,
@@ -58,15 +69,17 @@ func (doc *Document) RenderContent(
 
 	diag := applyBlockDataToDataCtx(
 		ctx,
+		doc.GetName(),
 		doc.Vars,
 		doc.RequiredVars,
-		doc.Meta,
+		doc.Meta(),
 		docDataCtx,
 	)
 	if diags.Extend(diag) {
 		return nil, nil, diags
 	}
 
+	// This call enriches `docDataCtx` with `vars` and other keys
 	result, diag := executeContentBlocksAsync(ctx, doc, requiredTags, docDataCtx)
 	if diags.Extend(diag) {
 		return nil, nil, diags
@@ -134,18 +147,13 @@ func (doc *Document) FormatContent(
 	// prepare data for the formatter
 	docData := plugindata.Map{
 		definitions.BlockKindContent: content.AsData(),
+		definitions.BlockKindMeta: doc.Meta(),
 	}
-	if doc.Meta != nil {
-		docData[definitions.BlockKindMeta] = doc.Meta.AsPluginData()
-	}
-	dataCtx := plugindata.Map{
-		definitions.BlockKindData:     data,
-		definitions.BlockKindDocument: docData,
-	}
+	data[definitions.BlockKindDocument] = docData
 
 	formattedContentMap = map[string]*plugin.FormattedContent{}
 	for format, formatter := range formatters {
-		formattedContent, diag := formatter.Execute(ctx, dataCtx, content.AsData())
+		formattedContent, diag := formatter.Execute(ctx, data, content.AsData())
 		if diags.Extend(diag) {
 			// do not return but collect all errors
 			continue
@@ -167,9 +175,7 @@ func (doc *Document) Publish(
 
 	docData := plugindata.Map{
 		definitions.BlockKindContent: content.AsData(),
-	}
-	if doc.Meta != nil {
-		docData[definitions.BlockKindMeta] = doc.Meta.AsPluginData()
+		definitions.BlockKindMeta: doc.Meta(),
 	}
 	dataCtx := plugindata.Map{
 		definitions.BlockKindData:     data,
@@ -222,7 +228,7 @@ func LoadDocument(
 ) (_ *Document, diags diagnostics.Diag) {
 	doc := Document{
 		Source:       node,
-		Meta:         node.Meta,
+		meta:         node.Meta,
 		Vars:         node.Vars,
 		RequiredVars: node.RequiredVars,
 	}

@@ -21,8 +21,20 @@ func (b *PublishBlock) GetSource() *ExecBlockDef {
 	return b.Source
 }
 
+func (b *PublishBlock) GetMeta() *MetaBlock {
+	return b.Meta
+}
+
 func (b *PublishBlock) GetSourceKind() string {
 	return b.Source.Kind()
+}
+
+func (b *PublishBlock) GetRunner() string {
+	return b.BlockRunnerName
+}
+
+func (b *PublishBlock) GetName() string {
+	return b.BlockName
 }
 
 var _ ExecBlock = (*PublishBlock)(nil)

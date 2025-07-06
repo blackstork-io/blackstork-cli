@@ -12,8 +12,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-func (db *DefinedBlocks) parseRefBase(
+func parseRefBase(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	sourceBlockDef definitions.RefSourceDef,
 	base hcl.Expression,
 	refHist *utils.RefHistory,
@@ -37,10 +38,11 @@ func (db *DefinedBlocks) parseRefBase(
 		definitions.BlockKindContent,
 		definitions.BlockKindFormat,
 		definitions.BlockKindPublish:
-		baseBlockDef, diags = ResolveWithDefined[*definitions.ExecBlockDef](db, base)
+
+		baseBlockDef, diags = blocksRegistry.ResolveRefBase(base, new(definitions.ExecBlockDef))
 	case definitions.BlockKindSection:
 		// `section` blocks
-		baseBlockDef, diags = ResolveWithDefined[*definitions.SectionDef](db, base)
+		baseBlockDef, diags = blocksRegistry.ResolveRefBase(base, new(definitions.SectionDef))
 	default:
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -91,13 +93,13 @@ func (db *DefinedBlocks) parseRefBase(
 	switch baseBlockDef.Kind() {
 	case definitions.BlockKindContent:
 		contentBlockDef := baseBlockDef.(*definitions.ExecBlockDef)
-		targetBlock, diag = db.ParseContentBlock(ctx, contentBlockDef, refHist)
+		targetBlock, diag = parseContentBlock(ctx, blocksRegistry, contentBlockDef, refHist)
 	case definitions.BlockKindData:
 		dataBlockDef := baseBlockDef.(*definitions.ExecBlockDef)
-		targetBlock, diag = db.ParseDataBlock(ctx, dataBlockDef, refHist)
+		targetBlock, diag = parseDataBlock(ctx, blocksRegistry, dataBlockDef, refHist)
 	case definitions.BlockKindSection:
 		sectionDef := baseBlockDef.(*definitions.SectionDef)
-		targetBlock, diag = db.ParseSection(ctx, sectionDef, refHist)
+		targetBlock, diag = parseSection(ctx, blocksRegistry, sectionDef, refHist)
 	}
 	diags.Extend(diag)
 	return

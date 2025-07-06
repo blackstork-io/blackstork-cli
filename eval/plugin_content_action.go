@@ -51,6 +51,13 @@ func (a *PluginContentAction) GetDataCtx() *plugindata.Map {
 	return a.dataCtx
 }
 
+func (a *PluginContentAction) Meta() plugindata.Map {
+	if a.meta == nil {
+		return plugindata.Map{}
+	}
+	return a.meta.AsPluginData()
+}
+
 func (a *PluginContentAction) CtyType() cty.Type {
 	nativeType := reflect.TypeOf(a)
 	return cty.Capsule(a.Kind(), nativeType)

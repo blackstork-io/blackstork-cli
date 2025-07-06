@@ -13,22 +13,28 @@ import (
 	"github.com/blackstork-io/fabric/pkg/diagnostics"
 )
 
-func (db *DefinedBlocks) ParseDocument(
+func ParseDocument(
 	ctx context.Context,
+	blocksRegistry BlocksRegistry,
 	docDef *definitions.DocumentDef,
 ) (doc *definitions.Document, diags diagnostics.Diag) {
 
 	log := fabctx.GetLog(ctx)
 	log = log.With("document", docDef.Name)
-	log.InfoContext(ctx, "Parsing a document template")
 
 	body := docDef.Block.Body
+
+	log.DebugContext(
+		ctx, "Parsing a document template",
+		"attributes_count", len(body.Attributes),
+		"blocks_count", len(body.Blocks),
+	)
 
 	doc = &definitions.Document{}
 	doc.Source = docDef
 
 	if title := body.Attributes[definitions.AttrTitle]; title != nil {
-		titleContent, diag := db.ParseTitle(ctx, title)
+		titleContent, diag := parseTitle(ctx, blocksRegistry, title)
 		if !diag.Extend(diags) {
 			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, titleContent)
 		}
@@ -38,7 +44,7 @@ func (db *DefinedBlocks) ParseDocument(
 	var varsBlock *hclsyntax.Block
 
 	for _, block := range body.Blocks {
-		log.DebugContext(ctx, "Parsing a block", "block_type", block.Type)
+		log.DebugContext(ctx, "Parsing a block", "type", block.Type, "labels", block.Labels)
 
 		switch block.Type {
 		// Document-level blocks
@@ -48,7 +54,7 @@ func (db *DefinedBlocks) ParseDocument(
 				continue
 			}
 			var content definitions.ContentTreeBlock
-			content, diags = db.ParseContentBlock(ctx, blockDef, nil)
+			content, diags = parseContentBlock(ctx, blocksRegistry, blockDef, nil)
 			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, content)
 
 		case definitions.BlockKindData:
@@ -57,7 +63,7 @@ func (db *DefinedBlocks) ParseDocument(
 				continue
 			}
 			var data *definitions.DataBlock
-			data, diags = db.ParseDataBlock(ctx, blockDef, nil)
+			data, diags = parseDataBlock(ctx, blocksRegistry, blockDef, nil)
 			doc.DataBlocks = append(doc.DataBlocks, data)
 
 		case definitions.BlockKindPublish:
@@ -66,7 +72,7 @@ func (db *DefinedBlocks) ParseDocument(
 				continue
 			}
 			var publish *definitions.PublishBlock
-			publish, diags = db.ParsePublishBlock(ctx, blockDef, nil)
+			publish, diags = parsePublishBlock(ctx, blocksRegistry, blockDef, nil)
 			doc.PublishBlocks = append(doc.PublishBlocks, publish)
 
 		case definitions.BlockKindFormat:
@@ -75,7 +81,7 @@ func (db *DefinedBlocks) ParseDocument(
 				continue
 			}
 			var format *definitions.FormatBlock
-			format, diags = db.ParseFormatBlock(ctx, blockDef, nil)
+			format, diags = parseFormatBlock(ctx, blocksRegistry, blockDef, nil)
 			doc.FormatBlocks = append(doc.FormatBlocks, format)
 
 		case definitions.BlockKindVars:
@@ -118,14 +124,14 @@ func (db *DefinedBlocks) ParseDocument(
 			if diags.Extend(diag) {
 				continue
 			}
-			parsedSection, diag := db.ParseSection(ctx, section, nil)
+			parsedSection, diag := parseSection(ctx, blocksRegistry, section, nil)
 			if diags.Extend(diag) {
 				continue
 			}
 			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, parsedSection)
 
 		case definitions.BlockKindDynamic:
-			dynamic, diag := db.ParseDynamic(ctx, block, nil)
+			dynamic, diag := parseDynamic(ctx, blocksRegistry, block, nil)
 			if diags.Extend(diag) {
 				continue
 			}

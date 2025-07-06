@@ -97,11 +97,12 @@ func (p *grpcPlugin) clientGenerateFunc(name string, client PluginServiceClient)
 		if diags.HasErrors() {
 			return
 		}
+		data := encodeMapData(params.DataContext)
 		res, err := client.ProvideContent(ctx, &ProvideContentRequest{
 			Provider:    name,
 			Config:      cfgEncoded,
 			Args:        argsEncoded,
-			DataContext: encodeMapData(params.DataContext),
+			DataContext: &data,
 		}, p.callOptions()...)
 		if diags.AppendErr(err, "Failed to generate content") {
 			return
@@ -167,8 +168,8 @@ func (p *grpcPlugin) clientFormatFunc(name string, client PluginServiceClient) p
 			Formatter:    name,
 			Config:       cfgEncoded,
 			Args:         argsEncoded,
-			Content:      content,
-			DataContext:  datactx,
+			Content:      &content,
+			DataContext:  &datactx,
 			Format:       params.Format,
 		}, p.callOptions()...)
 
@@ -221,7 +222,7 @@ func (p *grpcPlugin) clientPublishFunc(name string, client PluginServiceClient) 
 			Publisher:        name,
 			Config:           cfgEncoded,
 			Args:             argsEncoded,
-			DataContext:      datactx,
+			DataContext:      &datactx,
 			FormattedContent: content,
 			DocumentName:     params.DocumentName,
 		}, p.callOptions()...)

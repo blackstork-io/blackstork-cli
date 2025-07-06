@@ -1,10 +1,11 @@
 package plugin
 
 import (
+	"errors"
 	"fmt"
 	"slices"
-	"sync"
 
+	"github.com/blackstork-io/fabric/parser/definitions"
 	"github.com/blackstork-io/fabric/pkg/utils"
 	"github.com/blackstork-io/fabric/plugin/plugindata"
 )
@@ -22,6 +23,10 @@ const (
 	ListKind    ContentKind = "list"
 	TableKind   ContentKind = "table"
 	TOCKind     ContentKind = "toc"
+
+	// FIXME: make data ctx key registry
+	SelfDataCtxKey     = "self"
+	SelfNameDataCtxKey = "name"
 )
 
 type Content interface {
@@ -29,62 +34,81 @@ type Content interface {
 
 	AsData() plugindata.Map
 
-	SetMeta(meta *ContentMeta)
-	Meta() *ContentMeta
+	SetSelf(self BlockSelf)
+	Self() BlockSelf
+
+	SetMeta(meta plugindata.Map)
+	Meta() plugindata.Map
 }
 
-type ContentMeta struct {
-	ProviderName          string
-	ProviderPluginName    string
-	ProviderPluginVersion string
+type BlockSelf struct {
+	PluginName    string
+	PluginVersion string
+	ProviderName  string
+
+	Name string
 }
 
-func (meta *ContentMeta) AsData() plugindata.Map {
-	if meta == nil {
-		return nil
-	}
+func (s BlockSelf) AsData() plugindata.Map {
 	return plugindata.Map{
-		"provider_name":           plugindata.String(meta.ProviderName),
-		"provider_plugin_name":    plugindata.String(meta.ProviderPluginName),
-		"provider_plugin_version": plugindata.String(meta.ProviderPluginVersion),
+		"provider_name":  plugindata.String(s.ProviderName),
+		"plugin_name":    plugindata.String(s.PluginName),
+		"plugin_version": plugindata.String(s.PluginVersion),
+		"name":           plugindata.String(s.Name),
 	}
 }
 
-func parseContentMeta(data plugindata.Data) *ContentMeta {
+func parseBlockSelf(data plugindata.Data) (BlockSelf, error) {
+	var res BlockSelf
 	if data == nil {
-		return nil
+		return res, errors.New("no self data found")
 	}
 	meta := data.(plugindata.Map)
 	provider, _ := meta["provider_name"].(plugindata.String)
-	plugin, _ := meta["provider_plugin_name"].(plugindata.String)
-	version, _ := meta["provider_plugin_version"].(plugindata.String)
-	return &ContentMeta{
-		ProviderName:          string(provider),
-		ProviderPluginName:    string(plugin),
-		ProviderPluginVersion: string(version),
-	}
+	plugin, _ := meta["plugin_name"].(plugindata.String)
+	version, _ := meta["plugin_version"].(plugindata.String)
+	blockName, _ := meta["name"].(plugindata.String)
+	return BlockSelf{
+		PluginName:    string(plugin),
+		PluginVersion: string(version),
+		ProviderName:  string(provider),
+		Name:          string(blockName),
+	}, nil
 }
 
 type ContentEmpty struct {
-	meta *ContentMeta
+	self BlockSelf
+	meta plugindata.Map
 }
 
-func NewEmptyContent(meta *ContentMeta) *ContentEmpty {
-	return &ContentEmpty{meta: meta}
+func NewEmptyContent(self BlockSelf, meta plugindata.Map) *ContentEmpty {
+	return &ContentEmpty{
+		meta: meta,
+		self: self,
+	}
 }
 
-func (n *ContentEmpty) SetMeta(meta *ContentMeta) {
-	n.meta = meta
+func (c *ContentEmpty) SetMeta(meta plugindata.Map) {
+	c.meta = meta
+}
+
+func (c *ContentEmpty) SetSelf(self BlockSelf) {
+	c.self = self
+}
+
+func (n *ContentEmpty) Self() BlockSelf {
+	return n.self
 }
 
 func (n *ContentEmpty) AsData() plugindata.Map {
 	return plugindata.Map{
-		"kind": plugindata.String(EmptyKind),
-		"meta": n.meta.AsData(),
+		"kind":                    plugindata.String(EmptyKind),
+		definitions.BlockKindMeta: n.meta,
+		SelfDataCtxKey:            n.self.AsData(),
 	}
 }
 
-func (n *ContentEmpty) Meta() *ContentMeta {
+func (n *ContentEmpty) Meta() plugindata.Map {
 	return n.meta
 }
 
@@ -97,26 +121,41 @@ func parseContentEmpty(data plugindata.Map) (*ContentEmpty, error) {
 		return nil, nil
 	}
 	empty := &ContentEmpty{}
-	meta, ok := data["meta"].(plugindata.Map)
+	self, ok := data[SelfDataCtxKey].(plugindata.Map)
 	if ok {
-		empty.meta = parseContentMeta(meta)
+		var err error
+		empty.self, err = parseBlockSelf(self)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	meta, ok := data[definitions.BlockKindMeta].(plugindata.Map)
+	if ok {
+		empty.meta = meta
+	}
+
 	return empty, nil
 }
 
 type ContentSection struct {
-	meta *ContentMeta
+	self BlockSelf
+	meta plugindata.Map
 
 	Children []Content
 }
 
-func NewEmptySection() *ContentSection {
-	return &ContentSection{}
+func NewEmptySection(self BlockSelf, meta plugindata.Map) *ContentSection {
+	return &ContentSection{
+		meta: meta,
+		self: self,
+	}
 }
 
-func NewSection(meta *ContentMeta, children []Content) *ContentSection {
+func NewSection(self BlockSelf, meta plugindata.Map, children []Content) *ContentSection {
 	return &ContentSection{
 		meta:     meta,
+		self:     self,
 		Children: children,
 	}
 }
@@ -126,16 +165,19 @@ func (c *ContentSection) Add(content Content) {
 	c.Children = append(c.Children, content)
 }
 
-func (c *ContentSection) SetMeta(meta *ContentMeta) {
+func (c *ContentSection) SetMeta(meta plugindata.Map) {
 	c.meta = meta
-	// FIXME: why are we propagating meta to all children?
-	//
-	//	for _, child := range c.Children {
-	//		child.SetMeta(meta)
-	//	}
 }
 
-func (c *ContentSection) Meta() *ContentMeta {
+func (c *ContentSection) SetSelf(self BlockSelf) {
+	c.self = self
+}
+
+func (c *ContentSection) Self() BlockSelf {
+	return c.self
+}
+
+func (c *ContentSection) Meta() plugindata.Map {
 	return c.meta
 }
 
@@ -172,28 +214,30 @@ func (c *ContentSection) AsData() plugindata.Map {
 		children[i] = child.AsData()
 	}
 	return plugindata.Map{
-		"kind":     plugindata.String(SectionKind),
-		"children": children,
-		"meta":     c.meta.AsData(),
+		"kind":                    plugindata.String(SectionKind),
+		definitions.BlockKindMeta: c.meta,
+		SelfDataCtxKey:            c.self.AsData(),
+		"children":                children,
 	}
 }
 
 type ContentElement struct {
-	meta *ContentMeta
+	self BlockSelf
+	meta plugindata.Map
 
 	kind  ContentKind
 	attrs plugindata.Map
-
-	mtx sync.RWMutex
 }
 
 func NewContentElement(
 	kind ContentKind,
-	meta *ContentMeta,
+	self BlockSelf,
+	meta plugindata.Map,
 	attrs plugindata.Map,
 ) (*ContentElement, error) {
 	return &ContentElement{
 		kind:  kind,
+		self:  self,
 		meta:  meta,
 		attrs: attrs,
 	}, nil
@@ -242,8 +286,8 @@ func NewHeadingElement(body string, size int64, is_relative bool) *ContentElemen
 	return &ContentElement{
 		kind: HeadingKind,
 		attrs: plugindata.Map{
-			"body": plugindata.String(body),
-			"size": plugindata.Number(size),
+			"body":        plugindata.String(body),
+			"size":        plugindata.Number(size),
 			"is_relative": plugindata.Bool(is_relative),
 		},
 	}
@@ -321,16 +365,20 @@ func (c *ContentElement) Attr(attr string) plugindata.Data {
 	return val
 }
 
-func (c *ContentElement) Meta() *ContentMeta {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
+func (c *ContentElement) Meta() plugindata.Map {
 	return c.meta
 }
 
-func (c *ContentElement) SetMeta(meta *ContentMeta) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+func (c *ContentElement) SetMeta(meta plugindata.Map) {
 	c.meta = meta
+}
+
+func (c *ContentElement) SetSelf(self BlockSelf) {
+	c.self = self
+}
+
+func (c *ContentElement) Self() BlockSelf {
+	return c.self
 }
 
 func (c *ContentElement) AsPluginData() plugindata.Data {
@@ -342,9 +390,10 @@ func (c *ContentElement) AsData() plugindata.Map {
 		return nil
 	}
 	data := plugindata.Map{
-		"kind":  plugindata.String(c.kind),
-		"attrs": c.attrs,
-		"meta":  c.meta.AsData(),
+		"kind":                    plugindata.String(c.kind),
+		SelfDataCtxKey:            c.self.AsData(),
+		definitions.BlockKindMeta: c.meta,
+		"attrs":                   c.attrs,
 	}
 	return data
 }
@@ -359,15 +408,27 @@ func parseContentElement(kind ContentKind, data plugindata.Map) (*ContentElement
 		return nil, nil
 	}
 
-	meta, ok := data["meta"].(plugindata.Map)
+	self, ok := data[SelfDataCtxKey].(plugindata.Map)
+	if !ok {
+		return nil, fmt.Errorf("no self found in the content")
+	}
+	blockSelf, err := parseBlockSelf(self)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, ok := data[definitions.BlockKindMeta].(plugindata.Map)
 	if !ok {
 		return nil, fmt.Errorf("no meta found in the content")
 	}
 
+	attrs := data["attrs"].(plugindata.Map)
+
 	return NewContentElement(
 		ContentKind(kind),
-		parseContentMeta(meta),
-		data["attrs"].(plugindata.Map),
+		blockSelf,
+		meta,
+		attrs,
 	)
 }
 
@@ -406,9 +467,19 @@ func parseContentSection(data plugindata.Map) (*ContentSection, error) {
 			return nil, err
 		}
 	}
-	meta, ok := data["meta"].(plugindata.Map)
+	meta, ok := data[definitions.BlockKindMeta].(plugindata.Map)
 	if ok {
-		section.meta = parseContentMeta(meta)
+		section.meta = meta
+	}
+
+	self, ok := data[SelfDataCtxKey].(plugindata.Map)
+	if !ok {
+		return nil, errors.New("Self details not found in a section data")
+	}
+
+	section.self, err = parseBlockSelf(self)
+	if err != nil {
+		return nil, err
 	}
 	return section, nil
 }

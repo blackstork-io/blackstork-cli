@@ -35,7 +35,7 @@ func (m *MetaBlock) MatchesTags(requiredTags []string) bool {
 	return true
 }
 
-func (m *MetaBlock) AsPluginData() plugindata.Data {
+func (m *MetaBlock) AsPluginData() plugindata.Map {
 	tags := make(plugindata.List, len(m.Tags))
 	authors := make(plugindata.List, len(m.Authors))
 	for i, tag := range m.Tags {
@@ -45,9 +45,13 @@ func (m *MetaBlock) AsPluginData() plugindata.Data {
 		authors[i] = plugindata.String(author)
 	}
 	return plugindata.Map{
-		"authors": authors,
-		"name":    plugindata.String(m.Name),
-		"tags":    tags,
-		"version": plugindata.String(m.Version),
+		"name":        plugindata.String(m.Name),
+		"description": plugindata.String(m.Description),
+		"url":         plugindata.String(m.Url),
+		"license":     plugindata.String(m.License),
+		"authors":     authors,
+		"tags":        tags,
+		"updated_at":  plugindata.String(m.UpdatedAt),
+		"version":     plugindata.String(m.Version),
 	}
 }

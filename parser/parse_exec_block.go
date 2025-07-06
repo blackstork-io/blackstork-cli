@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -60,7 +62,8 @@ import (
 // 	return
 // }
 
-func (db *DefinedBlocks) parseExecBlockDefConfig(
+func parseExecBlockDefConfig(
+	blocksRegistry BlocksRegistry,
 	execBlockDef *definitions.ExecBlockDef,
 	configAttr *hclsyntax.Attribute,
 	configBlock *hclsyntax.Block,
@@ -76,11 +79,14 @@ func (db *DefinedBlocks) parseExecBlockDefConfig(
 		return
 	case configAttr != nil:
 		// config attr referencing top-level config block
-		cfg, diag := ResolveWithDefined[*definitions.ConfigDef](db, configAttr.Expr)
+		cfg, diag := blocksRegistry.ResolveRefBase(configAttr.Expr, new(definitions.ConfigDef))
 		if diags.Extend(diag) {
 			return
 		}
-		if !cfg.ApplicableTo(execBlockDef) {
+
+		cfgDef := cfg.(*definitions.ConfigDef)
+
+		if !cfgDef.ApplicableTo(execBlockDef) {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Mismatched configuration",
@@ -92,7 +98,7 @@ func (db *DefinedBlocks) parseExecBlockDefConfig(
 		}
 
 		config = &definitions.ConfigPtr{
-			Cfg: cfg,
+			Cfg: cfgDef,
 			Ptr: configAttr.AsHCLAttribute(),
 		}
 	case configBlock != nil:
@@ -118,4 +124,44 @@ func hclBlockKey(b *hclsyntax.Block) string {
 		sb.WriteString(l)
 	}
 	return sb.String()
+}
+
+func parseStandaloneExecBlock(
+	ctx context.Context,
+	blocksRegistry BlocksRegistry,
+	blockDef *definitions.ExecBlockDef,
+) (definitions.ExecBlock, diagnostics.Diag) {
+
+	switch blockDef.Kind() {
+	case definitions.BlockKindContent:
+		content, diags := parseContentBlock(ctx, blocksRegistry, blockDef, nil)
+		return content, diags
+
+	case definitions.BlockKindData:
+		data, diags := parseDataBlock(ctx, blocksRegistry, blockDef, nil)
+		return data, diags
+
+	case definitions.BlockKindPublish:
+		publish, diags := parsePublishBlock(ctx, blocksRegistry, blockDef, nil)
+		return publish, diags
+
+	case definitions.BlockKindFormat:
+		format, diags := parseFormatBlock(ctx, blocksRegistry, blockDef, nil)
+		return format, diags
+	}
+
+	var diags diagnostics.Diag
+	diags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown exec block kind",
+			Detail: fmt.Sprintf(
+				"Unknown exec block kind encountered: %s",
+				blockDef.Kind(),
+			),
+			Subject: blockDef.DefRange().Ptr(),
+		},
+	)
+
+	return nil, diags
 }

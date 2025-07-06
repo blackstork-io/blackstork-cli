@@ -163,29 +163,30 @@ func (*Content_Section) isContent_Value() {}
 
 func (*Content_Empty) isContent_Value() {}
 
-type Metadata struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	ProviderName          string                 `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
-	ProviderPluginName    string                 `protobuf:"bytes,2,opt,name=provider_plugin_name,json=providerPluginName,proto3" json:"provider_plugin_name,omitempty"`
-	ProviderPluginVersion string                 `protobuf:"bytes,3,opt,name=provider_plugin_version,json=providerPluginVersion,proto3" json:"provider_plugin_version,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+type BlockSelf struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PluginName    string                 `protobuf:"bytes,1,opt,name=plugin_name,json=pluginName,proto3" json:"plugin_name,omitempty"`
+	PluginVersion string                 `protobuf:"bytes,2,opt,name=plugin_version,json=pluginVersion,proto3" json:"plugin_version,omitempty"`
+	ProviderName  string                 `protobuf:"bytes,3,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Metadata) Reset() {
-	*x = Metadata{}
+func (x *BlockSelf) Reset() {
+	*x = BlockSelf{}
 	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Metadata) String() string {
+func (x *BlockSelf) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Metadata) ProtoMessage() {}
+func (*BlockSelf) ProtoMessage() {}
 
-func (x *Metadata) ProtoReflect() protoreflect.Message {
+func (x *BlockSelf) ProtoReflect() protoreflect.Message {
 	mi := &file_pluginapi_v1_content_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -197,36 +198,44 @@ func (x *Metadata) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Metadata.ProtoReflect.Descriptor instead.
-func (*Metadata) Descriptor() ([]byte, []int) {
+// Deprecated: Use BlockSelf.ProtoReflect.Descriptor instead.
+func (*BlockSelf) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Metadata) GetProviderName() string {
+func (x *BlockSelf) GetPluginName() string {
+	if x != nil {
+		return x.PluginName
+	}
+	return ""
+}
+
+func (x *BlockSelf) GetPluginVersion() string {
+	if x != nil {
+		return x.PluginVersion
+	}
+	return ""
+}
+
+func (x *BlockSelf) GetProviderName() string {
 	if x != nil {
 		return x.ProviderName
 	}
 	return ""
 }
 
-func (x *Metadata) GetProviderPluginName() string {
+func (x *BlockSelf) GetName() string {
 	if x != nil {
-		return x.ProviderPluginName
-	}
-	return ""
-}
-
-func (x *Metadata) GetProviderPluginVersion() string {
-	if x != nil {
-		return x.ProviderPluginVersion
+		return x.Name
 	}
 	return ""
 }
 
 type ContentSection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Children      []*Content             `protobuf:"bytes,2,rep,name=children,proto3" json:"children,omitempty"`
+	Self          *BlockSelf             `protobuf:"bytes,1,opt,name=self,proto3" json:"self,omitempty"`
+	Meta          *MapData               `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Children      []*Content             `protobuf:"bytes,3,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -261,7 +270,14 @@ func (*ContentSection) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ContentSection) GetMeta() *Metadata {
+func (x *ContentSection) GetSelf() *BlockSelf {
+	if x != nil {
+		return x.Self
+	}
+	return nil
+}
+
+func (x *ContentSection) GetMeta() *MapData {
 	if x != nil {
 		return x.Meta
 	}
@@ -277,10 +293,11 @@ func (x *ContentSection) GetChildren() []*Content {
 
 type ContentElement struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Kind          string                 `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	Attrs         *MapData               `protobuf:"bytes,3,opt,name=attrs,proto3" json:"attrs,omitempty"`
-	DataContext   *MapData               `protobuf:"bytes,4,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
+	Self          *BlockSelf             `protobuf:"bytes,1,opt,name=self,proto3" json:"self,omitempty"`
+	Meta          *MapData               `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Kind          string                 `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	Attrs         *MapData               `protobuf:"bytes,4,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	DataContext   *MapData               `protobuf:"bytes,5,opt,name=data_context,json=dataContext,proto3" json:"data_context,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -315,7 +332,14 @@ func (*ContentElement) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ContentElement) GetMeta() *Metadata {
+func (x *ContentElement) GetSelf() *BlockSelf {
+	if x != nil {
+		return x.Self
+	}
+	return nil
+}
+
+func (x *ContentElement) GetMeta() *MapData {
 	if x != nil {
 		return x.Meta
 	}
@@ -345,7 +369,8 @@ func (x *ContentElement) GetDataContext() *MapData {
 
 type ContentEmpty struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Metadata              `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Self          *BlockSelf             `protobuf:"bytes,1,opt,name=self,proto3" json:"self,omitempty"`
+	Meta          *MapData               `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -380,7 +405,14 @@ func (*ContentEmpty) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ContentEmpty) GetMeta() *Metadata {
+func (x *ContentEmpty) GetSelf() *BlockSelf {
+	if x != nil {
+		return x.Self
+	}
+	return nil
+}
+
+func (x *ContentEmpty) GetMeta() *MapData {
 	if x != nil {
 		return x.Meta
 	}
@@ -389,8 +421,10 @@ func (x *ContentEmpty) GetMeta() *Metadata {
 
 type FormattedContent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Format        string                 `protobuf:"bytes,1,opt,name=format,proto3" json:"format,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Self          *BlockSelf             `protobuf:"bytes,1,opt,name=self,proto3" json:"self,omitempty"`
+	Meta          *MapData               `protobuf:"bytes,2,opt,name=meta,proto3" json:"meta,omitempty"`
+	Format        string                 `protobuf:"bytes,3,opt,name=format,proto3" json:"format,omitempty"`
+	Content       []byte                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -425,6 +459,20 @@ func (*FormattedContent) Descriptor() ([]byte, []int) {
 	return file_pluginapi_v1_content_proto_rawDescGZIP(), []int{6}
 }
 
+func (x *FormattedContent) GetSelf() *BlockSelf {
+	if x != nil {
+		return x.Self
+	}
+	return nil
+}
+
+func (x *FormattedContent) GetMeta() *MapData {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
 func (x *FormattedContent) GetFormat() string {
 	if x != nil {
 		return x.Format
@@ -450,24 +498,31 @@ const file_pluginapi_v1_content_proto_rawDesc = "" +
 	"\aelement\x18\x01 \x01(\v2\x1c.pluginapi.v1.ContentElementH\x00R\aelement\x128\n" +
 	"\asection\x18\x02 \x01(\v2\x1c.pluginapi.v1.ContentSectionH\x00R\asection\x122\n" +
 	"\x05empty\x18\x03 \x01(\v2\x1a.pluginapi.v1.ContentEmptyH\x00R\x05emptyB\a\n" +
-	"\x05value\"\x99\x01\n" +
-	"\bMetadata\x12#\n" +
-	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x120\n" +
-	"\x14provider_plugin_name\x18\x02 \x01(\tR\x12providerPluginName\x126\n" +
-	"\x17provider_plugin_version\x18\x03 \x01(\tR\x15providerPluginVersion\"o\n" +
-	"\x0eContentSection\x12*\n" +
-	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x121\n" +
-	"\bchildren\x18\x02 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\"\xb7\x01\n" +
-	"\x0eContentElement\x12*\n" +
-	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\x12\x12\n" +
-	"\x04kind\x18\x02 \x01(\tR\x04kind\x12+\n" +
-	"\x05attrs\x18\x03 \x01(\v2\x15.pluginapi.v1.MapDataR\x05attrs\x128\n" +
-	"\fdata_context\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\":\n" +
-	"\fContentEmpty\x12*\n" +
-	"\x04meta\x18\x01 \x01(\v2\x16.pluginapi.v1.MetadataR\x04meta\"D\n" +
-	"\x10FormattedContent\x12\x16\n" +
-	"\x06format\x18\x01 \x01(\tR\x06format\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontentB\xb2\x01\n" +
+	"\x05value\"\x8c\x01\n" +
+	"\tBlockSelf\x12\x1f\n" +
+	"\vplugin_name\x18\x01 \x01(\tR\n" +
+	"pluginName\x12%\n" +
+	"\x0eplugin_version\x18\x02 \x01(\tR\rpluginVersion\x12#\n" +
+	"\rprovider_name\x18\x03 \x01(\tR\fproviderName\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\"\x9b\x01\n" +
+	"\x0eContentSection\x12+\n" +
+	"\x04self\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSelfR\x04self\x12)\n" +
+	"\x04meta\x18\x02 \x01(\v2\x15.pluginapi.v1.MapDataR\x04meta\x121\n" +
+	"\bchildren\x18\x03 \x03(\v2\x15.pluginapi.v1.ContentR\bchildren\"\xe3\x01\n" +
+	"\x0eContentElement\x12+\n" +
+	"\x04self\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSelfR\x04self\x12)\n" +
+	"\x04meta\x18\x02 \x01(\v2\x15.pluginapi.v1.MapDataR\x04meta\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x12+\n" +
+	"\x05attrs\x18\x04 \x01(\v2\x15.pluginapi.v1.MapDataR\x05attrs\x128\n" +
+	"\fdata_context\x18\x05 \x01(\v2\x15.pluginapi.v1.MapDataR\vdataContext\"f\n" +
+	"\fContentEmpty\x12+\n" +
+	"\x04self\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSelfR\x04self\x12)\n" +
+	"\x04meta\x18\x02 \x01(\v2\x15.pluginapi.v1.MapDataR\x04meta\"\x9c\x01\n" +
+	"\x10FormattedContent\x12+\n" +
+	"\x04self\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSelfR\x04self\x12)\n" +
+	"\x04meta\x18\x02 \x01(\v2\x15.pluginapi.v1.MapDataR\x04meta\x12\x16\n" +
+	"\x06format\x18\x03 \x01(\tR\x06format\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\fR\acontentB\xb2\x01\n" +
 	"\x10com.pluginapi.v1B\fContentProtoP\x01Z?github.com/blackstork-io/fabric/plugin/pluginapi/v1;pluginapiv1\xa2\x02\x03PXX\xaa\x02\fPluginapi.V1\xca\x02\fPluginapi\\V1\xe2\x02\x18Pluginapi\\V1\\GPBMetadata\xea\x02\rPluginapi::V1b\x06proto3"
 
 var (
@@ -486,7 +541,7 @@ var file_pluginapi_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_pluginapi_v1_content_proto_goTypes = []any{
 	(*ContentProviderResult)(nil), // 0: pluginapi.v1.ContentProviderResult
 	(*Content)(nil),               // 1: pluginapi.v1.Content
-	(*Metadata)(nil),              // 2: pluginapi.v1.Metadata
+	(*BlockSelf)(nil),             // 2: pluginapi.v1.BlockSelf
 	(*ContentSection)(nil),        // 3: pluginapi.v1.ContentSection
 	(*ContentElement)(nil),        // 4: pluginapi.v1.ContentElement
 	(*ContentEmpty)(nil),          // 5: pluginapi.v1.ContentEmpty
@@ -498,17 +553,22 @@ var file_pluginapi_v1_content_proto_depIdxs = []int32{
 	4,  // 1: pluginapi.v1.Content.element:type_name -> pluginapi.v1.ContentElement
 	3,  // 2: pluginapi.v1.Content.section:type_name -> pluginapi.v1.ContentSection
 	5,  // 3: pluginapi.v1.Content.empty:type_name -> pluginapi.v1.ContentEmpty
-	2,  // 4: pluginapi.v1.ContentSection.meta:type_name -> pluginapi.v1.Metadata
-	1,  // 5: pluginapi.v1.ContentSection.children:type_name -> pluginapi.v1.Content
-	2,  // 6: pluginapi.v1.ContentElement.meta:type_name -> pluginapi.v1.Metadata
-	7,  // 7: pluginapi.v1.ContentElement.attrs:type_name -> pluginapi.v1.MapData
-	7,  // 8: pluginapi.v1.ContentElement.data_context:type_name -> pluginapi.v1.MapData
-	2,  // 9: pluginapi.v1.ContentEmpty.meta:type_name -> pluginapi.v1.Metadata
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	2,  // 4: pluginapi.v1.ContentSection.self:type_name -> pluginapi.v1.BlockSelf
+	7,  // 5: pluginapi.v1.ContentSection.meta:type_name -> pluginapi.v1.MapData
+	1,  // 6: pluginapi.v1.ContentSection.children:type_name -> pluginapi.v1.Content
+	2,  // 7: pluginapi.v1.ContentElement.self:type_name -> pluginapi.v1.BlockSelf
+	7,  // 8: pluginapi.v1.ContentElement.meta:type_name -> pluginapi.v1.MapData
+	7,  // 9: pluginapi.v1.ContentElement.attrs:type_name -> pluginapi.v1.MapData
+	7,  // 10: pluginapi.v1.ContentElement.data_context:type_name -> pluginapi.v1.MapData
+	2,  // 11: pluginapi.v1.ContentEmpty.self:type_name -> pluginapi.v1.BlockSelf
+	7,  // 12: pluginapi.v1.ContentEmpty.meta:type_name -> pluginapi.v1.MapData
+	2,  // 13: pluginapi.v1.FormattedContent.self:type_name -> pluginapi.v1.BlockSelf
+	7,  // 14: pluginapi.v1.FormattedContent.meta:type_name -> pluginapi.v1.MapData
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_pluginapi_v1_content_proto_init() }

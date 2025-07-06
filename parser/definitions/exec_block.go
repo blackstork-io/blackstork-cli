@@ -5,8 +5,9 @@ type ExecBlock interface {
 	isExecBlock()
 
 	GetSource() *ExecBlockDef
-	// GetRunnerName() string
-	// GetBlockName() string
-	//
-	// GetConfig() evaluation.Configuration
+	GetSourceKind() string
+
+	GetMeta() *MetaBlock
+	GetRunner() string
+	GetName() string
 }

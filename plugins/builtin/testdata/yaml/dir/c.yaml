@@ -1,0 +1,5 @@
+---
+- id: 3
+  property_for: dir/c.yaml
+- id: 4
+  property_for: dir/c.yaml

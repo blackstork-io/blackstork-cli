@@ -1,0 +1,41 @@
+{{- if .Doc -}}
+{{ .Doc }}
+
+{{ end -}}
+{{ if .IsRequired }}Required{{ else }}Optional{{ end }} {{ .Type }}.
+{{- if .OneOf }}
+Must be one of: {{ .OneOf }}
+{{- end }}
+{{- if and .MinVal .MaxVal }}
+Must be between {{ .MinVal }} and {{ .MaxVal }} (inclusive)
+{{- else if .MinVal }}
+Must be >= {{ .MinVal }}
+{{- else if .MaxVal }}
+Must be <= {{ .MaxVal }}
+{{- end }}
+{{- if and .MinLenVal .MaxLenVal -}}
+{{- if eq .MinLenVal .MaxLenVal }}
+Must have a length of {{ .MinLenVal }}
+{{- else }}
+Must have a length between {{ .MinLenVal }} and {{ .MaxLenVal }} (inclusive)
+{{- end -}}
+{{- else if .MinLenVal -}}
+{{- if eq .MinLenVal "1" }}
+Must be non-empty
+{{- else }}
+Must contain at least {{ .MinLenVal }} elements.
+{{- end -}}
+{{- else if .MaxLenVal }}
+Must contain no more than {{ .MaxLenVal }} elements.
+{{- end -}}
+{{- if .IsRequired }}
+
+For example:
+{{- else -}}
+{{- if .Example }}
+
+For example:
+{{ .Example }}
+{{- end }}
+Default value:
+{{- end -}}

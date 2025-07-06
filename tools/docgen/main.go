@@ -36,7 +36,7 @@ import (
 	"github.com/blackstork-io/fabric/internal/stixview"
 	"github.com/blackstork-io/fabric/internal/terraform"
 	"github.com/blackstork-io/fabric/internal/virustotal"
-	"github.com/blackstork-io/fabric/pkg/utils"
+	"github.com/blackstork-io/fabric/internal/utils"
 	"github.com/blackstork-io/fabric/internal/plugin"
 	"github.com/blackstork-io/fabric/internal/plugin/dataspec"
 )

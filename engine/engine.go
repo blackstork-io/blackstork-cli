@@ -131,7 +131,7 @@ func (e *Engine) ParseDir(ctx context.Context, sourceDir string) (diags diagnost
 func (e *Engine) ParseDirFS(ctx context.Context, sourceDir fs.FS) (diags diagnostics.Diag) {
 	ctx, span := e.tracer.Start(ctx, "Engine.ParseDir")
 	log := fabctx.GetLog(ctx)
-	log.InfoContext(ctx, "Parsing fabric files", "directory", sourceDir)
+	log.InfoContext(ctx, "Parsing the templates", "dir_path", sourceDir)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -143,7 +143,7 @@ func (e *Engine) ParseDirFS(ctx context.Context, sourceDir fs.FS) (diags diagnos
 	if diags.HasErrors() {
 		return
 	}
-	if e.blocks.GlobalConfig != nil {
+	if e.blocks != nil && e.blocks.GlobalConfig != nil {
 		cfg, diag := e.blocks.GlobalConfig.Parse(ctx)
 		if !diags.Extend(diag) {
 			e.config.Merge(cfg)
@@ -255,6 +255,7 @@ func (e *Engine) LoadPluginRunner(ctx context.Context) (diags diagnostics.Diag) 
 		}
 		span.End()
 	}()
+
 	binaryMap, diag := e.resolver.Resolve(ctx, e.lockFile)
 	if diags.Extend(diag) {
 		return diag

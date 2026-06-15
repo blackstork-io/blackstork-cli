@@ -1,15 +1,51 @@
 ---
-title: HCL expressions
+title: HCL Expressions
+description: Learn how to use native HashiCorp Configuration Language (HCL) expressions to dynamically compute values, evaluate conditionals, and transform data in BlackStork templates.
 type: docs
 weight: 90
 ---
 
 # HCL expressions
 
-Fabric configuration language supports a set of native [HCL](https://github.com/hashicorp/hcl) (HashiCorp Configuration Language)
-expressions.
+The BlackStork configuration language supports native [HashiCorp Configuration Language (HCL)](https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md#expressions) expressions.
 
-See a snippet below for the examples:
+HCL expressions allow you to dynamically compute values, evaluate conditionals, and transform collections (lists and objects) directly within your block arguments.
+
+Use HCL expressions to construct dynamic arguments for plugins, or to transform static data inside a `vars` block before it is processed by the rendering engine.
+
+## Execution phase
+
+It is important to distinguish HCL expressions from the other dynamic languages used in BlackStork:
+
+- **HCL Expressions (`${...}`, `[for ...]`)**: Evaluated by the parser when the configuration is loaded. They construct the raw arguments passed to blocks.
+- **JQ Queries (`query_jq(...)`)**: Evaluated during the data pipeline phase against the BlackStork evaluation context. They extract and filter structured data.
+- **Go Templates (`{{ ... }}`)**: Evaluated during the rendering phase. They inject evaluated context data into the final string outputs (like Markdown or HTML).
+
+## Supported expressions
+
+BlackStork supports the full suite of HCL expressions, including:
+
+- **String interpolation:** Evaluate expressions inside strings using the `${...}` syntax.
+- **Arithmetic and logic:** Use standard mathematical operators (`+`, `-`, `*`, `/`, `%`) and logical operators (`&&`, `||`, `!`).
+- **Conditionals:** Choose between two values based on a boolean expression using the `<CONDITION> ? <TRUE_VAL> : <FALSE_VAL>` syntax.
+- **`for` expressions:** Iterate over lists, tuples, maps, and objects to filter elements or construct new collections.
+- **Splat expressions:** Extract a specific attribute from every object in a list using the `[*]` syntax.
+- **Template directives:** Use `%{~ if ... ~}` and `%{~ for ... ~}` inside heredoc strings for complex, multi-line string construction.
+
+{{< hint warning >}}
+**Use Native BlackStork Features**
+
+While the underlying parser currently evaluates HCL string template directives (such as `%{~ if ... ~}` and `%{~ for ... ~}`), they are not considered a core feature of the BlackStork configuration language. 
+
+We strongly recommend using BlackStork's native capabilities - specifically **Go templates** inside
+content blocks and **JQ queries** for data transformation - rather than relying on HCL string
+directives. Support for HCL-specific template directives may be removed in a future release.
+{{< /hint >}}
+
+## Example
+
+The following configuration demonstrates how various HCL expressions can be used within a `vars` block to compute data, which is then rendered by a `content.text` block.
+
 
 ```hcl
 document "example" {
@@ -136,7 +172,7 @@ document "example" {
 }
 ```
 
-renders into:
+Evaluating this template renders the following output:
 
 ```text
 arithmetic: 1 + 2 = 3

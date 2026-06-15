@@ -1,20 +1,26 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package engine
 
 import (
 	"io"
 	"log/slog"
 
-	"go.opentelemetry.io/otel/trace"
-	nooptrace "go.opentelemetry.io/otel/trace/noop"
-
-	"github.com/blackstork-io/fabric/internal/builtin"
-	"github.com/blackstork-io/fabric/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugins/builtin"
 )
 
 const (
 	defaultRegistryBaseURL = "https://registry.blackstork.io"
-	defaultCacheDir        = ".fabric"
-	defaultLockFile        = ".fabric-lock.json"
+	defaultCacheDir        = ".blackstork"
+	defaultLockFile        = ".blackstork-lock.json"
 )
 
 // Options is a set of options for the engine.
@@ -22,8 +28,6 @@ type Options struct {
 	registryBaseURL string
 	cacheDir        string
 	builtin         *plugin.Schema
-	logger          *slog.Logger
-	tracer          trace.Tracer
 }
 
 var defaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
@@ -33,8 +37,6 @@ var defaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOption
 var defaultOptions = Options{
 	registryBaseURL: defaultRegistryBaseURL,
 	cacheDir:        defaultCacheDir,
-	logger:          defaultLogger,
-	tracer:          nooptrace.Tracer{},
 	builtin:         builtin.Plugin("v0.0.0", defaultLogger, nil),
 }
 
@@ -58,19 +60,5 @@ func WithCacheDir(dir string) Option {
 func WithBuiltIn(builtin *plugin.Schema) Option {
 	return func(o *Options) {
 		o.builtin = builtin
-	}
-}
-
-// WithLogger sets the logger. Default is a logger that discards all logs.
-func WithLogger(logger *slog.Logger) Option {
-	return func(o *Options) {
-		o.logger = logger
-	}
-}
-
-// WithTracer sets the tracer. Default is noop tracer.
-func WithTracer(tracer trace.Tracer) Option {
-	return func(o *Options) {
-		o.tracer = tracer
 	}
 }

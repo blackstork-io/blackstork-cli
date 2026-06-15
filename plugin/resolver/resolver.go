@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package resolver
 
 import (
@@ -9,17 +18,18 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
 )
 
 // Resolver resolves and installs plugins.
 type Resolver struct {
 	constraints ConstraintMap
-	options
+	sources     []Source
 }
 
 // NewResolver creates a new plugin resolver.
-func NewResolver(constraints map[string]string, opts ...Option) (*Resolver, diagnostics.Diag) {
+func NewResolver(constraints map[string]string, sources []Source) (*Resolver, diagnostics.Diag) {
 	parsedVersions, err := ParseConstraintMap(constraints)
 	if err != nil {
 		return nil, diagnostics.Diag{{
@@ -30,19 +40,22 @@ func NewResolver(constraints map[string]string, opts ...Option) (*Resolver, diag
 	}
 	res := &Resolver{
 		constraints: parsedVersions,
-		options:     defaultOptions,
+		sources:     sources,
 	}
-	for _, opt := range opts {
-		opt(&res.options)
-	}
-	res.options.logger = res.options.logger.With("component", "resolver")
 	return res, nil
 }
 
 // Install all plugins based the version constraints and return updated a lock file.
-func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool) (_ *LockFile, diags diagnostics.Diag) {
-	ctx, span := r.tracer.Start(ctx, "Resolver.Install")
-	r.logger.InfoContext(ctx, "Resolving and installing plugin dependencies", "upgrade", upgrade)
+func (r *Resolver) Install(
+	ctx context.Context,
+	lockFile *LockFile,
+	upgrade bool,
+) (_ *LockFile, diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Resolver.Install")
+	log.InfoContext(ctx, "Resolving and installing plugin dependencies", "upgrade", upgrade)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -64,7 +77,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 	chain := makeSourceChain(r.sources...)
 	// resolve the plugins by the latest version that matches the constraints
 	for name, constraint := range lookupMap {
-		r.logger.InfoContext(ctx, "Looking for a plugin", "name", name.String(), "constraints", constraint.String())
+		log.InfoContext(ctx, "Looking for a plugin", "name", name.String(), "constraints", constraint.String())
 		list, err := chain.Lookup(ctx, name)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -94,7 +107,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 		max := slices.MaxFunc(matches, func(a, b Version) int {
 			return a.Compare(b)
 		})
-		r.logger.InfoContext(ctx, "Installing the plugin", "name", name.String(), "version", max.String())
+		log.InfoContext(ctx, "Installing the plugin", "name", name.String(), "version", max.String())
 		var checksums []Checksum
 		// check if the plugin with the same version is already in the lock file
 		lockIdx := slices.IndexFunc(lockFile.Plugins, func(lock PluginLock) bool {
@@ -140,7 +153,7 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 		if _, ok := check.Removed[lock.Name]; ok {
 			continue
 		}
-		r.logger.InfoContext(ctx, "Installing the plugin", "name", lock.Name.String(), "version", lock.Version.String())
+		log.InfoContext(ctx, "Installing the plugin", "name", lock.Name.String(), "version", lock.Version.String())
 		_, err := chain.Resolve(ctx, lock.Name, lock.Version, lock.Checksums)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -171,8 +184,11 @@ func (r *Resolver) Install(ctx context.Context, lockFile *LockFile, upgrade bool
 // Resolve all plugins based on the constraints and returns a map of plugin names to binary paths.
 // If the lock file is not satisfied, an error is returned.
 func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[string]string, diags diagnostics.Diag) {
-	ctx, span := r.tracer.Start(ctx, "Resolver.Resolve")
-	r.logger.DebugContext(ctx, "Resolving plugins")
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Resolver.Resolve")
+	log.DebugContext(ctx, "Resolving plugins", "lock_file_plugins_count", len(lockFile.Plugins))
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -186,8 +202,8 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		// warn about plugins that are removed from the version constraints
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  fmt.Sprintf("Plugin '%s' is not used", name),
-			Detail:   fmt.Sprintf("Version '%s' is no longer used. Run install to update lock file", lock),
+			Summary:  fmt.Sprintf("Plugin `%s` is not used", name),
+			Detail:   fmt.Sprintf("Version `%s` is not in use. To update the lock file, run `install` command", lock),
 		})
 	}
 	if check.IsInstallRequired() {
@@ -195,7 +211,7 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		for name := range check.Missing {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Plugin '%s' is not locked", name),
+				Summary:  fmt.Sprintf("Plugin `%s` is not locked", name),
 				Detail:   "Run install to resolve missing plugins.",
 			})
 		}
@@ -206,10 +222,10 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 			if pluginIdx == -1 {
 				continue
 			}
-			detailFormat := "Version locked at '%s' does not match the new constraint '%s'\nRun install to update lock file."
+			detailFormat := "Version locked at `%s` does not match the new constraint `%s`. To update the lock file, run `install` command."
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Plugin '%s' version mismatch", name),
+				Summary:  fmt.Sprintf("Plugin `%s` version mismatch", name),
 				Detail:   fmt.Sprintf(detailFormat, lockFile.Plugins[pluginIdx].Version, constraint),
 			})
 		}
@@ -228,7 +244,7 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		if err != nil {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Failed to resolve plugin '%s@%s'", lock.Name, lock.Version),
+				Summary:  fmt.Sprintf("Failed to resolve plugin `%s@%s`", lock.Name, lock.Version),
 				Detail:   err.Error(),
 			})
 			return nil, diags

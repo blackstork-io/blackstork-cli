@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package parser_test
 
 import (
@@ -6,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/blackstork-io/fabric/parser"
+	"github.com/blackstork-io/blackstork-cli/parser"
 )
 
 func TestFindFiles(t *testing.T) {
@@ -15,6 +24,7 @@ func TestFindFiles(t *testing.T) {
 	fs := fstest.MapFS{
 		"f1.fabric":            &fstest.MapFile{},
 		"f2.fAbRiC":            &fstest.MapFile{},
+		"f1.blackstork.hcl":    &fstest.MapFile{},
 		"f3.not_fabric":        &fstest.MapFile{},
 		"subdir/f4.fAbRiC":     &fstest.MapFile{},
 		"subdir/f5.not_fabric": &fstest.MapFile{},

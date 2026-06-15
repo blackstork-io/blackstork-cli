@@ -1,13 +1,27 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package utils
 
 import (
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+)
+
+const (
+	maxRefDepth = 10
 )
 
 func RangeStart(rng hcl.Range) hcl.Range {
@@ -69,7 +83,7 @@ func (o *onceVal[V]) do() (res V, diags diagnostics.Diag) {
 		return o.res, nil
 	case state < 0:
 		diags = diagnostics.Diag{diagnostics.RepeatedError}
-		return
+		return res, diags
 	}
 	o.mu.Lock()
 	defer func() {
@@ -96,7 +110,7 @@ func (o *onceVal[V]) do() (res V, diags diagnostics.Diag) {
 		}
 		o.state.Store(state)
 	}
-	return
+	return res, diags
 }
 
 // OnceVal returns a function that calls fn only once and caches the result.
@@ -104,4 +118,43 @@ func (o *onceVal[V]) do() (res V, diags diagnostics.Diag) {
 // on subsequent calls it will return RepeatedError.
 func OnceVal[V any](fn func() (V, diagnostics.Diag)) func() (V, diagnostics.Diag) {
 	return (&onceVal[V]{fn: fn}).do
+}
+
+// Using pointers as unique ids, not accessing the data.
+type RefId unsafe.Pointer
+
+type RefHistory struct {
+	mu   sync.Mutex
+	refs []RefId
+}
+
+func NewRefHistory() *RefHistory {
+	return &RefHistory{
+		refs: make([]RefId, 0),
+	}
+}
+
+func (hist *RefHistory) Add(refRange *hcl.Range) {
+	hist.mu.Lock()
+	hist.refs = append(hist.refs, RefId(refRange))
+	hist.mu.Unlock()
+}
+
+func (hist *RefHistory) Pop() {
+	hist.mu.Lock()
+	if len(hist.refs) > 0 {
+		hist.refs = hist.refs[:len(hist.refs)-1]
+	}
+	hist.mu.Unlock()
+}
+
+func (hist *RefHistory) IsRefAllowed() bool {
+	return len(hist.refs) <= maxRefDepth
+}
+
+func (hist *RefHistory) Size() int {
+	if hist == nil {
+		return 0
+	}
+	return len(hist.refs)
 }

@@ -1,6 +1,0 @@
-document "hello" {
-    title = "Welcome"
-    content text {
-        value = "Hello from fabric"
-    }
-}

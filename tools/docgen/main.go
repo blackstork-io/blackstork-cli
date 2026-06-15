@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package main
 
 import (
@@ -16,29 +25,30 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/spf13/pflag"
 
-	"github.com/blackstork-io/fabric/internal/atlassian"
-	"github.com/blackstork-io/fabric/internal/builtin"
-	"github.com/blackstork-io/fabric/internal/crowdstrike"
-	"github.com/blackstork-io/fabric/internal/elastic"
-	"github.com/blackstork-io/fabric/internal/github"
-	"github.com/blackstork-io/fabric/internal/graphql"
-	"github.com/blackstork-io/fabric/internal/hackerone"
-	"github.com/blackstork-io/fabric/internal/iris"
-	"github.com/blackstork-io/fabric/internal/microsoft"
-	"github.com/blackstork-io/fabric/internal/misp"
-	"github.com/blackstork-io/fabric/internal/nistnvd"
-	"github.com/blackstork-io/fabric/internal/openai"
-	"github.com/blackstork-io/fabric/internal/opencti"
-	"github.com/blackstork-io/fabric/internal/postgresql"
-	"github.com/blackstork-io/fabric/internal/snyk"
-	"github.com/blackstork-io/fabric/internal/splunk"
-	"github.com/blackstork-io/fabric/internal/sqlite"
-	"github.com/blackstork-io/fabric/internal/stixview"
-	"github.com/blackstork-io/fabric/internal/terraform"
-	"github.com/blackstork-io/fabric/internal/virustotal"
-	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugins/atlassian"
+	"github.com/blackstork-io/blackstork-cli/plugins/builtin"
+	"github.com/blackstork-io/blackstork-cli/plugins/crowdstrike"
+	"github.com/blackstork-io/blackstork-cli/plugins/eclecticiq"
+	"github.com/blackstork-io/blackstork-cli/plugins/elastic"
+	"github.com/blackstork-io/blackstork-cli/plugins/github"
+	"github.com/blackstork-io/blackstork-cli/plugins/graphql"
+	"github.com/blackstork-io/blackstork-cli/plugins/hackerone"
+	"github.com/blackstork-io/blackstork-cli/plugins/iris"
+	"github.com/blackstork-io/blackstork-cli/plugins/microsoft"
+	"github.com/blackstork-io/blackstork-cli/plugins/misp"
+	"github.com/blackstork-io/blackstork-cli/plugins/nistnvd"
+	"github.com/blackstork-io/blackstork-cli/plugins/openai"
+	"github.com/blackstork-io/blackstork-cli/plugins/opencti"
+	"github.com/blackstork-io/blackstork-cli/plugins/postgresql"
+	"github.com/blackstork-io/blackstork-cli/plugins/snyk"
+	"github.com/blackstork-io/blackstork-cli/plugins/splunk"
+	"github.com/blackstork-io/blackstork-cli/plugins/sqlite"
+	"github.com/blackstork-io/blackstork-cli/plugins/stixview"
+	"github.com/blackstork-io/blackstork-cli/plugins/terraform"
+	"github.com/blackstork-io/blackstork-cli/plugins/virustotal"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
 var (
@@ -63,6 +73,9 @@ var pluginTemplValue string
 
 //go:embed publisher.md.gotempl
 var publisherTemplValue string
+
+//go:embed formatter.md.gotempl
+var formatterTemplValue string
 
 type PluginResourceMeta struct {
 	Name         string   `json:"name"`
@@ -152,11 +165,37 @@ func generatePublisherDocs(log *slog.Logger, p *plugin.Schema, outputDir string)
 	}
 }
 
+func generateFormatterDocs(log *slog.Logger, p *plugin.Schema, outputDir string) {
+	log.Info("Found formatter inside the plugin", "count", len(p.Formatters))
+
+	formattersDir := filepath.Join(outputDir, "formatters")
+
+	// Create a directory for plugin's formatters if it doesn't exist
+	err := os.MkdirAll(formattersDir, 0o750)
+	if err != nil {
+		log.Error("Can't create a directory", "path", formattersDir)
+		panic(err)
+	}
+
+	for name, formatter := range p.Formatters {
+		log.Info("Found a formatter", "name", name)
+
+		docFilename := fmt.Sprintf("%s.md", name)
+		docPath := filepath.Join(formattersDir, docFilename)
+		err := renderFormatterDoc(p, name, formatter, docPath)
+		if err != nil {
+			log.Error("Error while rendering a formatter doc", "plugin", p.Name, "formatter", name)
+			panic(err)
+		}
+	}
+}
+
 func dumpAttrNames(spec *dataspec.RootSpec) []string {
 	if spec == nil {
 		return nil
 	}
-	return utils.FnMap(spec.Attrs,
+	return utils.FnMap(
+		spec.Attrs,
 		func(a *dataspec.AttrSpec) string {
 			return a.Name
 		},
@@ -193,6 +232,21 @@ func marshalContentProvider(name string, p *plugin.ContentProvider) PluginResour
 	}
 }
 
+func marshalFormatter(name string, p *plugin.Formatter) PluginResourceMeta {
+	configParams := dumpAttrNames(p.Config)
+	slices.Sort(configParams)
+
+	arguments := dumpAttrNames(p.Args)
+	slices.Sort(arguments)
+
+	return PluginResourceMeta{
+		Name:         name,
+		Type:         "formatter",
+		ConfigParams: configParams,
+		Arguments:    arguments,
+	}
+}
+
 func marshalPublisher(name string, p *plugin.Publisher) PluginResourceMeta {
 	configParams := dumpAttrNames(p.Config)
 	slices.Sort(configParams)
@@ -221,6 +275,9 @@ func generateMetadataFile(plugins []*plugin.Schema, outputDir string) {
 		for name, contentProvider := range p.ContentProviders {
 			resources = append(resources, marshalContentProvider(name, contentProvider))
 		}
+		for name, formatter := range p.Formatters {
+			resources = append(resources, marshalFormatter(name, formatter))
+		}
 		for name, publisher := range p.Publishers {
 			resources = append(resources, marshalPublisher(name, publisher))
 		}
@@ -237,7 +294,7 @@ func generateMetadataFile(plugins []*plugin.Schema, outputDir string) {
 		pluginDetails[i] = PluginDetails{
 			Name:      p.Name,
 			Version:   p.Version,
-			Shortname: shortname(p.Name),
+			Shortname: p.Shortname(),
 			Resources: resources,
 		}
 	}
@@ -283,32 +340,33 @@ func main() {
 	// load all plugins
 	plugins := []*plugin.Schema{
 		builtin.Plugin(version, logger, nil),
+		atlassian.Plugin(version, nil),
+		crowdstrike.Plugin(version, nil),
+		eclecticiq.Plugin(version, nil),
 		elastic.Plugin(version, nil),
 		github.Plugin(version, nil),
 		graphql.Plugin(version),
+		hackerone.Plugin(version, nil),
+		iris.Plugin(version, nil),
+		microsoft.Plugin(version, nil, nil, nil),
+		misp.Plugin(version, nil),
+		nistnvd.Plugin(version, nil),
 		openai.Plugin(version, nil),
 		opencti.Plugin(version),
 		postgresql.Plugin(version),
-		sqlite.Plugin(version),
-		terraform.Plugin(version),
-		hackerone.Plugin(version, nil),
-		virustotal.Plugin(version, nil),
-		splunk.Plugin(version, nil),
-		stixview.Plugin(version),
-		nistnvd.Plugin(version, nil),
 		snyk.Plugin(version, nil),
-		microsoft.Plugin(version, nil, nil, nil, nil),
-		crowdstrike.Plugin(version, nil),
-		iris.Plugin(version, nil),
-		atlassian.Plugin(version, nil),
-		misp.Plugin(version, nil),
+		splunk.Plugin(version, nil),
+		sqlite.Plugin(version),
+		stixview.Plugin(version),
+		terraform.Plugin(version),
+		virustotal.Plugin(version, nil),
 	}
 	// generate markdown for each plugin
 	for _, p := range plugins {
 
 		log := slog.With("plugin", p.Name)
 
-		pluginShortname := shortname(p.Name)
+		pluginShortname := p.Shortname()
 
 		// Use a shortname as a plugin directory name
 		pluginOutputDir := filepath.Join(outputDir, pluginShortname)
@@ -327,18 +385,21 @@ func main() {
 			panic(err)
 		}
 
-		log.Info("Plugin doc rendered", "path", pluginDocPath)
-
 		if len(p.DataSources) != 0 {
 			generateDataSourceDocs(log, p, pluginOutputDir)
 		}
-
 		if len(p.ContentProviders) != 0 {
 			generateContentProviderDocs(log, p, pluginOutputDir)
+		}
+		if len(p.Formatters) != 0 {
+			generateFormatterDocs(log, p, pluginOutputDir)
 		}
 		if len(p.Publishers) != 0 {
 			generatePublisherDocs(log, p, pluginOutputDir)
 		}
+
+		log.Info("Plugin docs rendered", "path", pluginDocPath)
+
 	}
 	generateMetadataFile(plugins, outputDir)
 }
@@ -367,7 +428,7 @@ func renderContentProviderDoc(
 
 	templContext := map[string]any{
 		"plugin":           pluginSchema,
-		"plugin_shortname": shortname(pluginSchema.Name),
+		"plugin_shortname": pluginSchema.Shortname(),
 		"name":             contentProviderName,
 		"content_provider": contentProvider,
 		"desc":             description(contentProvider.Doc),
@@ -390,11 +451,32 @@ func renderPublisherDoc(
 
 	templContext := map[string]any{
 		"plugin":           pluginSchema,
-		"plugin_shortname": shortname(pluginSchema.Name),
+		"plugin_shortname": pluginSchema.Shortname(),
 		"name":             publisherName,
 		"publisher":        publisher,
 	}
 	return base.ExecuteTemplate(f, "publisher", templContext)
+}
+
+func renderFormatterDoc(
+	pluginSchema *plugin.Schema,
+	formatterName string,
+	formatter *plugin.Formatter,
+	fp string,
+) error {
+	f, err := os.Create(fp) // nolint: gosec
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	templContext := map[string]any{
+		"plugin":           pluginSchema,
+		"plugin_shortname": pluginSchema.Shortname(),
+		"name":             formatterName,
+		"formatter":        formatter,
+	}
+	return base.ExecuteTemplate(f, "formatter", templContext)
 }
 
 func renderDataSourceDoc(
@@ -411,7 +493,7 @@ func renderDataSourceDoc(
 
 	templContext := map[string]any{
 		"plugin":           pluginSchema,
-		"plugin_shortname": shortname(pluginSchema.Name),
+		"plugin_shortname": pluginSchema.Shortname(),
 		"name":             dataSourceName,
 		"data_source":      dataSource,
 		"desc":             description(dataSource.Doc),
@@ -443,16 +525,17 @@ func init() {
 		Funcs(template.FuncMap{
 			"shortname": shortname,
 			"renderDoc": dataspec.RenderDoc,
-			"formatTags": (func(data []string) (string, error) {
+			"formatTags": func(data []string) (string, error) {
 				if data == nil {
 					data = []string{}
 				}
 				res, err := json.Marshal(data)
 				return string(res), err
-			}),
+			},
 		}).
 		Parse(contentProviderTemplValue))
 	template.Must(base.New("publisher").Parse(publisherTemplValue))
+	template.Must(base.New("formatter").Parse(formatterTemplValue))
 	template.Must(base.New("data-source").Parse(dataSourceTemplValue))
 	template.Must(base.New("plugin").Parse(pluginTemplValue))
 }

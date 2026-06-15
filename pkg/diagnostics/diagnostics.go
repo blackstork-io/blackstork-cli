@@ -1,21 +1,26 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package diagnostics
 
 // More ergonomic wrapper over hcl.Diagnostics.
 
 import (
 	"errors"
-	"log/slog"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/blackstork-io/fabric/pkg/utils/slogutil"
 )
 
 type Diag hcl.Diagnostics // Diagnostics does implement error interface, but is not, itself, an error.
 
 func (d Diag) Error() string {
-	slog.Debug("Treated diagnostic.Diag as error", slogutil.SourceOverride(1))
 	return hcl.Diagnostics(d).Error()
 }
 
@@ -68,7 +73,7 @@ func (d *Diag) AppendErr(err error, summary string) (haveAddedErrors bool) {
 	if haveAddedErrors {
 		appendErr(d, err, summary)
 	}
-	return
+	return haveAddedErrors
 }
 
 // Applies refiners to diagnostics, returns the input diagnostics for chaining.
@@ -119,5 +124,5 @@ func FromErr(err error, refiners ...Refiner) (diags Diag) {
 	}
 	refiners = append(refiners, DefaultSummary("Error"))
 	diags.Refine(refiners...)
-	return
+	return diags
 }

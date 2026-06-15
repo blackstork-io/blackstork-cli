@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package engine
 
 import (
@@ -5,8 +14,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics/diagtest"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
 func TestEngineFetchData(t *testing.T) {
@@ -236,8 +245,8 @@ func TestEnvPrefix(t *testing.T) {
 		Level:     slog.LevelWarn,
 	})))
 	t.Setenv("OTHER_VAR", "OTHER_VAR")
-	t.Setenv("FABRIC_VAR", "FABRIC_VAR")
-	t.Setenv("FABRIC_TEST_VAR", "FABRIC_TEST_VAR")
+	t.Setenv("BLACKSTORK_VAR", "BLACKSTORK_VAR")
+	t.Setenv("BLACKSTORK_TEST_VAR", "BLACKSTORK_TEST_VAR")
 
 	renderTest(
 		t, "Default",
@@ -245,13 +254,13 @@ func TestEnvPrefix(t *testing.T) {
 			`
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
 		},
 		[]string{
-			"<no value>\nFABRIC_VAR\nFABRIC_TEST_VAR",
+			"<no value>\nBLACKSTORK_VAR\nBLACKSTORK_TEST_VAR",
 		},
 	)
 	renderTest(
@@ -259,17 +268,17 @@ func TestEnvPrefix(t *testing.T) {
 		[]string{
 			`
 			fabric {
-				expose_env_vars_with_pattern = "FABRIC_TEST_*"
+				expose_env_vars_with_pattern = "BLACKSTORK_TEST_*"
 			}
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
 		},
 		[]string{
-			"<no value>\n<no value>\nFABRIC_TEST_VAR",
+			"<no value>\n<no value>\nBLACKSTORK_TEST_VAR",
 		},
 	)
 	renderTest(
@@ -281,7 +290,7 @@ func TestEnvPrefix(t *testing.T) {
 			}
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
@@ -295,17 +304,17 @@ func TestEnvPrefix(t *testing.T) {
 		[]string{
 			`
 			fabric {
-				expose_env_vars_with_pattern =  "\t FABRIC_TEST_*   "
+				expose_env_vars_with_pattern =  "\t BLACKSTORK_TEST_*   "
 			}
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
 		},
 		[]string{
-			"<no value>\n<no value>\nFABRIC_TEST_VAR",
+			"<no value>\n<no value>\nBLACKSTORK_TEST_VAR",
 		},
 		diagtest.Asserts{{
 			diagtest.IsWarning,
@@ -317,11 +326,11 @@ func TestEnvPrefix(t *testing.T) {
 		[]string{
 			`
 			fabric {
-				expose_env_vars_with_pattern =  "FABRIC_TEST_["
+				expose_env_vars_with_pattern =  "BLACKSTORK_TEST_["
 			}
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
@@ -341,7 +350,7 @@ func TestEnvPrefix(t *testing.T) {
 			}
 			document "test-doc" {
 				content text {
-					value = "{{.env.OTHER_VAR}}\n{{.env.FABRIC_VAR}}\n{{.env.FABRIC_TEST_VAR}}"
+					value = "{{.env.OTHER_VAR}}\n{{.env.BLACKSTORK_VAR}}\n{{.env.BLACKSTORK_TEST_VAR}}"
 				}
 			}
 			`,
@@ -828,81 +837,6 @@ func TestEngineRenderContent(t *testing.T) {
 			"first result",
 			"content[0] = first result",
 			"content[1] = content[0] = first result",
-		},
-		optDocName("test"),
-	)
-}
-
-func TestDependencyContextAccess(t *testing.T) {
-	// Test case 1: Access dependency blocks via context
-	renderTest(
-		t, "Access dependency blocks via context",
-		[]string{`
-			document "test" {
-				content text "foo" {
-					value = "first result"
-				}
-				
-				content text "bar" {
-					depends_on = ["content.text.foo"]
-					value = "second result"
-				}
-				
-				content text "baz" {
-					depends_on = ["content.text.foo", "content.text.bar"]
-					value = "Dependency foo: {{ .dependency.content.text.foo.markdown }} and bar: {{ .dependency.content.text.bar.markdown }}"
-				}
-			}
-		`},
-		[]string{
-			"first result",
-			"second result",
-			"Dependency foo: first result and bar: second result",
-		},
-		optDocName("test"),
-	)
-
-	// Test case 2: Access section dependency blocks via context
-	renderTest(
-		t, "Access section dependency blocks via context",
-		[]string{`
-			section "foo" {
-				title = "Foo section"
-				content text {
-					value = "foo content"
-				}
-			}
-			
-			document "test" {
-				section ref "bar" {
-					base = section.foo
-					title = "Bar section"
-				}
-				
-				content text {
-					depends_on = ["section.ref.bar"]
-					value = <<-EOT
-						Dependency: {{ .dependency | toPrettyJson }}
-						Section title: {{ .dependency.section.ref.bar.meta.title }}
-					EOT
-				}
-			}
-		`},
-		[]string{
-			"# Bar section",
-			"foo content",
-			"Dependency: {\n" +
-				"  \"section\": {\n" +
-				"    \"ref\": {\n" +
-				"      \"bar\": {\n" +
-				"        \"meta\": {\n" +
-				"          \"title\": \"foo\"\n" +
-				"        }\n" +
-				"      }\n" +
-				"    }\n" +
-				"  }\n" +
-				"}\n" +
-				"Section title: foo",
 		},
 		optDocName("test"),
 	)

@@ -1,35 +1,36 @@
 ---
 title: Section Blocks
-description: Learn how to use use section blocks to build modular and reusable content structures in your templates.
+description: Group content and data into logical chapters, establish variable scopes, and iterate over arrays using section blocks.
 type: docs
 weight: 70
 ---
 
 # Section blocks
 
-`section` blocks group and provide scope for the document content.
+The `section` block acts as a structural container within a document. It groups related data and content blocks, establishes a localized variable scope, and dictates the rendering hierarchy of the report.
 
-Section blocks can be referenced, can contain metadata and can be nested within other section
-blocks. Building a template with sections improves clarity and re-usability.
+Sections can be nested, when named, referenced across different templates to create reusable components (e.g., standard headers, disclaimers, or metric tables).
+
 
 ```hcl
+# Root-level named section block
 section "<section-name>" {
   # ...
 }
 
 document "soc-activity-overview" {
 
-  section "ExecSummary" {
+  section "exec-summary" {
     # ...
   }
 
-  section "KPIs" {
+  section "kpis" {
 
-    section "SLAs" {
+    section "slas" {
       # ...
     }
 
-    section "Coverage" {
+    section "coverage" {
       # ...
     }
 
@@ -38,28 +39,29 @@ document "soc-activity-overview" {
 }
 ```
 
-When a `section` block is defined at the root level of the configuration file, outside of the `document` block, the section name is required. A combination of a block type (`section`) and a section name serves as a unique identifier for a block within the codebase.
+If you define a `section` block at the root level of the configuration file (outside of a `document`), you must provide a section name. The combination of the block type (`section`) and the section name creates a unique identifier, allowing you to reference the block elsewhere.
 
-If a `section` block is defined within the `document` block, the section name is optional.
+If you define a `section` block directly within a `document` or another `section`, the section name is optional.
 
-Similarly to the `content` blocks, the `section` blocks are rendered in the order of definition.
+The engine evaluates and renders `section` blocks in the exact order they are declared.
 
 ## Supported arguments
 
-- `title`: (optional) represents the title of the content group. It's a syntactic sugar for a
-  `content` block that renders a title. The title content block takes precedence over any other
-  nested `content` blocks or `section` blocks defined at the same level.
-- `local_var`: (optional) a shortcut for specifying a local variable. See [Variables]({{< ref
-  "context.md#variables" >}}) for the details.
+- `title`: (optional) Sets a header for the section. This is syntactic sugar for a nested `content.title` block. During rendering, this title is placed at the very beginning of the section's output, preceding all other nested content or subsections.
+- `local_var`: (optional) A shortcut to define a single local variable named `local` within the section's scope. See [Local variable]({{< ref "context.md#local-variable" >}}).
 
 ## Supported nested blocks
 
-- `meta`: (optional) a block containing metadata for the block. See [Metadata]({{< ref "configs.md#metadata" >}}) for details.
-- `content`: (optional) see [Content Blocks]({{< ref content-blocks.md >}}) for the details.
-- `section`: (optional) nested `section` blocks.
-- `vars`: (optional) a block with variable definitions. See [Variables]({{< ref
-  "context.md#variables" >}}) for the details.
+- `meta`: (optional) Defines metadata for the section block. See [Metadata]({{< ref "configs.md#metadata" >}}).
+- `vars`: (optional) Defines variables scoped to this section. Variables defined here are inherited by all nested content and subsections. See [Variables]({{< ref "context.md#variables" >}}).
+- `content`: (optional) Defines the content rendered within this section. See [Content Blocks]({{< ref "content-blocks.md" >}}).
+- `section`: (optional) Defines nested subsections to build deep document hierarchies.
 
 ## References
 
-See [References]({{< ref references.md >}}) for the details about referencing section blocks.
+You can reuse a section block defined elsewhere in your configuration by using a `ref` block. This is highly recommended for standardizing components like headers, footers, and executive summaries across multiple reports. See [References]({{< ref "references.md" >}}) for details.
+
+## Next steps
+
+See [Dynamic blocks]({{< ref "dynamic-blocks.md" >}}) to learn how to iterate over data collections
+to programmatically generate repeating sections.

@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 syntax = "proto3";
 
 package pluginapi.v1;
@@ -11,43 +20,37 @@ message Schema {
     map<string, DataSourceSchema>       data_sources      = 3;
     map<string, ContentProviderSchema>  content_providers = 4;
     map<string, PublisherSchema>        publishers        = 7;
+    map<string, FormatterSchema>        formatters        = 8;
     string                              doc               = 5;
     repeated string                     tags              = 6;
 }
 
 message DataSourceSchema {
-    BlockSpec            args   = 3;
-    BlockSpec            config = 4;
-    string               doc    = 5;
-    repeated string      tags   = 6;
-}
-
-enum InvocationOrder {
-    INVOCATION_ORDER_UNSPECIFIED = 0;
-    INVOCATION_ORDER_BEGIN       = 2;
-    INVOCATION_ORDER_END         = 3;
+    BlockSpec            args   = 1;
+    BlockSpec            config = 2;
+    string               doc    = 3;
+    repeated string      tags   = 4;
 }
 
 message ContentProviderSchema {
-    BlockSpec       args             = 4;
-    BlockSpec       config           = 5;
-    InvocationOrder invocation_order = 3;
-    string          doc              = 6;
-    repeated string tags             = 7;
-}
-
-
-enum OutputFormat {
-    OUTPUT_FORMAT_UNSPECIFIED = 0;
-    OUTPUT_FORMAT_MD          = 1;
-    OUTPUT_FORMAT_HTML        = 2;
-    OUTPUT_FORMAT_PDF         = 3;
+    BlockSpec       args   = 1;
+    BlockSpec       config = 2;
+    string          doc    = 3;
+    repeated string tags   = 4;
 }
 
 message PublisherSchema {
-    BlockSpec             args            = 1;
-    BlockSpec             config          = 2;
-    string                doc             = 3;
-    repeated string       tags            = 4;
-    repeated OutputFormat allowed_formats = 5;
+    BlockSpec             args    = 1;
+    BlockSpec             config  = 2;
+    string                doc     = 3;
+    repeated string       tags    = 4;
+    repeated string       formats = 5;
+}
+
+message FormatterSchema {
+    BlockSpec             args     = 1;
+    BlockSpec             config   = 2;
+    string                doc      = 3;
+    string                format   = 4;
+    string                file_ext = 5;
 }

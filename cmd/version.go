@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package cmd
 
 import (
@@ -31,14 +40,14 @@ func versionFromBuildInfo() (result string) {
 	result = "v0.0.0-dev"
 	info, ok := debug.ReadBuildInfo()
 	if !ok || info == nil {
-		return
+		return result
 	}
 	if info.Main.Version != "(devel)" {
 		result = strings.ToLower(info.Main.Version)
 		if !strings.HasPrefix(result, "v") {
 			result = "v" + result
 		}
-		return
+		return result
 	}
 	var meta []string
 	// It's a dev version not built by goreleaser, add extra info
@@ -58,5 +67,5 @@ func versionFromBuildInfo() (result string) {
 	if len(meta) != 0 {
 		result += "+" + strings.Join(meta, ".")
 	}
-	return
+	return result
 }

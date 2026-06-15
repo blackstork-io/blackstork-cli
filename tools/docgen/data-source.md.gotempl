@@ -6,9 +6,9 @@ plugin:
   tags: {{ formatTags .data_source.Tags }}
   version: "{{ .plugin.Version }}"
   {{- if eq .plugin_shortname "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/{{ .plugin_shortname }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ .plugin_shortname }}/"
   {{- end }}
 resource:
   type: data-source
@@ -26,45 +26,48 @@ type: docs
 {{end -}}
 
 {{ if eq .plugin.Name "blackstork/builtin" -}}
-The data source is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `{{ .name }}` data source is built into the BlackStork engine. It is available out-of-the-box
+and requires no installation or dependency declaration.
 {{ else -}}
 ## Installation
 
-To use `{{ .name }}` data source, you must install the plugin `{{ .plugin.Name }}`.
+{{"{{"}}< hint note >{{"}}"}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{"{{"}}< /hint >{{"}}"}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for more details), as shown below:
+To use the `{{ .name }}` data source locally via `blackstork-cli`, you must declare the `{{ .plugin.Name }}` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "{{ .plugin.Name }}" = ">= {{ .plugin.Version }}"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for details.
 {{ end }}
 ## Configuration
 
 {{ $ctx := . -}}
 {{ with .data_source.Config -}}
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data {{ $ctx.name }}` block:
 
 ```hcl
 {{ renderDoc . "config" "data" $ctx.name -}}
 ```
 {{- else -}}
-The data source doesn't support any configuration arguments.
+This data source does not accept any configuration arguments.
 {{- end }}
 
 ## Usage
 
 {{with .data_source.Args -}}
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data {{ $ctx.name }}` block:
 
 ```hcl
 {{ renderDoc . "data" $ctx.name -}}
 ```
 {{- else -}}
-The data source doesn't define any execution arguments.
+This data source does not accept any execution arguments.
 {{- end -}}

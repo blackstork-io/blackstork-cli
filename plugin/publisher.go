@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugin
 
 import (
@@ -5,36 +14,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
-
-type OutputFormat int
-
-const (
-	OutputFormatUnspecified OutputFormat = iota
-	OutputFormatMD
-	OutputFormatHTML
-	OutputFormatPDF
-)
-
-func (f OutputFormat) String() string {
-	switch f {
-	case OutputFormatMD:
-		return "md"
-	case OutputFormatHTML:
-		return "html"
-	case OutputFormatPDF:
-		return "pdf"
-	default:
-		return "unknown"
-	}
-}
-
-func (f OutputFormat) Ext() string {
-	return "." + f.String()
-}
 
 type PublishFunc func(ctx context.Context, params *PublishParams) diagnostics.Diag
 
@@ -43,16 +26,18 @@ type PublishParams struct {
 	Config       *dataspec.Block
 	Args         *dataspec.Block
 	DataContext  plugindata.Map
-	Format       OutputFormat
+
+	Content          Content
+	FormattedContent *FormattedContent
 }
 
 type Publisher struct {
-	Doc            string
-	Tags           []string
-	PublishFunc    PublishFunc
-	Args           *dataspec.RootSpec
-	Config         *dataspec.RootSpec
-	AllowedFormats []OutputFormat
+	Doc         string
+	Tags        []string
+	PublishFunc PublishFunc
+	Args        *dataspec.RootSpec
+	Config      *dataspec.RootSpec
+	Formats     []string
 }
 
 func (pub *Publisher) Validate() diagnostics.Diag {

@@ -6,7 +6,7 @@ plugin:
   description: ""
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/snyk/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/snyk/"
 type: docs
 hideInMenu: true
 ---
@@ -15,15 +15,21 @@ hideInMenu: true
 
 ## Installation
 
-To install the plugin, add it to `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), with a version constraint restricting which available versions of the plugin the codebase is compatible with:
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
+
+To use this plugin locally via `blackstork-cli`, you must declare it as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/snyk" = ">= v0.4.2"
   }
 }
 ```
+
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 
 ## Data sources

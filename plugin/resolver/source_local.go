@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package resolver
 
 import (
@@ -5,7 +14,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,7 +23,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	tracenoop "go.opentelemetry.io/otel/trace/noop"
+
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
 )
 
 // LocalSource is a plugin source that looks up plugins from a local directory.
@@ -23,45 +32,36 @@ import (
 //
 //	"<path>/<namespace>/<shortname>@<version>"
 //
-// For example with the path ".fabric/plugins" plugin name "blackstork/sqlite" and version "1.0.0":
+// For example with the path ".blackstork/plugins" plugin name "blackstork/sqlite" and version "1.0.0":
 //
-//	".fabric/plugins/blackstork/sqlite@1.0.0"
+//	".blackstork/plugins/blackstork/sqlite@1.0.0"
 //
 // File checksums can be provided in a file with the same name as the plugin binary but with a "_checksums.txt" suffix.
 // The file should contain a list of checksums for all supported platforms.
 type LocalSource struct {
 	// path is the root directory to look up plugins.
-	path   string
-	tracer trace.Tracer
-	logger *slog.Logger
+	path string
 }
 
 // NewLocal creates a new LocalSource with the given path.
-// If the logger is nil, then a new logger is created with no output.
-// If the tracer is nil, then a new no-op tracer is used.
 // The path should be the root directory to look up plugins.
-func NewLocal(path string, logger *slog.Logger, tracer trace.Tracer) *LocalSource {
-	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-	if tracer == nil {
-		tracer = tracenoop.Tracer{}
-	}
-	logger = logger.With("source", "local").With("path", path)
+func NewLocal(path string) *LocalSource {
 	return &LocalSource{
-		path:   path,
-		tracer: tracer,
-		logger: logger,
+		path: path,
 	}
 }
 
 // Lookup returns the versions found of the plugin with the given name.
 func (source LocalSource) Lookup(ctx context.Context, name Name) (_ []Version, err error) {
-	ctx, span := source.tracer.Start(ctx, "LocalSource.Lookup", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+	log = log.With("source", "local", "path", source.path)
+
+	ctx, span := tracer.Start(ctx, "LocalSource.Lookup", trace.WithAttributes(
 		attribute.String("name", name.String()),
 		attribute.String("path", source.path),
 	))
-	source.logger.DebugContext(ctx, "Looking up plugin", "name", name)
+	log.DebugContext(ctx, "Looking up plugin", "name", name)
 	defer func() {
 		if err != nil {
 			span.RecordError(err)
@@ -75,7 +75,7 @@ func (source LocalSource) Lookup(ctx context.Context, name Name) (_ []Version, e
 	pluginDir := filepath.Join(source.path, name.Namespace())
 	entries, err := os.ReadDir(pluginDir)
 	if os.IsNotExist(err) {
-		source.logger.DebugContext(ctx, "Plugins dir is not found", "name", name)
+		log.DebugContext(ctx, "Plugins dir is not found", "name", name)
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to read plugin from local dir '%s': %w", source.path, err)
@@ -99,21 +99,31 @@ func (source LocalSource) Lookup(ctx context.Context, name Name) (_ []Version, e
 		}
 		matches = append(matches, Version{version})
 	}
-	source.logger.DebugContext(
+	log.DebugContext(
 		ctx, "Plugin versions found for a plugin name",
 		"name", name,
-		"matches_count", len(matches))
+		"matches_count", len(matches),
+	)
 	return matches, nil
 }
 
 // Resolve returns the binary path and checksum for the given plugin version.
-func (source LocalSource) Resolve(ctx context.Context, name Name, version Version, checksums []Checksum) (_ *ResolvedPlugin, err error) {
-	ctx, span := source.tracer.Start(ctx, "LocalSource.Resolve", trace.WithAttributes(
+func (source LocalSource) Resolve(
+	ctx context.Context,
+	name Name,
+	version Version,
+	checksums []Checksum,
+) (_ *ResolvedPlugin, err error) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+	log = log.With("source", "local", "path", source.path)
+
+	ctx, span := tracer.Start(ctx, "LocalSource.Resolve", trace.WithAttributes(
 		attribute.String("name", name.String()),
 		attribute.String("version", version.String()),
 		attribute.String("path", source.path),
 	))
-	source.logger.DebugContext(ctx, "Resolving plugin", "name", name, "version", version)
+	log.DebugContext(ctx, "Resolving plugin", "name", name, "version", version)
 	defer func() {
 		if err != nil {
 			span.RecordError(err)
@@ -139,7 +149,7 @@ func (source LocalSource) Resolve(ctx context.Context, name Name, version Versio
 	}
 	// calculate the checksum of the plugin binary
 	h := sha256.New()
-	file, err := os.Open(pluginPath) //nolint:gosec // Path is controlled by the resolver, not external input
+	file, err := os.Open(pluginPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open plugin file: %w", err)
 	}
@@ -158,7 +168,7 @@ func (source LocalSource) Resolve(ctx context.Context, name Name, version Versio
 		// If the checksums metadata file exists then we use the checksums from the file.
 		// This file is created by RemoteSource when downloading plugins.
 		// This is useful when the checksums are different for different platforms.
-		if f, err := os.Open(checksumpath); err == nil { //nolint:gosec // Path is constructed from plugin path which is controlled by the resolver
+		if f, err := os.Open(checksumpath); err == nil {
 			defer f.Close()
 			checksums, err = decodeChecksums(f)
 			if err != nil {

@@ -2,10 +2,10 @@
 title: "`image` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Returns an image tag"
+  description: "Renders an image"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: content-provider
 type: docs
@@ -16,18 +16,17 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "image" "content provider" >}}
 
 ## Description
-Returns an image tag
+Renders an image
 
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `image` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
+## Configuration
 
-#### Configuration
+This content provider does not accept any configuration arguments.
 
-The content provider doesn't support any configuration arguments.
+## Usage
 
-#### Usage
-
-The content provider supports the following execution arguments:
+This content provider accepts the following arguments within a `content image` block:
 
 ```hcl
 content image {
@@ -43,7 +42,7 @@ content image {
   # alt = "Text description of the image"
   #
   # Default value:
-  alt = null
+  alt = ""
 }
 ```
 

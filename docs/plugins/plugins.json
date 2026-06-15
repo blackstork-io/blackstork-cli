@@ -54,11 +54,19 @@
         ]
       },
       {
-        "name": "frontmatter",
-        "type": "content-provider",
+        "name": "html",
+        "type": "formatter",
+        "config_params": [
+          "page_template"
+        ],
         "arguments": [
-          "content",
-          "format"
+          "css_inline",
+          "css_inline_tailwind",
+          "css_sources",
+          "js_inline",
+          "js_sources",
+          "template_per_block",
+          "template_per_type"
         ]
       },
       {
@@ -78,10 +86,7 @@
         "type": "publisher",
         "config_params": [
           "api_token",
-          "api_url"
-        ],
-        "arguments": [
-          "title"
+          "base_url"
         ]
       },
       {
@@ -110,6 +115,19 @@
         ]
       },
       {
+        "name": "llm_text",
+        "type": "content-provider",
+        "config_params": [
+          "api_key",
+          "model",
+          "system_prompt",
+          "vendor"
+        ],
+        "arguments": [
+          "prompt"
+        ]
+      },
+      {
         "name": "local_file",
         "type": "publisher",
         "arguments": [
@@ -117,10 +135,19 @@
         ]
       },
       {
+        "name": "md",
+        "type": "formatter",
+        "arguments": [
+          "frontmatter",
+          "frontmatter_format"
+        ]
+      },
+      {
         "name": "rss",
         "type": "data-source",
         "arguments": [
           "fill_in_content",
+          "ignore_failures",
           "items_after",
           "items_before",
           "max_items_to_fill",
@@ -141,6 +168,10 @@
         "arguments": [
           "duration"
         ]
+      },
+      {
+        "name": "stdout",
+        "type": "publisher"
       },
       {
         "name": "table",
@@ -170,8 +201,8 @@
         "name": "toc",
         "type": "content-provider",
         "arguments": [
+          "as_ordered_list",
           "end_level",
-          "ordered",
           "scope",
           "start_level"
         ]
@@ -268,6 +299,28 @@
           "filter",
           "limit",
           "sort"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "blackstork/eclecticiq",
+    "version": "v0.4.2",
+    "shortname": "eclecticiq",
+    "resources": [
+      {
+        "name": "eclecticiq_entities",
+        "type": "data-source",
+        "config_params": [
+          "api_token",
+          "platform_url"
+        ],
+        "arguments": [
+          "entity_ids",
+          "limit",
+          "query",
+          "with_observables",
+          "with_related_entities_of_type"
         ]
       }
     ]
@@ -507,23 +560,6 @@
     "version": "v0.4.2",
     "shortname": "microsoft",
     "resources": [
-      {
-        "name": "azure_openai_text",
-        "type": "content-provider",
-        "config_params": [
-          "api_key",
-          "api_version",
-          "deployment_name",
-          "resource_endpoint"
-        ],
-        "arguments": [
-          "completions_count",
-          "max_tokens",
-          "prompt",
-          "temperature",
-          "top_p"
-        ]
-      },
       {
         "name": "microsoft_graph",
         "type": "data-source",

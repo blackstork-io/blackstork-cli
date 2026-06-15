@@ -1,13 +1,14 @@
 ---
 title: Documents
-description: Learn how to use document blocks to define document templates, building a content structure with the content blocks and setting data requirements with the data blocks.
+description: Learn how to use document blocks to define report templates, data requirements, and content structures in the BlackStork configuration language.
 type: docs
 weight: 40
 ---
 
 # Documents
 
-Document blocks are the most important element of the Fabric configuration. `document` block represents a template and includes the data, content and publishing definitions that describe the document and the workflow around it.
+The `document` block is the primary container for a report template. It encapsulates the data requirements, variables, content layout, formatting and publishing instructions for a specific document.
+
 
 ```hcl
 document "<document-name>" {
@@ -18,24 +19,24 @@ document "<document-name>" {
 }
 ```
 
-A block type `document` and a document name are an unique identifier for the document template within the codebase. The document blocks must defined be on a root level of the configuration file and can not be inside other blocks.
-
-The `document` block is a structure that groups the data definitions, the sections, the content blocks, and the publishing instructions together.
+A `document` block must be defined at the root level of a configuration file. The `<document-name>` serves as a unique identifier within your project. When using `blackstork-cli`, this name is passed to the `render` command to specify which template to evaluate.
 
 ## Supported arguments
 
-- `title`: (optional) a title of the document. It's a syntax sugar for a nested `content` block that renders a title. During rendering, the title precedes any other nested `content` blocks or `section` blocks defined at the root level of the template.
+- `title`: (optional) The top-level header of the document. This is syntactic sugar for a nested `content.title` block. During rendering, this title is placed at the very beginning of the document, preceding all other content or section blocks.
 
-## Supported nested blocks
+## Supported blocks
 
-- `meta`: see [Metadata]({{< ref "configs.md/#metadata" >}})
-- `data`: see [Data Blocks]({{< ref data-blocks.md >}})
-- `vars`: see [Variables]({{< ref "context.md/#variables" >}})
-- `content`: see [Content Blocks]({{< ref content-blocks.md >}})
-- `section`: see [Section Blocks]({{< ref section-blocks.md >}})
-- `publish`: see [Publish Blocks]({{< ref publish-blocks.md >}})
+- [`meta`]({{< ref "configs.md#metadata" >}}): Descriptive metadata for the template, such as author, version, and tags.
+- [`input`]({{< ref "context.md#inputs" >}}): (optional) Defines the required parameters for the template. Using `input` blocks is the recommended way to handle dynamic values (like incident IDs or date ranges) to ensure templates are portable between the CLI and the BlackStork SaaS platform.
+- [`vars`]({{< ref "context.md#variables" >}}): (optional) Defines static variables or internal data structures for use within the template.
+- [`data`]({{< ref "data-blocks.md" >}}): Specifies the integrations used to fetch structured data from external sources.
+- [`content`]({{< ref "content-blocks.md" >}}): Defines individual blocks of text, tables, or AI-generated narratives.
+- [`section`]({{< ref "section-blocks.md" >}}): Organizes content and data blocks into logical groups or chapters.
+- [`format`]({{< ref "format-blocks.md" >}}): Instructions for formatting the document.
+- [`publish`]({{< ref "publish-blocks.md" >}}): Instructions for delivering the rendered document to specific destinations.
 
 ## Next steps
 
-See [Evaluation Context]({{< ref context.md >}}) documentation to learn how about the context that
-holds all data available for the template.
+See [Evaluation Context]({{< ref "context.md" >}}) to learn how the data fetched in these blocks is
+stored and accessed during the rendering process.

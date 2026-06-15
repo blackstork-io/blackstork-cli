@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package main
 
 import (
@@ -36,9 +45,7 @@ func main() {
 	flags.StringVar(&osName, "os", "", "os for patch")
 	flags.StringVar(&archName, "arch", "", "arch for patch")
 	flags.StringVar(&plugin, "plugin", "", "plugin for patch")
-	if err := flags.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
+	flags.Parse(os.Args[1:])
 	args := flags.Args()
 	if len(args) == 1 && args[0] == "patch" {
 		// Patch metadata
@@ -62,7 +69,7 @@ func main() {
 		panic(err)
 	}
 	// Write metadata
-	err = os.MkdirAll(filepath.Dir(output), 0o750)
+	err = os.MkdirAll(filepath.Dir(output), 0o755)
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +102,7 @@ func patchMeta(meta *Metadata, plugin, osName, archName string) error {
 	if archive == nil {
 		return fmt.Errorf("archive not found")
 	}
-	f, err := os.Open(plugin) //nolint:gosec // The plugin path comes from flags and is controlled by admin
+	f, err := os.Open(plugin)
 	if err != nil {
 		return err
 	}
@@ -110,7 +117,7 @@ func patchMeta(meta *Metadata, plugin, osName, archName string) error {
 }
 
 func readMeta() (*Metadata, error) {
-	f, err := os.Open(output) //nolint:gosec // Output path is controlled by admin configuration
+	f, err := os.Open(output)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +131,7 @@ func readMeta() (*Metadata, error) {
 }
 
 func readConfig() (*ReleaserConfig, error) {
-	f, err := os.Open(configFile) //nolint:gosec // Config file path is controlled by admin configuration
+	f, err := os.Open(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +211,7 @@ func osArchList(goos string) []string {
 }
 
 func writeMetadata(metadata *Metadata) error {
-	f, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // Output path is controlled by admin configuration
+	f, err := os.Create(output)
 	if err != nil {
 		return err
 	}

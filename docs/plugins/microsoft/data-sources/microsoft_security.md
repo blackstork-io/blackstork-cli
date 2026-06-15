@@ -5,7 +5,7 @@ plugin:
   description: "The `microsoft_security` data source queries Microsoft Security API"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/microsoft/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/microsoft/"
 resource:
   type: data-source
 type: docs
@@ -20,23 +20,25 @@ The `microsoft_security` data source queries Microsoft Security API.
 
 ## Installation
 
-To use `microsoft_security` data source, you must install the plugin `blackstork/microsoft`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `microsoft_security` data source locally via `blackstork-cli`, you must declare the `blackstork/microsoft` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/microsoft" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data microsoft_security` block:
 
 ```hcl
 config data microsoft_security {
@@ -82,7 +84,7 @@ config data microsoft_security {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data microsoft_security` block:
 
 ```hcl
 data microsoft_security {

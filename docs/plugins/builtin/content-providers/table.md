@@ -2,10 +2,10 @@
 title: "`table` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Produces a table"
+  description: "Renders a table"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: content-provider
 type: docs
@@ -17,7 +17,7 @@ type: docs
 
 ## Description
 
-Produces a table.
+Renders a table.
 
 Each cell template has access to the data context and the following variables:
 * `.rows` – the value of `rows` argument
@@ -28,27 +28,25 @@ Each cell template has access to the data context and the following variables:
 Header templates have access to the same variables as value templates,
 except for `.row.value` and `.row.index`
 
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `table` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
+## Configuration
 
-#### Configuration
+This content provider does not accept any configuration arguments.
 
-The content provider doesn't support any configuration arguments.
+## Usage
 
-#### Usage
-
-The content provider supports the following execution arguments:
+This content provider accepts the following arguments within a `content table` block:
 
 ```hcl
 content table {
-  # A list of objects representing rows in the table.
-  # May be set statically or as a result of one or more queries.
+  # A list of objects representing rows in the table. Can be a static list or `query_jq()` func call.
   #
   # Optional list of jq queriable.
   # Default value:
   rows = null
 
-  # List of header and value go templates for each column
+  # List of a header and a cell template pairs for each column
   #
   # Required list of object.
   # Must be non-empty
@@ -56,13 +54,10 @@ content table {
   # For example:
   columns = [{
     header = "1st column header template"
-    value  = "1st column values template"
+    value  = "1st column value template"
     }, {
     header = "2nd column header template"
-    value  = "2nd column values template"
-    }, {
-    header = "..."
-    value  = "..."
+    value  = "2nd column value template"
   }]
 }
 ```

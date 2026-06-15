@@ -7,9 +7,9 @@ plugin:
   tags: {{ formatTags .Tags }}
   version: "{{ .Version }}"
   {{- if eq (shortname .Name) "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/{{ shortname .Name }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ shortname .Name }}/"
   {{- end }}
 type: docs
 hideInMenu: true
@@ -24,19 +24,25 @@ hideInMenu: true
 {{end -}}
 
 {{ if eq .Name "blackstork/builtin" -}}
-`fabric` binary includes a set of built-in data sources and content providers, available out-of-the-box.
+The `blackstork/builtin` plugin is built directly into the BlackStork engine. Its components are available out-of-the-box and require no installation or dependency declaration.
 {{ else -}}
 ## Installation
 
-To install the plugin, add it to `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for more details), with a version constraint restricting which available versions of the plugin the codebase is compatible with:
+{{"{{"}}< hint note >{{"}}"}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{"{{"}}< /hint >{{"}}"}}
+
+To use this plugin locally via `blackstork-cli`, you must declare it as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "{{ .Name }}" = ">= {{ .Version }}"
   }
 }
 ```
+
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for details.
 {{ end }}
 
 {{ $plugin := . -}}
@@ -51,6 +57,12 @@ fabric {
 ## Content providers
 
 {{"{{"}}< plugin-resources "{{ shortname $plugin.Name }}" "content-provider" >{{"}}"}}
+{{- end -}}
+
+{{- with .Formatters }}
+## Formatters
+
+{{"{{"}}< plugin-resources "{{ shortname $plugin.Name }}" "formatter" >{{"}}"}}
 {{- end -}}
 
 {{- with .Publishers }}

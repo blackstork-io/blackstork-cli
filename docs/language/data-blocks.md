@@ -1,25 +1,25 @@
 ---
 title: Data Blocks
-description: Learn how to use Fabric data blocks for defining data requirements for the templates.
+description: Define data queries to extract structured data from external sources into the BlackStork evaluation context.
 type: docs
 weight: 50
 ---
+
 # Data blocks
 
-`data` blocks define data requirements for the template. The data block represents a call to an
-integration with provided parameters.
+The `data` block defines a query to extract structured data from an external source. When the BlackStork engine evaluates a template, it executes the data blocks and stores the resulting JSON structures in the evaluation context. 
 
-The block signature includes the name of the data source that will execute the data block.
+The block signature requires both the data source name and a block name. Together, they create a unique identifier for the block.
 
 ```hcl
-# Root-level definition of a data block
+# Root-level data block
 data <data-source-name> "<block-name>" {
   # ...
 }
 
-document "foobar" {
+document "example" {
 
-  # In-document definition of a data block
+  # In-document data block
   data <data-source-name> "<block-name>" {
     # ...
   }
@@ -27,69 +27,63 @@ document "foobar" {
 }
 ```
 
-Both a data source name and a block name are required, making an unique identifier for the block.
+You must place `data` blocks either at the root level of the configuration file or at the root level of a `document` block.
 
-The data blocks must be placed either on a root-level of the file or on a root-level of the
-document.
-
-When Fabric renders the template, the data blocks are executed and the results are stored in the
-context (see [Context]({{< ref context.md >}}) for more details), available for other blocks to use.
+Once evaluated, the data is available in the context under the `.data.<data-source-name>.<block-name>` key. See [Evaluation Context]({{< ref "context.md" >}}) for details on accessing this data.
 
 ## Supported arguments
 
-The arguments provided in the block are either generic arguments or data-source-specific arguments.
+A `data` block accepts both generic arguments and arguments specific to the selected data source.
 
 ### Generic arguments
 
-- `config`: (optional) a reference to a named configuration block for the data source. If provided,
-  it takes precedence over the default configuration. See data source [configuration details]({{<
-  ref "configs.md#block-configuration" >}}) for more information.
+- `config`: (optional) A string referencing a named `config` block. If provided, the engine uses this configuration instead of the default configuration for the data source. See [Block configuration]({{< ref "configs.md#block-configuration" >}}) for details.
 
 ### Data source arguments
 
-Data source arguments differ per data source. See the documentation for a specific data source (find
-it in [supported data sources]({{< ref "data-sources.md" >}})) for the details on the supported
-arguments.
+Arguments required to execute the query (such as endpoints, search strings, or file paths) depend strictly on the data source being used. Refer to the specific [Data Sources]({{< ref "../plugins/data-sources.md" >}}) documentation for a list of supported arguments.
 
-## Supported nested blocks
+## Supported blocks
 
-- `meta`: (optional) a block containing metadata for the block. See [Metadata]({{< ref "configs.md#metadata" >}}) for details.
-- `config`: (optional) an inline configuration for the block. If provided, it takes precedence over
-  the `config` argument and default configuration for the data source.
-- `vars`: (optional) a block with variable definitions. See [Variables]({{< ref
-  "context.md#variables" >}}) for the details.
+- `meta`: (optional) Defines metadata for the data block. See [Metadata]({{< ref "configs.md#metadata" >}}).
+- `config`: (optional) Defines an inline configuration for the data block. If provided, this block takes highest precedence, overriding both the `config` argument and the default configuration for the data source.
 
 ## References
 
-See [References]({{< ref references.md >}}) for the details about referencing data blocks.
+You can reuse a standalone data block defined elsewhere in your configuration by using a `ref` block. This prevents you from writing duplicate integration definitions. See [References]({{< ref "references.md" >}}) for details on referencing blocks.
 
 ## Example
 
 ```hcl
+# Default configuration for the CSV data source
 config data csv {
   delimiter = ";"
 }
 
+# Root-level data block
 data csv "events_a" {
   path = "/tmp/events-a.csv"
 }
 
 document "test-document" {
 
-   data ref {
-     base = data.csv.events_a
-   }
+  # Reusing the root-level data block inside the document
+  data ref {
+    base = data.csv.events_a
+  }
 
-   data csv "events_b" {
-     config {
-       delimiter = ","
-     }
+  # In-document data block with an inline configuration override
+  data csv "events_b" {
+    config {
+      delimiter = ","
+    }
 
-     path = "/tmp/events-b.csv"
-   }
+    path = "/tmp/events-b.csv"
+  }
 }
 ```
 
 ## Next steps
 
-See [Content Blocks]({{< ref "content-blocks.md" >}}) documentation to learn how to define content, like text paragraphs, tables, graphs and images, in the template.
+See [Content Blocks]({{< ref "content-blocks.md" >}}) to learn how to process structured data into text, tables, and charts.
+

@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 syntax = "proto3";
 
 package pluginapi.v1;
@@ -13,6 +22,7 @@ service PluginService {
     rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {}
     rpc RetrieveData(RetrieveDataRequest) returns (RetrieveDataResponse) {}
     rpc ProvideContent(ProvideContentRequest) returns (ProvideContentResponse) {}
+    rpc FormatContent(FormatContentRequest) returns (FormatContentResponse) {}
     rpc Publish(PublishRequest) returns (PublishResponse) {}
 }
 
@@ -42,18 +52,34 @@ message ProvideContentRequest {
 }
 
 message ProvideContentResponse {
-    ContentResult       result      = 1;
+    ContentProviderResult result = 1;
     repeated Diagnostic diagnostics = 2;
 }
 
+message FormatContentRequest {
+    string   formatter    = 1;
+    string   format       = 2;
+    Block    args         = 3;
+    Block    config       = 4;
+    MapData  data_context = 5;
+    MapData  content      = 6;
+}
+
+message FormatContentResponse {
+    FormattedContent    result      = 1;
+    repeated Diagnostic diagnostics = 2;
+}
 
 message PublishRequest {
-    string         publisher     = 1;
-    Block          args          = 2;
-    Block          config        = 3;
-    MapData        data_context  = 4;
-    OutputFormat   format        = 5;
-    string         document_name = 6;
+    string           publisher         = 1;
+    Block            args              = 2;
+    Block            config            = 3;
+    MapData          data_context      = 4;
+
+    optional FormattedContent formatted_content = 5;
+    optional Content          content = 6;
+
+    string           document_name     = 7;
 }
 
 message PublishResponse {

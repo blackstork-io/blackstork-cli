@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Learn how to configure Fabric, data sources and content providers.
+description: Learn how to configure the BlackStork engine, declare plugin dependencies, and authenticate external integrations through data sources and content providers.
 type: docs
 weight: 20
 ---
@@ -9,39 +9,36 @@ weight: 20
 
 ## Global configuration
 
-The `fabric` configuration block serves as the global configuration for Fabric. Use it to define
-configuration properties, including default behavior, plugin dependencies, and local paths.
+The `blackstork` configuration block serves as the global configuration for the engine. Use it to define global parameters, plugin dependencies, and local paths.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
-    "blackstork/elastic" = ">0.4.1"
-    "blackstork/openai" = ">0.4.1"
+    "blackstork/elastic" = "~> 0.4.1"
+    "blackstork/openai"  = "~> 0.4.1"
   }
 }
 ```
 
-Within the codebase, only one `fabric` block can be defined.
+Only one `blackstork` block can be defined per project.
+
+{{< hint warning >}}
+**BlackStork SaaS Compatibility**
+
+The global `blackstork` configuration block is only evaluated when running templates locally via `blackstork-cli`. Within the managed BlackStork SaaS platform, plugin resolution and global configurations are built-in and cannot be modified by users.
+{{< /hint >}}
 
 ### Supported arguments
 
-- `plugin_versions`: (optional) a map of plugin dependencies. The version constraints are defined in
-  SemVer (refer to Terraform [version constraint
-  syntax](https://developer.hashicorp.com/terraform/language/expressions/version-constraints#version-constraint-syntax)).
-- `expose_env_vars_with_pattern`: (optional) a glob pattern for environment variable names. Only the
-  environment variables that match the pattern are exposed in the evaluation context. Default value
-  is `FABRIC_*`. To expose all environment variables, set the value to `*`. See [Environment
-  variables]({{< ref "configs.md#environment-variables">}}) for the details.
-- `cache_dir`: (optional) a path to a directory on the local file system. The default value is
-  `.fabric` - a directory in the current folder. If the directory doesn't exist, Fabric will create
-  it during the first run.
+- `plugin_versions`: (optional) A map of plugin dependencies. Version constraints use SemVer syntax (identical to Terraform [version constraint syntax](https://developer.hashicorp.com/terraform/language/expressions/version-constraints#version-constraint-syntax)).
+- `expose_env_vars_with_pattern`: (optional) A glob pattern for environment variable names. Only environment variables matching this pattern are exposed in the evaluation context. The default value is `BLACKSTORK_*`. To expose all environment variables, set the value to `*`. See [Environment variables](#environment-variables) for details.
+- `cache_dir`: (optional) Path to a local directory for storing plugins and cached data. The default value is `.blackstork` in the current working directory. If the directory does not exist, the engine will create it upon execution.
 
-To install all dependencies defined in `plugin_versions`, run `fabric install` command (see
-[Installing plugins]({{< ref "install.md#installing-plugins" >}}) for more details)
+To resolve and install the dependencies defined in `plugin_versions`, execute `blackstork-cli install`.
 
-### Supported nested blocks
+### Supported blocks
 
-- `plugin_registry`: (optional) a block defines available plugin registries and can include the following arguments:
+- `plugin_registry`: (optional) Configures the plugin registry source.
 
   ```hcl
   plugin_registry {
@@ -50,68 +47,64 @@ To install all dependencies defined in `plugin_versions`, run `fabric install` c
   }
   ```
 
-  - `base_url`: (optional) the base URL of the plugin registry. Default value: `https://registry.blackstork.io`
-  - `mirror_dir`: (optional) the path to a directory on the local filesystem containing plugin binaries.
+  - `base_url`: (optional) The base URL of the remote plugin registry. Default: `https://registry.blackstork.io`
+  - `mirror_dir`: (optional) A local filesystem path containing cached plugin binaries, useful for air-gapped environments.
 
 ### Example
 
 ```hcl
-fabric {
+blackstork {
+  cache_dir = "./.blackstork"
 
-  cache_dir = "./.fabric"
-
-  plugins_registry {
+  plugin_registry {
     mirror_dir = "/tmp/local-mirror/plugins"
   }
 
   plugin_versions = {
     "blackstork/elastic" = "1.2.3"
-    "blackstork/openai" = "=11.22.33"
+    "blackstork/openai"  = "=11.22.33"
   }
 }
 ```
 
 ## Block configuration
 
-The data sources, content provides and publishers can be configured using `config` blocks.
+Data sources, content providers, formatters, and publishers sometimes require specific configurations (e.g., API keys, host URLs). These are defined using `config` blocks.
 
-`config` block arguments are specific to a data source, content provider or a publisher the block if
-configuring.
-
-`config` block must be defined on a root level of Fabric file, outside `document` block. The
-signature of `config` block consists of a block type selector (`content`, `data` or `publish`), a
-data source / content provider / publisher name, and a block name:
+The `config` block must be defined at the root level of the file, outside of any `document` block. Its signature consists of the component type (`data`, `content`, `format`, or `publish`), the specific plugin name, and an optional block name.
 
 ```hcl
-config <block-type> <source/provider/publisher-name> "<name>" {
+config <block-type> <plugin-name> "<optional-name>" {
   # ...
 }
 ```
 
-If `<name>` isn't provided, the configuration acts as a default configuration for a specified data
-source / content provider / publisher.
+If `<optional-name>` is omitted, the block acts as the default configuration for that specific data source / content provider / formatter / publisher across the entire project.
 
-If the block has a name (`<name>` is specified), `config` block can be referenced in a `config` argument.
-This is helpful if there is a need to have more than one configuration available.
+If a name is provided, the configuration must be explicitly referenced inside a block that wants to use it through the `config` argument. This is required when evaluating multiple instances of the same source / provider / formatter / publisher (e.g., querying two different Splunk environments).
 
 ### Supported arguments
 
-The arguments allowed in the configuration block depend on the data source / content provider / publisher. See the documentation for [Data Sources]({{< ref data-sources.md >}}), [Content Providers]({{< ref content-providers.md >}}), and [Publishers]({{< ref publishers.md >}}) for the details on the configuration parameters supported.
+The arguments allowed in a configuration block depend strictly on the block runner being configured. Refer to the documentation for individual [Data Sources]({{< ref "data-sources.md" >}}), [Content Providers]({{< ref "content-providers.md" >}}), [Formatters]({{< ref "formatters.md" >}}).and [Publishers]({{< ref "publishers.md" >}}).
 
-### Supported nested blocks
 
-- `meta`: (optional) a block containing metadata for the block. See [Metadata]({{< ref "configs.md#metadata" >}}) for details.
+### Supported blocks
+
+- `meta`: (optional) A block containing metadata. See [Metadata](#metadata) for details.
+
 
 ### Example
 
 ```hcl
+# Default configuration for the CSV data source
 config data csv {
   delimiter = ";"
 }
 
+# Default configuration for the OpenAI content provider
 config content openai_text {
-  api_key = env.OPENAI_API_KEY
-  system_prompt = "You are the best at saying Hi!"
+  api_key       = env.OPENAI_API_KEY
+  system_prompt = "You are a senior incident response analyst."
 }
 
 document "test-document" {
@@ -121,7 +114,7 @@ document "test-document" {
   }
 
   data csv "events_b" {
-    # Overriding the default configuration for CSV data source
+    # Overriding the default configuration inline for this specific query
     config {
       delimiter = ","
     }
@@ -130,20 +123,29 @@ document "test-document" {
   }
 
   content openai_text {
-    prompt = "Say hi!"
+    prompt = <<-EOT
+      Summarize the findings:
+        {{ .data.csv.events_a | toPrettyJson }}
+        {{ .data.csv.events_b | toPrettyJson }}
+    EOT
   }
 }
 ```
 
 ## Environment variables
 
-Fabric templates can be configured with environment variables, either set in the shell or provided
-in `.env` file.
+When executing locally via `blackstork-cli`, configurations can dynamically reference environment variables set in the executing shell or provided via a `.env` file.
 
-The values of environment variables are available through global `env` object and in the context
-under `.env` root.
+{{< hint warning >}}
 
-For example:
+**BlackStork SaaS Compatibility**
+
+Environment variables are not supported within the managed BlackStork SaaS platform. Templates relying on the `env` object or `.env` context will fail to evaluate. To ensure your templates are fully portable across both the CLI and the SaaS platform, use `input` blocks to define required runtime parameters instead.
+
+{{< /hint >}}
+
+For local execution, variables can be accessed directly in HCL via the global `env` object, or within Go templates and JQ queries via the `.env` key in a evaluation context.
+
 
 ```hcl
 config data elasticsearch {
@@ -152,76 +154,61 @@ config data elasticsearch {
 }
 
 content text {
-  local_var = query_jq(".env.FOOBAR | split(\",\") | length")
-  value = "There are {{ .vars.local }} elements in `FOOBAR` env var"
+  local_var = query_jq(".env.TARGET_IPS | split(\",\") | length")
+  value = "The query targeted {{ .vars.local }} IP addresses from the TARGET_IPS environment variable."
 }
 ```
 
-{{< hint warning >}}
+{{< hint note >}}
+**CLI Context Exposure Restrictions**
 
-In accordance with the principle of least privilege, Fabric limits which environment variables are exposed to plugins in the evaluation context.
+To enforce the principle of least privilege, the `blackstork-cli` restricts which environment variables are exposed to templates via the evaluation context.
 
-Only the variables with names that match the pattern set in `expose_env_vars_with_pattern` argument
-(see [Global configuration]({{< ref "configs.md#global-configuration">}})) are available under `.env` key in the evaluation context.
+Only variables matching the `expose_env_vars_with_pattern` argument in the global `blackstork` block will be available under `.env` in the evaluation context. By default, this is restricted to `BLACKSTORK_*`.
 
-It's recommended to use the most restrictive glob pattern possible.
-
-Note, that the filtering doesn't apply to the variables exposed in `env` object: it's the user's responsibility to make sure that their Fabric template doesn't expose sensitive environment variables.
+This filtering does not apply to direct HCL interpolation using the `env.<VAR>` object. You are responsible for ensuring that sensitive credentials interpolated via `env` are not inadvertently leaked into rendered text blocks.
 {{< /hint >}}
 
 ## Metadata
 
-Define the metadata for a template or a block using the `meta` block. The metadata includes the
-template name, tags, authors' names, license, version, and other relevant information.
+The `meta` block defines metadata for a template, document, or specific block. This is useful for cataloging community templates and tracking version history.
 
-`meta` block supports following arguments:
+Supported arguments:
 
-- `name` — name of the template or the block
-- `description` — description of the template or the block
-- `url` — a string with a URL
-- `license` — the license that applies to the template or the block
-- `authors` — a list of the authors
-- `tags` — a list of tags
-- `updated_at` — ISO8601-formatted date with time
-- `version` — version of the template or the block
+- `name` — String: The human-readable name of the template or block.
+- `description` — String: Details regarding the block's purpose.
+- `url` — String: A reference URL.
+- `license` — String: The applicable license.
+- `authors` — List of strings: Author names or handles.
+- `tags` — List of strings: Categorization tags.
+- `updated_at` — String: An ISO8601-formatted timestamp.
+- `version` — String: The template or block version.
 
-For example:
+### Example
 
 ```hcl
-# Document template with metadata
 document "mitre_ctid_campaign_report" {
 
   meta {
-    name = "MITRE CTID Campaign Report Template"
-
-    description = <<-EOT
-      The Campaign Report is designed to highlight new information related to a threat actor or
-      capabilities. This should focus on new information and highlight how it poses a changed risk
-      to your organization. This should not be an exhaustive product cataloguing all information
-      about the topic, but rather a succinct report designed to convey a change in the status quo to
-      the intended recipient.
-    EOT
-
-    url = "https://github.com/center-for-threat-informed-defense/cti-blueprints"
-
-    license = "Apache License 2.0"
-    tags = ["mitre", "campaign"]
-
-    updated_at = "2024-01-22T10:00:01+01:00"
+    name        = "MITRE CTID Campaign Report Template"
+    description = "Highlights new information related to a threat actor or capability, focusing on changes in organizational risk."
+    url         = "https://github.com/center-for-threat-informed-defense/cti-blueprints"
+    license     = "Apache License 2.0"
+    tags        = ["mitre", "campaign", "cti"]
+    updated_at  = "2024-01-22T10:00:01+01:00"
   }
 
 }
 
 content text "disclaimer" {
   meta {
-    name = "Disclaimer text"
-    tags = ["foo", "bar"]
+    name = "TLP Amber Disclaimer"
+    tags = ["tlp", "compliance"]
   }
-
-  value = "Some disclaimer text"
+  value = "This document is TLP:AMBER."
 }
 ```
 
 ## Next steps
 
-See [Documents]({{< ref "documents.md" >}}) to learn how to build document templates in Fabric configuration language.
+See [Documents]({{< ref "documents.md" >}}) to learn how to structure data and content blocks within a document template.

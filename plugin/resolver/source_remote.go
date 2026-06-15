@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package resolver
 
 import (
@@ -107,7 +116,8 @@ func (err regError) Error() string {
 
 // Lookup returns the versions found of the plugin with the given name.
 func (source RemoteSource) Lookup(ctx context.Context, name Name) (_ []Version, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.Lookup",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.Lookup",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 		),
@@ -176,7 +186,8 @@ func (source RemoteSource) decodeBody(ctx context.Context, resp *http.Response, 
 
 // fetchVersions looks up the plugin versions in the registry.
 func (source RemoteSource) fetchVersions(ctx context.Context, name Name) (_ []regVersion, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.fetchVersions",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.fetchVersions",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 		),
@@ -216,7 +227,8 @@ func (source RemoteSource) Resolve(
 	version Version,
 	checksums []Checksum,
 ) (_ *ResolvedPlugin, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.Resolve",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.Resolve",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 			attribute.String("version", version.String()),
@@ -243,7 +255,8 @@ func (source RemoteSource) fetchDownloadInfo(
 	name Name,
 	version Version,
 ) (_ *regDownloadInfo, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.fetchDownloadInfo",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.fetchDownloadInfo",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 			attribute.String("version", version.String()),
@@ -257,7 +270,8 @@ func (source RemoteSource) fetchDownloadInfo(
 		}
 		span.End()
 	}()
-	url := fmt.Sprintf("%s/v1/plugins/%s/%s/%s/download/%s/%s",
+	url := fmt.Sprintf(
+		"%s/v1/plugins/%s/%s/%s/download/%s/%s",
 		source.baseURL,
 		name.Namespace(),
 		name.Short(),
@@ -284,7 +298,8 @@ func (source RemoteSource) fetchDownloadInfo(
 
 // fetchChecksums fetches the plugin checksums from the registry.
 func (source RemoteSource) fetchChecksums(ctx context.Context, name Name, version Version) (_ []Checksum, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.fetchChecksums",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.fetchChecksums",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 			attribute.String("version", version.String()),
@@ -332,7 +347,8 @@ func (source RemoteSource) download(
 	info *regDownloadInfo,
 	checksums []Checksum,
 ) (_ *ResolvedPlugin, err error) {
-	ctx, span := source.tracer.Start(ctx, "RemoteSource.download",
+	ctx, span := source.tracer.Start(
+		ctx, "RemoteSource.download",
 		trace.WithAttributes(
 			attribute.String("name", name.String()),
 			attribute.String("version", version.String()),
@@ -390,20 +406,12 @@ func (source RemoteSource) download(
 			return
 		}
 		// if there is an error, remove extracted binary file
-		if removeErr := os.Remove(binaryPath); removeErr != nil {
-			// Log removal error
-			source.logger.DebugContext(context.Background(), "Failed to cleanup binary file", "error", removeErr)
-		}
-		if removeErr := os.Remove(checksumPath); removeErr != nil {
-			source.logger.WarnContext(ctx, "Failed to remove checksum file during cleanup", "err", removeErr)
-		}
+		os.Remove(binaryPath)
+		os.Remove(checksumPath)
 		// remove directory if it is empty
-		entries, readErr := os.ReadDir(filepath.Dir(binaryPath))
-		if readErr == nil && len(entries) == 0 {
-			if removeErr := os.Remove(filepath.Dir(binaryPath)); removeErr != nil {
-				// Log directory removal error
-				source.logger.DebugContext(context.Background(), "Failed to cleanup directory", "error", removeErr)
-			}
+		entries, err := os.ReadDir(filepath.Dir(binaryPath))
+		if err == nil && len(entries) == 0 {
+			os.Remove(filepath.Dir(binaryPath))
 		}
 	}()
 	// read remaining data from the response body to verify the checksum of the downloaded archive
@@ -487,34 +495,24 @@ func (source RemoteSource) extract(
 	}
 	binaryPath := filepath.Join(source.downloadDir, name.Namespace(), filepath.Base(found.Name))
 	checksumPath := strings.TrimSuffix(binaryPath, ".exe") + "_checksums.txt"
-	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o755); err != nil {
 		return "", "", fmt.Errorf("failed to create plugin directory: %w", err)
 	}
-	binaryFile, err := os.OpenFile(binaryPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // Path is constructed from plugin name/version by the resolver
+	binaryFile, err := os.OpenFile(binaryPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create plugin file: %w", err)
 	}
 	// cleanup the downloaded binary on error
 	defer func() {
-		closeErr := binaryFile.Close()
+		binaryFile.Close()
 		if err != nil {
 			// if there is an error, remove extracted binary file and checksum file
-			if removeErr := os.Remove(binaryPath); removeErr != nil {
-				// Log removal error
-				source.logger.DebugContext(context.Background(), "Failed to cleanup binary file", "error", removeErr)
-			}
+			os.Remove(binaryPath)
 			// remove directory if it is empty
-			entries, readErr := os.ReadDir(filepath.Dir(binaryPath))
-			if readErr == nil && len(entries) == 0 {
-				if removeErr := os.Remove(filepath.Dir(binaryPath)); removeErr != nil {
-					// Log directory removal error
-					source.logger.DebugContext(context.Background(), "Failed to cleanup directory", "error", removeErr)
-				}
+			entries, err := os.ReadDir(filepath.Dir(binaryPath))
+			if err == nil && len(entries) == 0 {
+				os.Remove(filepath.Dir(binaryPath))
 			}
-		}
-		// If we have no other error but close failed, propagate that
-		if err == nil && closeErr != nil {
-			err = fmt.Errorf("failed to close binary file: %w", closeErr)
 		}
 	}()
 	// calculate checksum of the plugin binary while writing to the file
@@ -534,22 +532,15 @@ func (source RemoteSource) extract(
 		return "", "", fmt.Errorf("invalid plugin binary checksum: '%s'", sum)
 	}
 	// Create checksums file to be used for the following installs when plugin is installed from the local source.
-	checksumFile, err := os.Create(checksumPath) //nolint:gosec // Path is constructed from plugin name/version by the resolver
+	checksumFile, err := os.Create(checksumPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create plugin meta file: %w", err)
 	}
 	// cleanup checksum file operation
 	defer func() {
-		closeErr := checksumFile.Close()
+		checksumFile.Close()
 		if err != nil { // if there is an error, remove checksum file
-			if removeErr := os.Remove(checksumPath); removeErr != nil {
-				// Log removal error
-				source.logger.DebugContext(context.Background(), "Failed to cleanup checksum file", "error", removeErr)
-			}
-		}
-		// If we have no other error but close failed, propagate that
-		if err == nil && closeErr != nil {
-			err = fmt.Errorf("failed to close checksum file: %w", closeErr)
+			os.Remove(checksumPath)
 		}
 	}()
 	if err := encodeChecksums(checksumFile, checksums); err != nil {

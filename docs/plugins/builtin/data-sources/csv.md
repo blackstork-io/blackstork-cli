@@ -5,7 +5,7 @@ plugin:
   description: "Loads CSV files with the names that match provided `glob` pattern or a single file from a provided path"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: data-source
 type: docs
@@ -64,11 +64,12 @@ When `glob` is used and multiple files match the pattern, the data source will r
 ]
 ```
 
-The data source is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `csv` data source is built into the BlackStork engine. It is available out-of-the-box
+and requires no installation or dependency declaration.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data csv` block:
 
 ```hcl
 config data csv {
@@ -83,7 +84,7 @@ config data csv {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data csv` block:
 
 ```hcl
 data csv {

@@ -1,54 +1,85 @@
 ---
 title: Language
-description: Fabric Configuration Language (FCL) drives Fabric's document generation capabilities. With FCL, users define data needs and template structures in .fabric files, streamlining content creation. Automate document production efficiently with Fabric and FCL.
+description: Syntax and core concepts of the BlackStork configuration language. Learn how to define data requirements, template structures, and plugin configurations.
 type: docs
-weight: 40
+weight: 20
 ---
 
-# Fabric configuration language
+# BlackStork configuration language
 
-Fabric Configuration Language (FCL) serves as the core feature for Fabric, a powerful tool designed to streamline document generation. FCL enables users to express data requirements and template structures within configuration files using a lightweight syntax.
+The BlackStork configuration language provides the declarative syntax used to build document templates. It allows you to express data requirements, configurations, and document layout directly in code.
 
-The document templates, defined in the configuration files, act as blueprints for consolidating data and creating Markdown documents. FCL empowers users to define, manage, and automate the document production process, delivering a sturdy and adaptable solution for content generation.
+Templates act as execution blueprints. When evaluated, the BlackStork engine parses these files to determine which external systems to query, how to process the returned data, and how to structure the final rendered document.
 
-Fabric configuration files have the extension `.fabric` and contain configurations, data requirements, and content definitions. The Fabric configuration codebase may consist of many files and subdirectories.
+BlackStork configuration files use the `.blackstork.hcl` extension. A project can consist of a single file or a directory containing multiple configuration files.
 
 ## Core concepts
 
-Building upon the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) (HCL), Fabric language shares similarities with the [Terraform Configuration Language](https://developer.hashicorp.com/terraform/language) and comprises two fundamental elements:
+The BlackStork language is built on top of the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) (HCL). If you have used tools like Terraform, the syntax will be immediately familiar. 
 
-- **Blocks**: serve as containers defining objects, such as configurations, data requirements, or content structures. Blocks always include a block type and may have zero or more labels.
-- **Arguments** assign values to names within blocks, facilitating the configuration process.
+Configurations are built using two fundamental elements:
+
+- **Blocks**: containers that define objects, such as global configurations, data requiremenets, or content structures. Blocks always include a block type and may have zero or one label (name).
+- **Arguments**: key-value pairs defined within blocks that assign specific values to block's attributes.
+
 
 ```hcl
-# Named data block:
+# Structure of a named data block:
+
+<BLOCK-TYPE> <PLUGIN> "<BLOCK-NAME>" {
+    <ARGUMENT> = <VALUE>
+}
+
+# Example of a named data block :
 
 data elasticsearch "alerts" {
     index = ".alerts-security.alerts-*"
     query_string = "kibana.alert.severity:critical"
 }
 
-<BLOCK-TYPE> <PLUGIN> "<BLOCK-NAME>" {
+# Structure of an anonymous data source configuration block:
+
+<CONFIG> <BLOCK-TYPE> <DATA-SOURCE> {
     <ARGUMENT> = <VALUE>
 }
 
-# Anonymous configuration block for a data plugin:
+# Example of an anonymous data source configuration block:
+
 config data elasticsearch {
     cloud_id = "my-elastic-cloud-id"
-    api_key = "my-elastic-cloud-api-key"
-}
-
-<CONFIG-LABEL> <BLOCK-TYPE> <PLUGIN> {
-    <ARGUMENT> = <VALUE>
+    api_key  = "my-elastic-cloud-api-key"
 }
 ```
 
-See [Syntax](./syntax/) for more details on the FCL syntax.
+
+
+See [Syntax](./syntax/) for detailed rules on writing BlackStork configurations.
 
 ## IDE support
 
-Given that Fabric configuration language is built on HCL, IDE extensions designed for HCL syntax highlighting are applicable to Fabric files. It may be necessary to explicitly set the file type for `*.fabric` files to HCL.
+Because BlackStork files use the `.hcl` extension, basic syntax highlighting will work automatically in almost all modern IDEs if you have standard HashiCorp/Terraform plugins installed.
 
-For users of Microsoft Visual Studio Code, there is a dedicated [Fabric Extension for Visual Studio Code](https://github.com/blackstork-io/vscode-fabric) available, providing enhanced support for Fabric configurations within the IDE.
+However, because BlackStork templates heavily utilize embedded JQ queries and Go templates, we maintain dedicated editor extensions to provide advanced syntax highlighting for these embedded languages.
 
-![A screenshot of Fabric Extension for Visual Studio Code](./vscode-fabric-screenshot.webp)
+### Visual Studio Code
+
+We maintain the [vscode-blackstork](https://github.com/blackstork-io/vscode-blackstork) extension for VS Code. This extension provides native HCL syntax support combined with strict highlighting for embedded JQ strings and Go templates, making complex document structures easier to read.
+
+![Visual Studio Code support for BlackStork](./vscode-blackstork.png)
+
+Installation instructions are available in the extension's [README](https://github.com/blackstork-io/vscode-blackstork).
+
+### Neovim
+
+For Neovim users, we maintain [blackstork.nvim](https://github.com/blackstork-io/blackstork.nvim). The plugin uses a BlackStork-specific [tree-sitter dialect](https://github.com/blackstork-io/tree-sitter-blackstork) extending the standard [tree-sitter-hcl](https://github.com/tree-sitter-grammars/tree-sitter-hcl) parser.
+
+It brings accurate code highlighting to embedded JQ queries and Go template blocks within your `.blackstork.hcl` files.
+
+![Neovim support for BlackStork](./nvim-blackstork.png)
+
+Installation instructions are available in the plugin's [README](https://github.com/blackstork-io/blackstork.nvim).
+
+
+## Next steps
+
+See [Syntax]({{< ref "syntax.md" >}}) to learn the core syntax components of the language.

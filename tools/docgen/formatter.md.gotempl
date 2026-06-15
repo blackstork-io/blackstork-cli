@@ -1,0 +1,70 @@
+---
+title: "`{{ .name }}` formatter"
+plugin:
+  name: {{ .plugin.Name }}
+  description: {{ .formatter.Doc | quote }}
+  version: "{{ .plugin.Version }}"
+  {{- if eq .plugin_shortname "nist_nvd" }}
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
+  {{- else }}
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ .plugin_shortname }}/"
+  {{- end }}
+resource:
+  type: formatter
+type: docs
+---
+
+{{"{{"}}< breadcrumbs 2 >{{"}}"}}
+
+{{"{{"}}< plugin-resource-header "{{ .plugin.Name }}" "{{ .plugin_shortname }}" "{{ .plugin.Version }}" "{{ .name }}" "formatter" >{{"}}"}}
+
+{{if .plugin.Doc -}}
+## Description
+{{ .plugin.Doc }}
+
+{{end -}}
+
+{{ if eq .plugin.Name "blackstork/builtin" -}}
+The `{{ .name }}` formatter is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
+{{ else -}}
+## Installation
+
+{{"{{"}}< hint note >{{"}}"}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{"{{"}}< /hint >{{"}}"}}
+
+To use the `{{ .name }}` formatter locally via `blackstork-cli`, you must declare the `{{ .plugin.Name }}` plugin as a dependency in your global configuration block.
+
+```hcl
+blackstork {
+  plugin_versions = {
+    "{{ .plugin.Name }}" = ">= {{ .plugin.Version }}"
+  }
+}
+```
+
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for details.
+{{ end }}
+## Configuration
+
+{{ $ctx := . -}}
+{{ with .formatter.Config -}}
+This formatter accepts the following configuration arguments within a `config format {{ $ctx.name }}` block:
+
+```hcl
+{{ renderDoc . "config" "format" $ctx.name -}}
+```
+{{ else -}}
+This formatter does not accept any configuration arguments.
+{{ end }}
+## Usage
+
+{{ with .formatter.Args -}}
+This formatter accepts the following arguments within a `format {{ $ctx.name }}` block:
+
+```hcl
+{{ renderDoc . "format" $ctx.name -}}
+```
+{{ else }}
+This formatter does not accept any execution arguments.
+{{ end }}

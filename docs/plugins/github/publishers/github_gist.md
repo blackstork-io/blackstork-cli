@@ -5,7 +5,7 @@ plugin:
   description: "Publishes content to github gist"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/github/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/github/"
 resource:
   type: publisher
 type: docs
@@ -17,33 +17,35 @@ type: docs
 
 ## Installation
 
-To use `github_gist` publisher, you must install the plugin `blackstork/github`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `github_gist` publisher locally via `blackstork-cli`, you must declare the `blackstork/github` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/github" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
-#### Formats
+## Supported Formats
 
-The publisher supports the following document formats:
+This publisher supports the delivery of documents processed by the following formatters:
 
 - `md`
 - `html`
 
-To set the output format, specify it inside `publish` block with `format` argument.
+To specify the format, use the `format` argument inside the `publish` block to reference a specific `format` block or a formatter short name.
 
 
-#### Configuration
+## Configuration
 
-The publisher supports the following configuration arguments:
+This publisher accepts the following configuration arguments within a `config publish github_gist` block:
 
 ```hcl
 config publish github_gist {
@@ -55,12 +57,12 @@ config publish github_gist {
 
 ```
 
-#### Usage
+## Usage
 
-The publisher supports the following execution arguments:
+This publisher accepts the following arguments within a `publish github_gist` block:
 
 ```hcl
-# In addition to the arguments listed, `publish` block accepts `format` argument.
+# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
 
 publish github_gist {
   # Optional string.
@@ -81,4 +83,5 @@ publish github_gist {
 }
 
 ```
+
 

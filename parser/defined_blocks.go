@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package parser
 
 import (
@@ -6,18 +15,90 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
-// Collection of defined blocks
+type BlocksRegistry interface {
+	GetGlobalConfig() *definitions.GlobalConfigDef
+	GetDefaultBlockConfig(block *definitions.ExecBlockDef) *definitions.ConfigDef
+	GetConfigDefsMap() map[definitions.Key]*definitions.ConfigDef
 
-type DefinedBlocks struct {
-	GlobalConfig *definitions.GlobalConfigDefinition
-	Config       map[definitions.Key]*definitions.Config
-	Documents    map[string]*definitions.Document
-	Sections     map[string]*definitions.Section
-	Plugins      map[definitions.Key]*definitions.Plugin
+	ResolveRefBase(base hcl.Expression, target Ctyable) (definitions.BlockDef, diagnostics.Diag)
+
+	GetDocumentDefsMap() map[string]*definitions.DocumentDef
+	GetDocumentDefByName(name string) (*definitions.DocumentDef, bool)
+
+	GetSectionDefsMap() map[string]*definitions.SectionDef
+	GetSectionDefByName(name string) (*definitions.SectionDef, bool)
+
+	GetExecBlockDefsMap() map[definitions.Key]*definitions.ExecBlockDef
+	GetExecBlockDefByKey(key definitions.Key) (*definitions.ExecBlockDef, bool)
+
+	Merge(other BlocksRegistry, override bool) diagnostics.Diag
+
+	IsBlocksRegistry()
+}
+
+// Collection of block definitions.
+type blocksRegistry struct {
+	globalConfig  *definitions.GlobalConfigDef
+	configDefs    map[definitions.Key]*definitions.ConfigDef
+	documentDefs  map[string]*definitions.DocumentDef
+	sectionDefs   map[string]*definitions.SectionDef
+	execBlockDefs map[definitions.Key]*definitions.ExecBlockDef
+}
+
+func (reg *blocksRegistry) IsBlocksRegistry() {}
+
+func (reg *blocksRegistry) GetGlobalConfig() *definitions.GlobalConfigDef {
+	return reg.globalConfig
+}
+
+func (reg *blocksRegistry) GetConfigDefsMap() map[definitions.Key]*definitions.ConfigDef {
+	return reg.configDefs
+}
+
+func (reg *blocksRegistry) GetDefaultBlockConfig(
+	blockDef *definitions.ExecBlockDef,
+) (config *definitions.ConfigDef) {
+	return reg.defaultConfigDef(blockDef.Kind(), blockDef.RunnerName())
+}
+
+func (reg *blocksRegistry) GetDocumentDefsMap() map[string]*definitions.DocumentDef {
+	return reg.documentDefs
+}
+
+func (reg *blocksRegistry) GetDocumentDefByName(name string) (*definitions.DocumentDef, bool) {
+	val, ok := reg.documentDefs[name]
+	return val, ok
+}
+
+func (reg *blocksRegistry) GetSectionDefsMap() map[string]*definitions.SectionDef {
+	return reg.sectionDefs
+}
+
+func (reg *blocksRegistry) GetSectionDefByName(name string) (*definitions.SectionDef, bool) {
+	val, ok := reg.sectionDefs[name]
+	return val, ok
+}
+
+func (reg *blocksRegistry) GetExecBlockDefsMap() map[definitions.Key]*definitions.ExecBlockDef {
+	return reg.execBlockDefs
+}
+
+func (reg *blocksRegistry) GetExecBlockDefByKey(key definitions.Key) (*definitions.ExecBlockDef, bool) {
+	val, ok := reg.execBlockDefs[key]
+	return val, ok
+}
+
+func (reg *blocksRegistry) defaultConfigDef(kind, runner string) (config *definitions.ConfigDef) {
+	return reg.configDefs[definitions.Key{
+		Kind:   kind,
+		Runner: runner,
+		Name:   "",
+	}]
 }
 
 func mapGetOrInit[K1, K2 comparable, V any](m map[K1]map[K2]V, key K1) (innerMap map[K2]V) {
@@ -26,136 +107,211 @@ func mapGetOrInit[K1, K2 comparable, V any](m map[K1]map[K2]V, key K1) (innerMap
 		innerMap = map[K2]V{}
 		m[key] = innerMap
 	}
-	return
+	return innerMap
 }
 
-func mapToCty(m map[string]map[string]cty.Value) (res map[string]cty.Value) {
-	res = make(map[string]cty.Value, len(m))
-	for k, v := range m {
-		if len(v) == 0 {
-			continue
-		}
-		res[k] = cty.MapVal(v)
-	}
-	return
-}
+func execBlocksMapToCty[V definitions.BlockDef](
+	execBlocksMap map[definitions.Key]V,
+) (content, data, format, publish cty.Value) {
+	// [runner_name][block_name]ctyVal
 
-func PluginMapToCty[V definitions.FabricBlock](plugins map[definitions.Key]V) (content, data, publish cty.Value) {
-	// [plugin_kind][plugin_name][block_name]*definitions.Plugin
+	contentBlocks := map[string]map[string]cty.Value{}
+	dataBlocks := map[string]map[string]cty.Value{}
+	formatBlocks := map[string]map[string]cty.Value{}
+	publishBlocks := map[string]map[string]cty.Value{}
 
-	pluginMap := [3]map[string]map[string]cty.Value{
-		{},
-		{},
-		{},
-	}
-	for k, v := range plugins {
-		var idx int
-		switch k.PluginKind {
+	for k, v := range execBlocksMap {
+		switch k.Kind {
 		case definitions.BlockKindContent:
-			idx = 0
+			blockNameToVal := mapGetOrInit(contentBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		case definitions.BlockKindData:
-			idx = 1
+			blockNameToVal := mapGetOrInit(dataBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+		case definitions.BlockKindFormat:
+			blockNameToVal := mapGetOrInit(formatBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		case definitions.BlockKindPublish:
-			idx = 2
+			blockNameToVal := mapGetOrInit(publishBlocks, k.Runner)
+			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
 		default:
-			panic("must be exhaustive")
+			panic("Unsupported block kind encountered")
 		}
-		blockNameToVal := mapGetOrInit(pluginMap[idx], k.PluginName)
-		blockNameToVal[k.BlockName] = definitions.ToCtyValue(v)
 	}
-	pluginKindToVal := [3]cty.Value{}
 
-	for idx, pl := range pluginMap {
-		if len(pl) == 0 {
-			continue
-		}
-		pluginKindToVal[idx] = cty.MapVal(mapToCty(pl))
+	var contentBlocksCty cty.Value
+	if len(contentBlocks) > 0 {
+		contentBlocksCty = utils.MapMapToCty(contentBlocks)
 	}
-	return pluginKindToVal[0], pluginKindToVal[1], pluginKindToVal[2]
+
+	var dataBlocksCty cty.Value
+	if len(dataBlocks) > 0 {
+		dataBlocksCty = utils.MapMapToCty(dataBlocks)
+	}
+
+	var formatBlocksCty cty.Value
+	if len(formatBlocks) > 0 {
+		formatBlocksCty = utils.MapMapToCty(formatBlocks)
+	}
+
+	var publishBlocksCty cty.Value
+	if len(publishBlocks) > 0 {
+		publishBlocksCty = utils.MapMapToCty(publishBlocks)
+	}
+
+	return contentBlocksCty, dataBlocksCty, formatBlocksCty, publishBlocksCty
 }
 
-func (db *DefinedBlocks) AsValueMap() map[string]cty.Value {
-	content, data, publish := PluginMapToCty(db.Plugins)
-	cfgContent, cfgData, cfgPublish := PluginMapToCty(db.Config)
+// The map to use in HCL eval context when block definitions are resolved
+func (reg *blocksRegistry) AsValueMap() map[string]cty.Value {
+	content, data, format, publish := execBlocksMapToCty(reg.execBlockDefs)
+	cfgContent, cfgData, cfgFormat, cfgPublish := execBlocksMapToCty(reg.configDefs)
+
 	config := cty.ObjectVal(map[string]cty.Value{
-		definitions.BlockKindContent: cfgContent,
 		definitions.BlockKindData:    cfgData,
+		definitions.BlockKindContent: cfgContent,
+		definitions.BlockKindFormat:  cfgFormat,
 		definitions.BlockKindPublish: cfgPublish,
 	})
 
 	var sections cty.Value
-	if len(db.Sections) == 0 {
-		sections = cty.MapValEmpty(cty.Map((*definitions.Section)(nil).CtyType()))
+	if len(reg.sectionDefs) == 0 {
+		sections = cty.MapValEmpty(cty.Map((*definitions.SectionDef)(nil).CtyType()))
 	} else {
-		sect := make(map[string]cty.Value, len(db.Sections))
-		for k, v := range db.Sections {
+		sect := make(map[string]cty.Value, len(reg.sectionDefs))
+		for k, v := range reg.sectionDefs {
 			sect[k] = definitions.ToCtyValue(v)
 		}
 		sections = cty.MapVal(sect)
 	}
 	return map[string]cty.Value{
-		definitions.BlockKindContent: content,
-		definitions.BlockKindData:    data,
-		definitions.BlockKindSection: sections,
 		definitions.BlockKindConfig:  config,
+		definitions.BlockKindData:    data,
+		definitions.BlockKindContent: content,
+		definitions.BlockKindSection: sections,
+		definitions.BlockKindFormat:  format,
 		definitions.BlockKindPublish: publish,
 	}
 }
 
-func (db *DefinedBlocks) DefaultConfigFor(plugin *definitions.Plugin) (config *definitions.Config) {
-	return db.DefaultConfig(plugin.Kind(), plugin.Name())
-}
-
-func (db *DefinedBlocks) DefaultConfig(pluginKind, pluginName string) (config *definitions.Config) {
-	return db.Config[definitions.Key{
-		PluginKind: pluginKind,
-		PluginName: pluginName,
-		BlockName:  "",
-	}]
-}
-
-func (db *DefinedBlocks) Merge(other *DefinedBlocks) (diags diagnostics.Diag) {
-	if other.GlobalConfig != nil {
-		if db.GlobalConfig != nil {
+func (reg *blocksRegistry) Merge(other BlocksRegistry, override bool) (diags diagnostics.Diag) {
+	if other.GetGlobalConfig() != nil {
+		if reg.globalConfig != nil {
 			diags.Add("Global config declared multiple times", "")
 		}
-		db.GlobalConfig = other.GlobalConfig
+		reg.globalConfig = other.GetGlobalConfig()
 	}
-	for k, v := range other.Config {
-		diags.Append(AddIfMissing(db.Config, k, v))
+	for k, v := range other.GetConfigDefsMap() {
+		if override {
+			reg.configDefs[k] = v
+		} else {
+			diags.Append(AddIfMissing(reg.configDefs, k, v))
+		}
 	}
-	for k, v := range other.Documents {
-		diags.Append(AddIfMissing(db.Documents, k, v))
+	for k, v := range other.GetDocumentDefsMap() {
+		if override {
+			reg.documentDefs[k] = v
+		} else {
+			diags.Append(AddIfMissing(reg.documentDefs, k, v))
+		}
 	}
-	for k, v := range other.Sections {
-		diags.Append(AddIfMissing(db.Sections, k, v))
+	for k, v := range other.GetSectionDefsMap() {
+		if override {
+			reg.sectionDefs[k] = v
+		} else {
+			diags.Append(AddIfMissing(reg.sectionDefs, k, v))
+		}
 	}
-	for k, v := range other.Plugins {
-		diags.Append(AddIfMissing(db.Plugins, k, v))
+	for k, v := range other.GetExecBlockDefsMap() {
+		if override {
+			reg.execBlockDefs[k] = v
+		} else {
+			diags.Append(AddIfMissing(reg.execBlockDefs, k, v))
+		}
 	}
-	return
+	return diags
 }
 
-func AddIfMissing[M ~map[K]V, K comparable, V definitions.FabricBlock](m M, key K, newBlock V) *hcl.Diagnostic {
+func (reg *blocksRegistry) ResolveRefBase(
+	expr hcl.Expression,
+	result Ctyable,
+) (definitions.BlockDef, diagnostics.Diag) {
+	blockMap := reg.AsValueMap()
+	switch result.(type) {
+	case *definitions.ExecBlockDef:
+		return Resolve[*definitions.ExecBlockDef](blockMap, expr)
+	case *definitions.SectionDef:
+		return Resolve[*definitions.SectionDef](blockMap, expr)
+	case *definitions.ConfigDef:
+		return Resolve[*definitions.ConfigDef](blockMap, expr)
+	default:
+		var diags diagnostics.Diag
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported ref target block type",
+			Detail:   fmt.Sprintf("Error while trying to resolve a ref base expression. Unsupported target block type: `%T`", result),
+		})
+		return nil, diags
+	}
+}
+
+func Resolve[B Ctyable](blockMap map[string]cty.Value, expr hcl.Expression) (B, diagnostics.Diag) {
+	var res B
+
+	val, diag := expr.Value(&hcl.EvalContext{
+		Variables: blockMap,
+	})
+	var diags diagnostics.Diag
+	if diags.Extend(diag) {
+		return res, diags
+	}
+	expectedType := res.CtyType()
+
+	ty := val.Type()
+	if !ty.Equals(expectedType) {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Incorrect reference",
+			Detail: fmt.Sprintf(
+				"Expected reference to `%s` but got a reference to `%s`",
+				expectedType.FriendlyName(),
+				ty.FriendlyName(),
+			),
+			Subject: expr.Range().Ptr(),
+		})
+		return res, diags
+	}
+	res = val.EncapsulatedValue().(B)
+	return res, diags
+}
+
+func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](m M, key K, newBlock V) *hcl.Diagnostic {
 	if origBlock, found := m[key]; found {
-		kind := origBlock.GetHCLBlock().Type
+		kind := origBlock.Kind()
 		origDefRange := origBlock.GetHCLBlock().DefRange()
 		return &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Duplicate '%s' declaration", kind),
-			Detail:   fmt.Sprintf("'%s' with the same name originally defined at %s:%d", kind, origDefRange.Filename, origDefRange.Start.Line),
-			Subject:  newBlock.GetHCLBlock().DefRange().Ptr(),
+			Summary:  fmt.Sprintf("Duplicate `%s` declaration", kind),
+			Detail: fmt.Sprintf(
+				"`%s` with the same name defined at %s:%d",
+				kind,
+				origDefRange.Filename,
+				origDefRange.Start.Line,
+			),
+			Subject: newBlock.GetHCLBlock().DefRange().Ptr(),
 		}
 	}
 	m[key] = newBlock
 	return nil
 }
 
-func NewDefinedBlocks() *DefinedBlocks {
-	return &DefinedBlocks{
-		Config:    map[definitions.Key]*definitions.Config{},
-		Documents: map[string]*definitions.Document{},
-		Sections:  map[string]*definitions.Section{},
-		Plugins:   map[definitions.Key]*definitions.Plugin{},
+func NewDefinedBlocks() *blocksRegistry {
+	return &blocksRegistry{
+		configDefs:    map[definitions.Key]*definitions.ConfigDef{},
+		documentDefs:  map[string]*definitions.DocumentDef{},
+		sectionDefs:   map[string]*definitions.SectionDef{},
+		execBlockDefs: map[definitions.Key]*definitions.ExecBlockDef{},
 	}
 }
+
+var _ BlocksRegistry = (*blocksRegistry)(nil)

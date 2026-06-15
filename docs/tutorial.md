@@ -1,65 +1,53 @@
 ---
 title: Tutorial
-description: Dive into Fabric tutorial to learn everything you need to know about using Fabric effectively. From the basics of FCL commands to advanced features such as data configurations, our tutorial provides clear, step-by-step instructions for building Fabric templates. Start improving your workflow with Fabric today.
+description: A step-by-step guide to writing BlackStork templates. Learn how to query data, use variables, and render documents locally with blackstork-cli.
 type: docs
-weight: 30
-code_blocks_no_wrap: true
+weight: 10
 ---
 
 # Tutorial
 
-This tutorial provides comprehensive guidance on using Fabric and the [Fabric Configuration
-Language]({{< ref "language" >}}) (FCL) for document generation. We'll systematically cover creating
-a basic template, incorporating data blocks, applying data filtering and mutation, installing
-plugins, and rendering text with external content providers.
+This tutorial covers the core mechanics of the BlackStork configuration language. We will create a basic template, define variables, install plugins, and generate text using an external content provider (OpenAI). 
+
+While these templates can be evaluated collaboratively within the BlackStork SaaS platform, this tutorial uses `blackstork-cli` to evaluate the templates and render the documents locally.
 
 ## Prerequisites
 
-Before you follow this tutorial, make sure you have the following:
+- The `blackstork-cli` binary [installed]({{< ref "install.md" >}}) and available in your `PATH`.
+- (Optional) An OpenAI API token.
 
-- Fabric CLI [installed]({{< ref "install.md" >}}) and `fabric` CLI command available
-- (optional) OpenAI API token
+## Basic Template
 
-## Hello, Fabric
-
-Let's start with a straightforward "Hello, Fabric!" template to confirm that everything is
-configured correctly.
-
-Create a new `hello.fabric` file and define a simple template:
+Create a basic template to verify the execution environment. Create a new file named `hello.blackstork.hcl` and define a `document` block:
 
 ```hcl
 document "greeting" {
 
   content text {
-    value = "Hello, Fabric!"
+    value = "Hello, BlackStork!"
   }
 
 }
 ```
 
-In this snippet, `document.greeting` block defines a template with a single anonymous content
-block with the static text "Hello, Fabric!"
+The `document.greeting` block defines a template containing a single anonymous content block.
 
-To render the document, execute `fabric` command in the directory with `hello.fabric` file, or
-explicitly specify a path to another directory with `--source-dir` CLI argument:
+To evaluate the template and render the document, execute the CLI in the directory containing your file:
 
 ```shell
-fabric render document.greeting
+blackstork-cli render document.greeting
 ```
 
-The command should produce `Hello, Fabric!` string:
+The engine evaluates the block and outputs the string to standard output:
 
 ```shell
-$ fabric render document.greeting
-Hello, Fabric!
+$ blackstork-cli render document.greeting
+Hello, BlackStork!
 ```
 
 ## Document title
 
-Documents usually have titles and the `document` block supports `title` argument as an
-easy way to set a title.
-
-With the new `title` argument, `document.greeting` template should look like this:
+The `document` block accepts a `title` argument to set the document's top-level header. Update the `document.greeting` block:
 
 ```hcl
 document "greeting" {
@@ -67,15 +55,15 @@ document "greeting" {
   title = "The Greeting"
 
   content text {
-    value = "Hello, Fabric!"
+    value = "Hello, BlackStork!"
   }
 
 }
 ```
 
 {{< hint note >}}
-`title` argument for `document` block is a syntactic sugar translated into `content.title` block
-during rendering:
+
+The `title` argument in a `document` block is syntactic sugar. During evaluation, the engine translates it into a `content.title` block:
 
 ```hcl
 content title {
@@ -83,26 +71,24 @@ content title {
 }
 ```
 
-See [`content.title`]({{< ref "plugins/builtin/content-providers/title" >}}) content provider
-documentation for the details.
+See the [`content.title`]({{< ref "plugins/builtin/content-providers/title" >}}) provider documentation for details.
 {{< /hint >}}
 
-The rendered Markdown output should now include the document title:
+The rendered Markdown output now includes the header:
+
 
 ```markdown
-$ fabric render document.greeting
+$ blackstork-cli render document.greeting
 # The Greeting
 
-Hello, Fabric!
+Hello, BlackStork!
 ```
 
 ## Variables
 
-For this tutorial, instead of defining the data requirements with `data` blocks, we will use
-variables defined in `vars` block.
+Instead of configuring external data sources for this tutorial, use a `vars` block to define static variables.
 
-Change the template in the `hello.fabric` file to include a `vars` block and add another
-`content.text` block:
+Update `hello.blackstork.hcl` file to include a `vars` block and a second `content.text` block:
 
 ```hcl
 document "greeting" {
@@ -119,7 +105,7 @@ document "greeting" {
   title = "The Greeting"
 
   content text {
-    value = "Hello, Fabric!"
+    value = "Hello, BlackStork!"
   }
 
   content text {
@@ -133,49 +119,35 @@ document "greeting" {
 }
 ```
 
-Here, we defined inline data inside `vars` block (see [Variables]({{< ref
-"context.md#variables">}})), used `local_var` (see [Local variable]({{< ref
-"context.md#local-variable" >}})), and queried it with `query_jq()` function (see [Querying the
-context]({{< ref "context.md#querying-the-context" >}})) inside the `content` block.
+This configuration defines inline data inside the `vars` block and creates a local variable (`local_var`,  see [Local Variable]({{< ref "context.md#local-variable" >}})) that contains the array length calculated with `jq` query using the `query_jq()` function (see [Querying the context]({{< ref "context.md#querying-the-context" >}})).
 
-The `value` argument in the new content block is a template string – `content.text` blocks support
-[Go templates](https://pkg.go.dev/text/template) in `value` argument. The templates can access the
-evaluation context, so it's easy to use JSON path and include the values of `local` and
-`solar_system.moons_count` variables.
-
-The rendered output will now include the new sentence:
+The `value` argument in the `content.text` block accepts Go templates. This allows you to inject evaluated context data directly into your text.
 
 ```shell
-$ fabric render document.greeting
+$ blackstork-cli render document.greeting
 # The Greeting
 
-Hello, Fabric!
+Hello, BlackStork!
 
 There are 8 planets and 146 moons in our solar system.
 ```
 
 ## Content providers
 
-Fabric uses both internal implementations and integrates with external APIs for content generation.
-An excellent example is the use of the OpenAI API to dynamically generate text with prompts.
+The BlackStork engine can execute local logic or integrate with external APIs to generate content. In scenarios where static templates are insufficient, you can pass structured data to an LLM to dynamically draft text.
 
-In scenarios where providing the exact text or a template string for the content block proves
-challenging or impossible, we can leverage generative AI for text generation. This allows us to
-dynamically create context-aware text.
-
-Lets use [`openai_text`]({{< ref "plugins/openai/content-providers/openai_text" >}}) content
-provider for generating text with OpenAI API.
+The following steps use the [`openai_text`]({{< ref "plugins/openai/content-providers/openai_text" >}}) content provider to generate text via the OpenAI API. There is also a built-in generic [`llm_text`]({{< ref "plugins/builtin/content-providers/llm_text" >}}) content provider that supports LLM from a selection of vendors.
 
 ### Installation
 
 Before using [`openai_text`]({{< ref "plugins/openai/content-providers/openai_text" >}}) content
-provider, it's necessary to add [`blackstork/openai`]({{< ref "plugins/openai" >}}) plugin as a
+provider, you must declare [`blackstork/openai`]({{< ref "plugins/openai" >}}) plugin as a
 dependency and install it locally.
 
-First, update the `hello.fabric` file with the global configuration block:
+Add a global `blackstork` configuration block (see [Global configuration]({{< ref "language/configs.md#global-configuration" >}})) to `hello.blackstork.hcl`:
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/openai" = ">= 0.4.0"
   }
@@ -195,7 +167,7 @@ document "greeting" {
   title = "The Greeting"
 
   content text {
-    value = "Hello, Fabric!"
+    value = "Hello, BlackStork!"
   }
 
   content text {
@@ -209,35 +181,22 @@ document "greeting" {
 }
 ```
 
-Here, plugin `blackstork/openai` is in the list of dependencies, listed in `plugin_versions` argument
-in [the global configuration]({{< ref "language/configs.md#global-configuration" >}}).
-
-With updated `hello.fabric` file, install all required plugins with the `fabric install` command:
+Run the install command to fetch the required plugin from the registry:
 
 ```shell
-$ fabric install
+$ blackstork-cli install
 Mar 11 19:20:10.769 INF Searching plugin name=blackstork/openai constraints=">=v0.4.0"
 Mar 11 19:20:10.787 INF Installing plugin name=blackstork/openai version=0.4.0
 $
 ```
 
-Fabric fetched the `blackstork/openai` plugin release from the plugin registry and installed it in
-the local `./.fabric/` folder.
-
-The versions in the command output on your system might be different. With `>= 0.4.0` version
-constraint, Fabric will install the latest stable version (higher than `0.4.0`) of the plugin.
+The CLI downloads the plugin and places it in the local `./.blackstork/` directory.
 
 ### Configuration
 
-OpenAI API requires API key for authentication. The key must be set in [`openai_text`]({{< ref
-"plugins/openai/content-providers/openai_text" >}}) provider's configuration block. It's recommended
-to store credentials separately from Fabric code, and use the `env` object (see [Environment variables]({{< ref
-"configs.md#environment-variables" >}})).
+The OpenAI API requires authentication. Pass your credentials using the `env` object (see [Environment variables]({{< ref "configs.md#environment-variables" >}})) rather than hardcoding them in your configuration files.
 
-We can specify OpenAI API key in `OPENAI_API_KEY` environment variable and access it in Fabric file
-with `env.OPENAI_API_KEY`.
-
-The `config` block for the `openai_text` content provider looks like this:
+Add the content provider `config` block to the root level of `hello.blackstork.hcl`:
 
 ```hcl
 config content openai_text {
@@ -245,11 +204,13 @@ config content openai_text {
 }
 ```
 
-Add this block to the root level of `hello.fabric` file, outside `document` block.
+Now the OpenAI API key specified in `OPENAI_API_KEY` environment variable is passed on as an
+argument to `api_key` attribute of the `config` block.
 
 ### Usage
 
-Lets define the content block that uses `openai_text` content provider:
+Define a `content` block that calls the `openai_text` content provider:
+
 
 ```hcl
 # ...
@@ -270,18 +231,17 @@ document "greeting" {
 }
 ```
 
-In this block we again use `local_var`. A JQ query `"{planet: .vars.solar_system.planets[-1]}`
-fetches the last item from the list of planets (`Neptune`) and creates a new JSON object `{"planet":
-"Neptune"}`.
+This block also uses a `jq` query to extract the last item from the `.vars.solar_system.planets` array (Neptune) and passes it to the LLM prompt as a JSON object.
+
 
 {{< hint note >}}
-If you would like to specify a system prompt for OpenAI API, you can set it up in the configuration for `openai_text` provider. See the provider's [documentation]({{< ref "plugins/openai/content-providers/openai_text" >}}) for more configuration options.
+You can define a system prompt for the OpenAI API in the provider configuration. See the `openai_text` content provider [documentation]({{< ref "plugins/openai/content-providers/openai_text" >}}) for all available options.
 {{< /hint >}}
 
-The complete content of the `hello.fabric` file should look like this:
+The complete `hello.blackstork.hcl` file should look like this:
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/openai" = ">= 0.4"
   }
@@ -305,7 +265,7 @@ document "greeting" {
   title = "The Greeting"
 
   content text {
-    value = "Hello, Fabric!"
+    value = "Hello, BlackStork!"
   }
 
   content text {
@@ -328,30 +288,30 @@ document "greeting" {
 }
 ```
 
-To render the document, set `OPENAI_API_KEY` environment variable when running `fabric` command:
+Pass the `OPENAI_API_KEY` environment variable to the CLI to render the document:
+
 
 ```shell
-$ OPENAI_API_KEY="<key-value>" fabric render document.greeting
+$ OPENAI_API_KEY="<key>" blackstork-cli render document.greeting
 ...
 ```
 
 {{< hint warning >}}
-Remember to replace `<key-value>` in the CLI command with your OpenAI API key value.
+Remember to replace `<key>` in the CLI command with your OpenAI API key value.
 {{< /hint >}}
 
-The results of the render should look similar to the following:
+The output will include the static strings and the dynamically generated text:
 
 ```bash
-$ OPENAI_API_KEY="<key-value>" ./fabric render document.greeting
-fabric render document.greeting
-Jun 23 17:14:23.910 INF Parsing fabric files command=render
+$ OPENAI_API_KEY="<key-value>" ./blackstork-cli render document.greeting
+Jun 23 17:14:23.910 INF Parsing BlackStork files command=render
 Jun 23 17:14:23.912 INF Loading plugin resolver command=render includeRemote=false
 Jun 23 17:14:23.912 INF Loading plugin runner command=render
 Jun 23 17:14:23.939 INF Rendering content command=render target=greeting
 Jun 23 17:14:23.939 INF Loading document command=render target=greeting
 # The Greeting
 
-Hello, Fabric!
+Hello, BlackStork!
 
 There are 8 planets and 146 moons in our solar system.
 
@@ -360,38 +320,34 @@ Neptune is the eighth and farthest known planet from the Sun in the Solar System
 
 ## Publishing
 
-By default, Fabric prints rendered document into standard output formatted as Markdown. We can use
-any Markdown editor, for example [MacDown](https://macdown.uranusjr.com/) for macOS, to render
-Markdown, but it's also possible to produce HTML and PDF documents with Fabric.
+By default, the engine outputs the rendered Markdown to standard output. To format the output as HTML or PDF, use a `format` block, and to write it to a file or BlackStork SaaS, use `publish` block.
 
-To format the document as HTML, PDF, or Markdown, and publish it to a local or an external
-destination, use `publish` blocks.
-
-Add a `publish` block to the document template:
+Add a `publish` block and a `format` block to the document template:
 
 ```hcl
 document "greeting" {
 
   # ...
 
+  # HTML format with default settings
+  format html {
+  }
+
   # Publishing to a local HTML file
   publish local_file {
     path = "./greeting-{{ now | date \"2006_01_02\" }}.{{.format}}"
-    format = "html"
   }
 
 }
 ```
 
-Note that similarly to `content.text` blocks, `publish` block supports Go template string as the
-`path` argument value. This means we can specify a dynamic path for the output file - in this case,
-the filename will contain a date and the output format.
+The path argument supports Go templates, allowing you to define dynamic filenames based on timestamps and format extensions.
 
-To render the document and publish the output to a local file, use `--publish` flag when running `fabric render`:
+Execute the publish block by appending the `--publish` flag to the render command:
 
 ```bash
-$ fabric render document.greeting --publish
-Jun 23 17:28:03.027 INF Parsing fabric files command=render
+$ blackstork-cli render document.greeting --publish
+Jun 23 17:28:03.027 INF Parsing BlackStork files command=render
 Jun 23 17:28:03.028 INF Loading plugin resolver command=render includeRemote=false
 Jun 23 17:28:03.028 INF Loading plugin runner command=render
 Jun 23 17:28:03.056 INF Publishing document command=render target=greeting
@@ -400,8 +356,7 @@ Jun 23 17:28:04.213 INF Writing to a file command=render path=/tmp/greeting-2024
 $
 ```
 
-You can find the produced HTML file in the current directory (or at the path specified in `path`
-argument). The file contents should look similar to this:
+The engine writes the formatted HTML to the specified path:
 
 ```html
 <!DOCTYPE html>
@@ -413,7 +368,7 @@ argument). The file contents should look similar to this:
 </head>
 <body>
  <h1 id="the-greeting">The Greeting</h1>
-<p>Hello, Fabric!</p>
+<p>Hello, BlackStork!</p>
 <p>There are 8 planets and 146 moons in our solar system.</p>
 <p>Neptune is the eighth and most distant planet in our solar system, located about 4.5 billion kilometers away from the Sun.</p>
 
@@ -421,17 +376,11 @@ argument). The file contents should look similar to this:
 </html>
 ```
 
-To learn hot to add JS and CSS to the produced HTML document, see [Formatting]({{< ref
-"publish-blocks.md#formatting" >}}) documentation.
+To embed custom JS and CSS into the HTML document, refer to the [HTML formatter]({{< ref "plugins/builtin/formatters/html" >}}) documentation.
 
 # Next steps
 
-Congratulations! By completing this tutorial, you've gained a good understanding of Fabric and its
-core principles.
-
-Take a look at the detailed [FCL specification]({{< ref "language" >}}), explore [the open-source
-templates]({{< ref "templates" >}}) the community made, and see if there are integrations for your
-tech stack in [Fabric plugins]({{< ref "plugins" >}}).
-
-If you have any questions, feel free to ask in the [Community
-Slack](https://fabric-community.slack.com/) and we'll be glad to assist you!
+- Review the [Language Specification]({{< ref "language" >}}) for detailed syntax rules and data structures.
+- Explore the [Plugin Registry]({{< ref "plugins" >}}) to see available data and content integrations.
+- Browse the [Community Templates](https://github.com/blackstork-io/blackstork-templates) for production-ready reporting blocks.
+- Join the [Community Slack](https://blackstork-community.slack.com/) for engineering support.

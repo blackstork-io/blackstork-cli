@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package engine
 
 import (
@@ -5,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,29 +23,28 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/exp/maps"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/eval"
-	"github.com/blackstork-io/fabric/parser"
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/plugin/resolver"
-	"github.com/blackstork-io/fabric/plugin/runner"
+	"github.com/blackstork-io/blackstork-cli/eval"
+	"github.com/blackstork-io/blackstork-cli/parser"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/plugin/resolver"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
-// Engine is the main entry point for the fabric engine. It is responsible for
-// loading and evaluating fabric files, installing plugins, and fetching data.
-// It is also responsible for managing the plugin resolver and runner.
+// Engine is the main entry point for the main workflow. It is responsible for installing plugins,
+// parsing, loading and evaluating the template files, and fetching data.
 type Engine struct {
-	builtin   *plugin.Schema
-	logger    *slog.Logger
-	tracer    trace.Tracer
-	config    *definitions.GlobalConfig
-	blocks    *parser.DefinedBlocks
-	runner    *runner.Runner
+	builtin *plugin.Schema
+	config  *definitions.GlobalConfig
+
+	blocks  parser.BlocksRegistry
+	runners eval.RunnersRegistry
+
 	lockFile  *resolver.LockFile
 	resolver  *resolver.Resolver
 	fileMap   map[string]*hcl.File
@@ -53,8 +60,6 @@ func New(options ...Option) *Engine {
 	}
 	return &Engine{
 		builtin: opts.builtin,
-		logger:  opts.logger,
-		tracer:  opts.tracer,
 		config: &definitions.GlobalConfig{
 			PluginRegistry: &definitions.PluginRegistry{
 				BaseURL:   opts.registryBaseURL,
@@ -70,9 +75,9 @@ func (e *Engine) PluginResolver() *resolver.Resolver {
 	return e.resolver
 }
 
-func (e *Engine) PluginRunner() *runner.Runner {
-	return e.runner
-}
+// func (e *Engine) PluginRunner() *runners.RunnersRegistry {
+// 	return e.runners
+// }
 
 func (e *Engine) LockFile() *resolver.LockFile {
 	return e.lockFile
@@ -82,15 +87,18 @@ func (e *Engine) FileMap() map[string]*hcl.File {
 	return e.fileMap
 }
 
-func (e *Engine) ParsedBlocks() *parser.DefinedBlocks {
+func (e *Engine) Blocks() parser.BlocksRegistry {
 	return e.blocks
 }
 
 func (e *Engine) Install(ctx context.Context, upgrade bool) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.Install", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.Install", trace.WithAttributes(
 		attribute.Bool("upgrade", upgrade),
 	))
-	e.logger.InfoContext(ctx, "Installing plugins", "upgrade", upgrade)
+	log.InfoContext(ctx, "Installing plugins", "upgrade", upgrade)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -104,11 +112,11 @@ func (e *Engine) Install(ctx context.Context, upgrade bool) (diags diagnostics.D
 			Summary:  "Plugin resolver is not loaded",
 			Detail:   "Load plugin resolver before installing",
 		})
-		return
+		return diags
 	}
 	lockFile, diag := e.resolver.Install(ctx, e.lockFile, upgrade)
 	if diags.Extend(diag) {
-		return
+		return diags
 	}
 	e.lockFile = lockFile
 	err := resolver.SaveLockFileTo(path.Join(e.sourceDir, defaultLockFile), lockFile)
@@ -120,7 +128,7 @@ func (e *Engine) Install(ctx context.Context, upgrade bool) (diags diagnostics.D
 		})
 	}
 
-	return
+	return diags
 }
 
 func (e *Engine) ParseDir(ctx context.Context, sourceDir string) (diags diagnostics.Diag) {
@@ -130,8 +138,11 @@ func (e *Engine) ParseDir(ctx context.Context, sourceDir string) (diags diagnost
 }
 
 func (e *Engine) ParseDirFS(ctx context.Context, sourceDir fs.FS) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.ParseDir")
-	e.logger.InfoContext(ctx, "Parsing fabric files", "directory", sourceDir)
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.ParseDir")
+	log.InfoContext(ctx, "Parsing templates in the directory", "dir_path", sourceDir)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -139,25 +150,40 @@ func (e *Engine) ParseDirFS(ctx context.Context, sourceDir fs.FS) (diags diagnos
 		}
 		span.End()
 	}()
-	e.blocks, e.fileMap, diags = parser.ParseDir(sourceDir)
+	e.blocks, e.fileMap, diags = parser.ParseDir(ctx, log, sourceDir)
 	if diags.HasErrors() {
-		return
+		return diags
 	}
-	if e.blocks.GlobalConfig != nil {
-		cfg, diag := e.blocks.GlobalConfig.Parse(ctx)
+	if e.blocks != nil && e.blocks.GetGlobalConfig() != nil {
+		globalConfig := e.blocks.GetGlobalConfig()
+		cfg, diag := globalConfig.Parse(ctx)
 		if !diags.Extend(diag) {
 			e.config.Merge(cfg)
 		}
 	}
 
-	return
+	log.InfoContext(
+		ctx, "Blocks found in the templates",
+		"dir_path", sourceDir,
+		"global_config_found", e.blocks.GetGlobalConfig() != nil,
+		"config_blocks", len(e.blocks.GetConfigDefsMap()),
+		"sections", len(e.blocks.GetSectionDefsMap()),
+		"exec_blocks", len(e.blocks.GetExecBlockDefsMap()),
+		"documents", len(e.blocks.GetDocumentDefsMap()),
+	)
+
+	return diags
 }
 
 func (e *Engine) Lint(ctx context.Context, fullLint bool) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.Lint", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.Lint", trace.WithAttributes(
 		attribute.Bool("fullLint", fullLint),
 	))
-	e.logger.InfoContext(ctx, "Linting all documents", "full_lint", fullLint)
+	log.InfoContext(ctx, "Linting all documents", "full_lint", fullLint)
+
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -165,12 +191,13 @@ func (e *Engine) Lint(ctx context.Context, fullLint bool) (diags diagnostics.Dia
 		}
 		span.End()
 	}()
-	for _, doc := range e.blocks.Documents {
-		e.logger.DebugContext(ctx, "Linting document", "document", doc.Name)
-		parsedDoc, diag := e.blocks.ParseDocument(ctx, doc)
+	for _, doc := range e.blocks.GetDocumentDefsMap() {
+		log.DebugContext(ctx, "Linting document", "document", doc.Name)
+		docParsed, diag := parser.ParseDocument(ctx, e.blocks, doc)
 		diags.Extend(diag)
 		if fullLint {
-			_, diag = eval.LoadDocument(ctx, e.runner, parsedDoc)
+			emptyDataCtx := plugindata.Map{}
+			_, diag = eval.LoadDocument(ctx, e.runners, docParsed, emptyDataCtx)
 			diags.Extend(diag)
 		}
 	}
@@ -178,9 +205,13 @@ func (e *Engine) Lint(ctx context.Context, fullLint bool) (diags diagnostics.Dia
 }
 
 func (e *Engine) LoadPluginResolver(ctx context.Context, includeRemote bool) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.LoadPluginResolver", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.LoadPluginResolver", trace.WithAttributes(
 		attribute.String("includeRemote", fmt.Sprint(includeRemote)),
 	))
+
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -191,16 +222,14 @@ func (e *Engine) LoadPluginResolver(ctx context.Context, includeRemote bool) (di
 	pluginDir := filepath.Join(e.config.CacheDir, "plugins")
 	// Adding a cache dir plugins as a local source
 	sources := []resolver.Source{
-		resolver.NewLocal(pluginDir, e.logger, e.tracer),
+		resolver.NewLocal(pluginDir),
 	}
 
-	e.logger.DebugContext(
+	log.DebugContext(
 		ctx,
-		"Loading plugin resolver",
-		"include_remote",
-		includeRemote,
-		"plugins_dir",
-		string(pluginDir),
+		"Loading a plugin resolver",
+		"include_remote", includeRemote,
+		"plugins_dir", string(pluginDir),
 	)
 
 	if e.config.PluginRegistry != nil {
@@ -209,20 +238,20 @@ func (e *Engine) LoadPluginResolver(ctx context.Context, includeRemote bool) (di
 			if err != nil || !mirrorDirInfo.IsDir() {
 				return diagnostics.Diag{{
 					Severity: hcl.DiagError,
-					Summary:  "Can't find a mirror directory",
+					Summary:  "Can't find a registry mirror directory",
 					Detail: fmt.Sprintf(
-						"Can't find a directory specified as a mirror: %s",
+						"Can't find a directory specified as a registry mirror: `%s`",
 						e.config.PluginRegistry.MirrorDir,
 					),
 				}}
 			}
-			sources = append(sources, resolver.NewLocal(e.config.PluginRegistry.MirrorDir, e.logger, e.tracer))
+			sources = append(sources, resolver.NewLocal(e.config.PluginRegistry.MirrorDir))
 		}
 		if includeRemote && e.config.PluginRegistry.BaseURL != "" {
 			sources = append(sources, resolver.NewRemote(resolver.RemoteOptions{
 				BaseURL:     e.config.PluginRegistry.BaseURL,
 				DownloadDir: pluginDir,
-				UserAgent:   fmt.Sprintf("fabric/%s", "version"),
+				UserAgent:   fmt.Sprintf("blackstork-cli/%s", "version"),
 			}))
 		}
 	}
@@ -231,22 +260,21 @@ func (e *Engine) LoadPluginResolver(ctx context.Context, includeRemote bool) (di
 	if err != nil {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to read lock file",
+			Summary:  "Failed to read a lock file",
 			Detail:   err.Error(),
 		}}
 	}
-	resolve, diags := resolver.NewResolver(e.config.PluginVersions,
-		resolver.WithSources(sources...),
-		resolver.WithLogger(e.logger),
-		resolver.WithTracer(e.tracer),
-	)
+	resolve, diags := resolver.NewResolver(e.config.PluginVersions, sources)
 	e.resolver = resolve
 	return diags
 }
 
 func (e *Engine) LoadPluginRunner(ctx context.Context) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.LoadPluginRunner")
-	e.logger.DebugContext(ctx, "Loading plugin runner")
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.LoadPluginRunner")
+	log.DebugContext(ctx, "Loading a plugin runner")
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -254,28 +282,41 @@ func (e *Engine) LoadPluginRunner(ctx context.Context) (diags diagnostics.Diag) 
 		}
 		span.End()
 	}()
+
 	binaryMap, diag := e.resolver.Resolve(ctx, e.lockFile)
 	if diags.Extend(diag) {
-		return diag
+		return diags
 	}
-	e.runner, diag = runner.Load(ctx, binaryMap, e.builtin, e.logger, e.tracer)
-	diag.Extend(diag)
-	return diag
+	var err error
+	e.runners, err = eval.LoadRunnersRegistry(ctx, binaryMap, e.builtin)
+	if err != nil {
+		diags.Extend(diagnostics.Diag{
+			{
+				Severity: hcl.DiagError,
+				Summary:  err.Error(),
+			},
+		})
+		return diags
+	}
+	return diags
 }
 
 func (e *Engine) PrintDiagnostics(output io.Writer, diags diagnostics.Diag, colorize bool) {
 	diagnostics.PrintDiags(output, diags, e.fileMap, colorize)
 }
 
-func (e *Engine) loadGlobalData(
+func (e *Engine) loadStandaloneDataBlock(
 	ctx context.Context,
 	source, name string,
 ) (_ *eval.PluginDataAction, diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.loadGlobalData", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.loadGlobalData", trace.WithAttributes(
 		attribute.String("data_source", source),
 		attribute.String("name", name),
 	))
-	e.logger.InfoContext(ctx, "Loading global data", "data_source", source, "name", name)
+	log.InfoContext(ctx, "Loading a standalone data block", "data_source", source, "name", name)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -286,34 +327,35 @@ func (e *Engine) loadGlobalData(
 	if e.blocks == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "No files parsed",
-			Detail:   "Parse files before selecting",
+			Summary:  "No blocks registered",
+			Detail:   "No template blocks found registerd in the endinge",
 		}}
 	}
-	if e.runner == nil {
+	if e.runners == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Plugin runner is not loaded",
-			Detail:   "Load plugin runner before evaluating",
+			Summary:  "Plugin runners are not registered",
+			Detail:   "Register the runners registry before evaluating",
 		}}
 	}
-	data, ok := e.blocks.Plugins[definitions.Key{
-		PluginKind: definitions.BlockKindData,
-		PluginName: source,
-		BlockName:  name,
-	}]
+	data, ok := e.blocks.GetExecBlockDefByKey(definitions.Key{
+		Kind:   definitions.BlockKindData,
+		Runner: source,
+		Name:   name,
+	})
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Data source not found",
-			Detail:   fmt.Sprintf("Data source named '%s' not found", name),
+			Summary:  "Data source is not found",
+			Detail:   fmt.Sprintf("Data source named `%s` not found in installed plugins", name),
 		}}
 	}
-	parsedData, diag := e.blocks.ParsePlugin(ctx, data)
+	parsedData, diag := parser.ParseDataBlock(ctx, e.blocks, data, nil)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
-	loadedData, diag := eval.LoadDataAction(ctx, e.runner, parsedData)
+	emptyDataCtx := plugindata.Map{}
+	loadedData, diag := eval.LoadDataAction(ctx, e.runners, parsedData, emptyDataCtx)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
@@ -325,13 +367,16 @@ func (e *Engine) loadDocumentData(
 	doc string,
 	path []string,
 ) (_ plugindata.Data, diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
 	pathStr := strings.Join(path, ".")
 
-	ctx, span := e.tracer.Start(ctx, "Engine.loadDocumentData", trace.WithAttributes(
+	ctx, span := tracer.Start(ctx, "Engine.loadDocumentData", trace.WithAttributes(
 		attribute.String("document", doc),
 		attribute.String("data_path", pathStr),
 	))
-	e.logger.InfoContext(ctx, "Loading document data", "document", doc, "data_path", path)
+	log.InfoContext(ctx, "Loading document data", "document", doc, "data_path", path)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -346,28 +391,39 @@ func (e *Engine) loadDocumentData(
 			Detail:   "Parse files before selecting a path",
 		}}
 	}
-	if e.runner == nil {
+	if e.runners == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Plugin runner is not loaded",
-			Detail:   "Load plugin runner before evaluating the template",
+			Summary:  "Plugin runners are not loaded",
+			Detail:   "Load plugin runners before evaluating the template",
 		}}
 	}
-	docBlock, ok := e.blocks.Documents[doc]
+	docBlock, ok := e.blocks.GetDocumentDefByName(doc)
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Document not found",
-			Detail:   fmt.Sprintf("Definition for document named '%s' not found", doc),
+			Detail:   fmt.Sprintf("Document template `%s` not found", doc),
 		}}
 	}
-	e.logger.DebugContext(ctx, "Parsing a document template")
-	docParsed, diag := e.blocks.ParseDocument(ctx, docBlock)
+	docParsed, diag := parser.ParseDocument(ctx, e.blocks, docBlock)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
 
-	document, diag := eval.LoadDocument(ctx, e.runner, docParsed)
+	dataCtx := plugindata.Map{}
+	inputs, diag := LoadInputs(ctx, docParsed)
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+	// settings inputs in the context
+	dataCtx[plugin.InputsDataKey] = inputs
+
+	// settings inputs in the eval context for HCL
+	evalCtx := appctx.GetEvalContext(ctx)
+	evalCtx.Variables[plugin.InputsDataKey] = plugindata.PluginDataToCty(inputs)
+
+	document, diag := eval.LoadDocument(ctx, e.runners, docParsed, dataCtx)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
@@ -386,10 +442,15 @@ var ErrInvalidDataTarget = diagnostics.Diag{{
 }}
 
 func (e *Engine) FetchData(ctx context.Context, target string) (result plugindata.Data, diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.FetchData", trace.WithAttributes(
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	log.InfoContext(ctx, "Fetching data")
+
+	ctx, span := tracer.Start(ctx, "Engine.FetchData", trace.WithAttributes(
 		attribute.String("target", target),
 	))
-	e.logger.InfoContext(ctx, "Fetching the data", "target", target)
+	log.InfoContext(ctx, "Fetching the data", "target", target)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -429,7 +490,7 @@ func (e *Engine) FetchData(ctx context.Context, target string) (result plugindat
 		if len(parts) != 2 {
 			return nil, ErrInvalidDataTarget
 		}
-		loadedData, diag = e.loadGlobalData(ctx, parts[0], parts[1])
+		loadedData, diag = e.loadStandaloneDataBlock(ctx, parts[0], parts[1])
 		if diags.Extend(diag) {
 			return nil, diags
 		}
@@ -445,14 +506,15 @@ func (e *Engine) FetchData(ctx context.Context, target string) (result plugindat
 }
 
 func (e *Engine) loadEnv(ctx context.Context) (envMap plugindata.Map, diags diagnostics.Diag) {
-	e.logger.DebugContext(ctx, "Loading env variables")
+	log := appctx.Log(ctx)
+	log.DebugContext(ctx, "Loading env vars")
 	envMap = plugindata.Map{}
 	if e.config == nil || e.config.EnvVarsPattern == nil {
-		return
+		return envMap, diags
 	}
-	evalCtx := utils.EvalContextByVar(fabctx.GetEvalContext(ctx), "env")
+	evalCtx := utils.EvalContextByVar(appctx.GetEvalContext(ctx), "env")
 	if evalCtx == nil {
-		return
+		return envMap, diags
 	}
 	for k, v := range evalCtx.Variables["env"].AsValueMap() {
 		if !e.config.EnvVarsPattern.Match(k) {
@@ -460,7 +522,8 @@ func (e *Engine) loadEnv(ctx context.Context) (envMap plugindata.Map, diags diag
 		}
 		envMap[k] = plugindata.String(v.AsString())
 	}
-	return
+	log.DebugContext(ctx, "Env vars loaded", "env_vars", maps.Keys(envMap))
+	return envMap, diags
 }
 
 func (e *Engine) initialDataCtx(ctx context.Context) (data plugindata.Map, diags diagnostics.Diag) {
@@ -470,18 +533,22 @@ func (e *Engine) initialDataCtx(ctx context.Context) (data plugindata.Map, diags
 	data = plugindata.Map{
 		"env": e.env,
 	}
-	return
+	return data, diags
 }
 
 func (e *Engine) RenderContent(
 	ctx context.Context,
 	target string,
 	requiredTags []string,
-) (doc *eval.Document, content *plugin.ContentSection, data plugindata.Data, diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.RenderContent", trace.WithAttributes(
+) (doc *eval.Document, content *plugin.ContentSection, data plugindata.Map, diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+	log = log.With("document", target)
+	ctx = appctx.WithLog(ctx, log)
+
+	ctx, span := tracer.Start(ctx, "Engine.RenderContent", trace.WithAttributes(
 		attribute.String("target", target),
 	))
-	e.logger.InfoContext(ctx, "Rendering the content", "target", target)
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -489,39 +556,78 @@ func (e *Engine) RenderContent(
 		}
 		span.End()
 	}()
-	doc, diag := e.loadDocument(ctx, target)
+
+	log.InfoContext(ctx, "Parsing template")
+
+	docParsed, diag := e.parseDocument(ctx, target)
 	if diags.Extend(diag) {
 		return nil, nil, nil, diags
 	}
+
 	dataCtx, diag := e.initialDataCtx(ctx)
 	if diags.Extend(diag) {
-		return
+		return nil, nil, nil, diags
 	}
+
+	log.InfoContext(ctx, "Loading inputs")
+
+	inputs, diag := LoadInputs(ctx, docParsed)
+	if diags.Extend(diag) {
+		return nil, nil, nil, diags
+	}
+	// settings inputs in the context
+	dataCtx[plugin.InputsDataKey] = inputs
+
+	// settings inputs in the eval context for HCL
+	evalCtx := appctx.GetEvalContext(ctx)
+	evalCtx.Variables[plugin.InputsDataKey] = plugindata.PluginDataToCty(inputs)
+
+	log.InfoContext(ctx, "Loading document")
+
+	doc, diag = e.loadDocument(ctx, docParsed, dataCtx)
+	if diags.Extend(diag) {
+		return nil, nil, nil, diags
+	}
+
+	subData := appctx.SubstituteData(ctx)
+	if subData == nil {
+		log.InfoContext(ctx, "Fetching data")
+
+		data, diag = doc.FetchData(ctx)
+		if diags.Extend(diag) {
+			return nil, nil, nil, diags
+		}
+	} else {
+		log.InfoContext(ctx, "Substitute data found, skipping data block execution")
+		data = subData
+	}
+
+	dataCtx[definitions.BlockKindData] = data
+
+	log.InfoContext(ctx, "Rendering content")
+
 	content, data, diag = doc.RenderContent(ctx, dataCtx, requiredTags)
 	if diags.Extend(diag) {
 		return nil, nil, nil, diags
 	}
 
-	if content.IsEmpty() {
-		diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "No content to render",
-			Detail:   "Document did not produce any content, perhaps it's empty or '--with-meta-tags' filter is too strict?",
-			Subject:  doc.Source.Block.DefRange().Ptr(),
-		})
-	}
 	return doc, content, data, diags
 }
 
 func (e *Engine) PublishContent(
 	ctx context.Context,
-	target string,
 	doc *eval.Document,
 	content *plugin.ContentSection,
-	dataCtx plugindata.Data,
+	data plugindata.Map,
+	executePublishBlocks bool,
 ) (diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.Publish", trace.WithAttributes(
-		attribute.String("target", target),
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	documentTemplateName := doc.GetTemplateName()
+
+	ctx, span := tracer.Start(ctx, "Engine.Publish", trace.WithAttributes(
+		attribute.String("document", documentTemplateName),
 	))
 	defer func() {
 		if diags.HasErrors() {
@@ -530,17 +636,53 @@ func (e *Engine) PublishContent(
 		}
 		span.End()
 	}()
-	e.logger.InfoContext(ctx, "Publishing the content", "target", target)
-	diag := doc.Publish(ctx, content, dataCtx, target)
+	log = log.With("document", documentTemplateName)
+
+	// If publishing is not requested, execute the default publisher / formatter
+	if !executePublishBlocks {
+		log.DebugContext(
+			ctx, "Executing a default publisher",
+			"publisher", doc.DefaultPublish.RunnerName,
+		)
+		var publisher *eval.PluginPublishAction
+		for _, p := range doc.PublishBlocks {
+			if p.RunnerName == doc.DefaultPublish.RunnerName {
+				publisher = p
+				break
+			}
+		}
+		if publisher == nil {
+			// No registered publisher of a default expected runner found,
+			// so we're registering the new one
+			doc.PublishBlocks = []*eval.PluginPublishAction{doc.DefaultPublish}
+		}
+	}
+
+	formattedContentMap, diag := doc.FormatContent(ctx, content, data)
+	if diags.Extend(diag) {
+		return diags
+	}
+
+	log.DebugContext(
+		ctx, "Formatted content map prepared for publishing",
+		"formatted_content_count", len(formattedContentMap),
+		"content_formats", maps.Keys(formattedContentMap),
+	)
+
+	log.InfoContext(ctx, "Publishing the document")
+	diag = doc.Publish(ctx, content, formattedContentMap, data)
 	diags.Extend(diag)
-	return
+	return diags
 }
 
-func (e *Engine) loadDocument(ctx context.Context, name string) (_ *eval.Document, diags diagnostics.Diag) {
-	ctx, span := e.tracer.Start(ctx, "Engine.loadDocument", trace.WithAttributes(
+func (e *Engine) parseDocument(ctx context.Context, name string) (_ *definitions.Document, diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	ctx, span := tracer.Start(ctx, "Engine.loadDocument", trace.WithAttributes(
 		attribute.String("target", name),
 	))
-	e.logger.InfoContext(ctx, "Loading the template", "document", name)
+	log.InfoContext(ctx, "Fetching document template")
 	defer func() {
 		if diags.HasErrors() {
 			span.RecordError(diags)
@@ -548,37 +690,46 @@ func (e *Engine) loadDocument(ctx context.Context, name string) (_ *eval.Documen
 		}
 		span.End()
 	}()
-	if e.runner == nil {
+	if e.runners == nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Plugin runner is not loaded",
-			Detail:   "Load plugin runner before evaluating",
+			Detail:   "Plugin runner must be loaded before loading a document template",
 		})
 		return nil, diags
 	}
-	doc, ok := e.blocks.Documents[name]
+	doc, ok := e.blocks.GetDocumentDefByName(name)
 	if !ok {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Document not found",
-			Detail:   fmt.Sprintf("Document template '%s' not found", name),
+			Detail:   fmt.Sprintf("Document template `%s` not found", name),
 		})
 		return nil, diags
 	}
-	parsedDoc, diag := e.blocks.ParseDocument(ctx, doc)
+	log.InfoContext(ctx, "Parsing document template")
+	docParsed, diag := parser.ParseDocument(ctx, e.blocks, doc)
 	if diags.Extend(diag) {
+		log.ErrorContext(ctx, "Error while parsing template", "err", diagnostics.GetDiagsDetails(diags))
 		return nil, diags
 	}
-	loadedDoc, diag := eval.LoadDocument(ctx, e.runner, parsedDoc)
-	if diags.Extend(diag) {
-		return nil, diags
-	}
-	return loadedDoc, diags
+	return docParsed, diags
 }
 
-func (e *Engine) Cleanup() diagnostics.Diag {
-	if e.runner != nil {
-		return e.runner.Close()
+func (e *Engine) loadDocument(ctx context.Context, doc *definitions.Document, dataCtx plugindata.Map) (_ *eval.Document, diags diagnostics.Diag) {
+	log := appctx.Log(ctx)
+	log.InfoContext(ctx, "Loading document template")
+	docLoaded, diag := eval.LoadDocument(ctx, e.runners, doc, dataCtx)
+	if diags.Extend(diag) {
+		log.ErrorContext(ctx, "Error while loading template", "err", diagnostics.GetDiagsDetails(diags))
+		return nil, diags
+	}
+	return docLoaded, diags
+}
+
+func (e *Engine) Cleanup() error {
+	if e.runners != nil {
+		return e.runners.CloseAll()
 	}
 	return nil
 }

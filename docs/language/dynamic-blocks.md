@@ -1,103 +1,124 @@
 ---
 title: Dynamic Blocks
+description: Use dynamic blocks to iterate over data collections and programmatically generate repeating sections or content blocks in your BlackStork templates.
 type: docs
-weight: 80 
-draft: true
+weight: 71 
 ---
 
 # Dynamic blocks
 
-Fabric templates define the structure of a document using `section` and `content` blocks. While a static document structure often suffices, there are situations where the document structure must depend on input data. `dynamic` blocks allow template authors to adjust the template structure based on the data.
+The `dynamic` block iterates over data collections to programmatically generate repeating document structures. 
 
-Use `dynamic` blocks to enable the dynamic generation of `document`, `section`, and `content` blocks.
+Instead of manually defining a block for every item in a dataset, you pass a list to a `dynamic`
+block. During evaluation, the engine loops through the list and duplicates the nested `section` or
+`content` blocks for each item, injecting the specific item's data into the local evaluation
+context.
 
-## Definition
-
-A `dynamic` block extends the signature of the original block and adds its own arguments ([see
-below](#dynamic-block-arguments)) to the original block's arguments and nested sub-blocks:
-
-```hcl
-dynamic <block-signature> {
-
-  # Dynamic block arguments
-  # ...
-
-  # Original block arguments and nested blocks
-  # ...
-}
-```
-
-For example, this `dynamic` block, when placed in the document template, will produce 3 `content`
-blocks:
+The block signature requires only the `dynamic` keyword. It does not take a component name or a block name.
 
 ```hcl
-dynamic content text "foobarbaz" {
+section "example_section" {
 
-  # Dynamic block arguments
-  dynamic_items = ["foo", "bar", "baz"]
+  dynamic {
+    # The list of items to iterate over
+    items = query_jq(...)
 
-  # The arguments below belong to a content block and will be evaluated after the execution
-  # of the dynamic block
-  var {
-    x = 1
-    item_upper = query_jq(".vars.dynamic_item | ascii_upcase")
+    # The block(s) to duplicate for each item
+    content text {
+      value = "..."
+    }
   }
 
-  value = <<-EOT
-    Content block {{ .vars.dynamic_index }}:
-    item={{ .vars.dynamic_item }} upper={{ .vars.item_upper }}
-  EOT
 }
 ```
 
-The rendered output for it would be:
+You can define `dynamic` blocks directly inside a `document` block or nested within `section` blocks.
 
-```text
-Content block 0
-item=foo upper=FOO
+## Execution context
 
-Content block 1
-item=bar upper=BAR
+During evaluation, the `dynamic` block creates a local scope for each iteration. It injects two
+specific variables into the evaluation context, making them available to all nested `vars`,
+`content`, and `section` blocks:
 
-Content block 2
-item=baz upper=BAZ
-```
+- `.vars.dynamic_item` — The current element from the `items` list being processed.
+- `.vars.dynamic_item_index` — The zero-based integer index of the current iteration.
 
-## Arguments
+Nested blocks inside the `dynamic` block evaluate exactly as if they were written out manually. You
+can reference `.vars.dynamic_item` in Go templates or `query_jq()` functions to render data specific
+to the current iteration.
 
-- `dynamic_items`: (optional) a collection of items to iterate over. This can be a static value or a
-  `query_jq()` function call.
-- `dynamic_condition`: (optional) a boolean value. This can be a static value or a `query_jq()`
-  function call.
+## Supported arguments
 
-Either `dynamic_items` value or `dynamic_condition` value must be provided.
+- `items`: (required) A list of items to iterate over. This is typically populated using the
+  `query_jq()` function to extract an array from the context. If the list is empty, the engine skips
+  the nested blocks entirely.
+- `depends_on`: (optional) A list of block identifiers wrapped in quotes (e.g.,
+  `["content.text.first_paragraph"]`) that the engine must evaluate before executing this `dynamic`
+  block.
 
-- if `dynamic_items` is set, the `dynamic` block will produce one block for each item in the
-  `dynamic_items` collection.
-- if `dynamic_condition` is set, the `dynamic` block will produce one block if the condition is
-  `true` and none if it is `false`.
+## Supported nested blocks
 
-## Extended context
+- `content`: Defines the content components (e.g., `text`, `table`, `image`) to duplicate for each iteration.
+- `section`: Defines structural sections to duplicate for each iteration.
 
-The context for each block produced by a `dynamic` block with the `dynamic_items` argument includes
-additional variables:
+**Note:** A `dynamic` block must contain at least one `content` or `section` block.
 
-- `.vars.dynamic_item` — the value of the current iteration item
-- `.vars.dynamic_index` — the index of the current iteration item
+## Example
 
-## Dynamic reference blocks
-
-To create flexible and reusable templates, `dynamic` blocks can be combined with the reference blocks.
-
-For example:
+In the following example, a `dynamic` block iterates over a list of host data. For each host in the
+array, it generates a new `section` containing a dynamic title and a `content.text` block, utilizing
+the `.vars.dynamic_item` context.
 
 ```hcl
-dynamic section ref {
-  dynamic_items = query_jq(".vars.defined_items")
-  base = section.external_section
+document "vulnerability_report" {
+
+  vars {
+    # A static array of objects for demonstration.
+    # In production, this typically references a data block.
+    vulnerable_hosts = [
+      {
+        ip       = "192.168.1.50"
+        cve      = "CVE-2024-1234"
+        severity = "High"
+      },
+      {
+        ip       = "10.0.0.12"
+        cve      = "CVE-2023-9876"
+        severity = "Medium"
+      }
+    ]
+  }
+
+  section "findings" {
+    title = "Host Findings"
+
+    dynamic {
+      # Pass the array to the dynamic block
+      items = query_jq(".vars.vulnerable_hosts")
+
+      # This section and its nested content are duplicated for each host
+      section "host_detail" {
+
+        # Access the current item via .vars.dynamic_item
+        title = "Host: {{ .vars.dynamic_item.ip }}"
+
+        content text {
+          value = <<-EOT
+            **Vulnerability:** {{ .vars.dynamic_item.cve }}
+            **Severity:** {{ .vars.dynamic_item.severity }}
+            **Index:** This is item #{{ .vars.dynamic_item_index }} in the findings array.
+          EOT
+        }
+      }
+    }
+  }
 }
 ```
 
-This dynamic block creates a `section ref` block for each item in the `dynamic_items` collection.
+During evaluation, the engine loops over the array and renders two distinct `host_detail` sections,
+translating the JSON data into structured document elements.
 
-Dynamic blocks in Fabric templates offer the flexibility to create complex, data-driven documents. By using these blocks, template authors can generate dynamic content that adapts to the shape of input data.
+## Next steps
+
+See [Format blocks]({{< ref "format-blocks.md" >}}) to learn how to define document formats.
+

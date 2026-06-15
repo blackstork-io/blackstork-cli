@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package pluginapiv1
 
 import (
@@ -7,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
 func roundTrip(t *testing.T, val cty.Value) (decVal cty.Value, decTy cty.Type) {
@@ -20,7 +29,7 @@ func roundTrip(t *testing.T, val cty.Value) (decVal cty.Value, decTy cty.Type) {
 	require.NoError(err, "Failed to decode value")
 	require.True(decVal.RawEquals(val), "Roundtrip failed: got", decVal.GoString())
 	decTy = roundTripType(t, val.Type())
-	return
+	return decVal, decTy
 }
 
 func roundTripType(t *testing.T, ty cty.Type) (decTy cty.Type) {
@@ -32,7 +41,7 @@ func roundTripType(t *testing.T, ty cty.Type) (decTy cty.Type) {
 	decTy, err := decodeCtyType(encTy)
 	require.NoError(err, "Failed to decode type")
 	require.True(decTy.Equals(ty), "Roundtrip failed: got", decTy.GoString())
-	return
+	return decTy
 }
 
 func TestCtyCodecRoundtrip(t *testing.T) {

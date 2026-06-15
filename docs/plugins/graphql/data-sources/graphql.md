@@ -5,7 +5,7 @@ plugin:
   description: ""
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/graphql/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/graphql/"
 resource:
   type: data-source
 type: docs
@@ -17,23 +17,25 @@ type: docs
 
 ## Installation
 
-To use `graphql` data source, you must install the plugin `blackstork/graphql`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `graphql` data source locally via `blackstork-cli`, you must declare the `blackstork/graphql` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/graphql" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data graphql` block:
 
 ```hcl
 config data graphql {
@@ -50,7 +52,7 @@ config data graphql {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data graphql` block:
 
 ```hcl
 data graphql {

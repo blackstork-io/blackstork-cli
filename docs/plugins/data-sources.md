@@ -1,14 +1,13 @@
 ---
 title: Data Sources
-description: Discover a diverse range of data sources within Fabric plugins. These integrations empower you to effortlessly load data from files, external services, APIs, and data storage systems. Simplify your data retrieval process and enhance your document generation workflow with Fabric's versatile data sources.
+description: Overview of BlackStork data sources. Learn how to query structured data from local files, external APIs, and security tools.
 type: docs
 weight: 10
 ---
 
 # Data sources
 
-Data sources are Fabric integrations responsible for loading data from local and external sources -
-files, external services, APIs, or data storage solutions.
+Data sources are plugin integrations that fetch structured data into the BlackStork evaluation context. They allow you to query local files, external security platforms (such as SIEMs or TIPs), standard APIs, and databases so the data can be referenced by your content blocks.
 
 ## Available data sources
 

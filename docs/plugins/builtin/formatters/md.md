@@ -1,0 +1,50 @@
+---
+title: "`md` formatter"
+plugin:
+  name: blackstork/builtin
+  description: "Formats content in Markdown"
+  version: "v0.4.2"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+resource:
+  type: formatter
+type: docs
+---
+
+{{< breadcrumbs 2 >}}
+
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "md" "formatter" >}}
+
+The `md` formatter is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
+
+## Configuration
+
+This formatter does not accept any configuration arguments.
+
+## Usage
+
+This formatter accepts the following arguments within a `format md` block:
+
+```hcl
+format md {
+  # Arbitrary key-value map to be put in the frontmatter
+  #
+  # Required jq queriable.
+  # Must be non-empty
+  #
+  # For example:
+  frontmatter = {
+    key = "arbitrary value"
+    key2 = {
+      nested_key = 42
+    }
+  }
+
+  # Format of the frontmatter.
+  #
+  # Optional string.
+  # Must be one of: "yaml", "toml", "json"
+  # Default value:
+  frontmatter_format = "yaml"
+}
+```
+

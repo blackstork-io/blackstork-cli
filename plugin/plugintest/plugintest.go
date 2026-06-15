@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugintest
 
 import (
@@ -11,10 +20,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics/diagtest"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
 var uniqueID atomic.Uint32
@@ -65,16 +74,16 @@ func DecodeAndAssert(t *testing.T, spec *dataspec.RootSpec, body string, dataCtx
 	filename := getFileName()
 	f, diag := hclsyntax.ParseConfig(src, filename, hcl.InitialPos)
 	if diags.Extend(diag) {
-		return
+		return val
 	}
 	fm = map[string]*hcl.File{
 		filename: f,
 	}
 	val, dgs := dataspec.DecodeAndEvalBlock(context.Background(), f.Body.(*hclsyntax.Body).Blocks[0], spec, dataCtx)
 	if diags.Extend(dgs) {
-		return
+		return val
 	}
-	return
+	return val
 }
 
 // Deprecated: use plugintest.NewTestDecoder
@@ -85,10 +94,10 @@ func Decode(t *testing.T, spec *dataspec.RootSpec, body string) (v *dataspec.Blo
 	src = append(src, "\n}\n"...)
 	f, stdDiag := hclsyntax.ParseConfig(src, getFileName(), hcl.InitialPos)
 	if diags.Extend(stdDiag) {
-		return
+		return v, diags
 	}
 
 	v, diag := dataspec.DecodeAndEvalBlock(context.Background(), f.Body.(*hclsyntax.Body).Blocks[0], spec, nil)
 	diags.Extend(diag)
-	return
+	return v, diags
 }

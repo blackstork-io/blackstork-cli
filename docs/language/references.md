@@ -1,16 +1,15 @@
 ---
 title: References
+description: Learn how to reuse BlackStork blocks across your templates using block references.
 type: docs
-weight: 75
+weight: 80
 ---
 
 # References
 
-Fabric language supports code reuse via block references. It's possible to reference named
-`document`, `data`, `content`, `section`, and `publish` blocks defined on a root level of the file.
+The BlackStork configuration language supports code reuse through block references. You can reference any named `data`, `content`, `section`, `format`, or `publish` block defined at the root level of your configuration files.
 
-To include a named block defined on a root level into a document, use `ref` label and `base`
-argument:
+To include a root-level block into a document or section, use the `ref` keyword in place of the component name, and specify the target block using the `base` argument.
 
 ```hcl
 content <content-provider> "<block-name>" {
@@ -25,13 +24,19 @@ section "<block-name>" {
   # ...
 }
 
-document "foo" {
+format <formatter-name> "<block-name>" {
+  # ...
+}
 
-  <block-type> ref "<block-name>" {
-    base = <block-identifier-with-matching-block-type>
+document "example" {
+
+  # Named reference
+  <block-type> ref "<new-block-name>" {
+    base = <block-identifier>
     # ...
   }
 
+  # Anonymous reference
   content ref {
     base = content.<content-provider>.<block-name>
   }
@@ -39,95 +44,41 @@ document "foo" {
 }
 ```
 
-- `<block-type>` is `document`, `data`, `content`, `section` or `publish`.
-- `<block-identifier>` is an identifier for the referenced block. It consists of a dot-separated
-  list of all labels in a block signature: `content.<content-provider>.<block-name>` or
-  `section.<block-name>`. The block name in the identifier must *not* be wrapper in double quotes `"`.
+- `<block-type>` must be `data`, `content`, `section`, `format`, or `publish`.
+- `<block-identifier>` is the absolute path to the referenced block. It consists of a dot-separated list of the components in the target block's signature (for example, `content.text.greeting` or `section.executive_summary`). Do not wrap the block name in quotes within the identifier.
 
-For the `ref` blocks defined on a root level of the file, the block name is always required. If the
-blocks are inside the `document` block, they can be anonymous.
+If you define a `ref` block at the root level of a file, you must provide a block name. If you define it within a `document` or `section` block, the block name is optional.
 
-{{< hint warning >}} An anonymous `ref` block adopts a name of the referenced block. Since the final
-name of the block isn't stated explicitly, unwanted overrides can happen. A block signature must be
-unique between the blocks defined on the same level of the template. {{< /hint >}}
+{{< hint warning >}}
+**Anonymous Reference Name Collisions**
+
+An anonymous `ref` block automatically inherits the block name of its referenced `base` block. Because block signatures must be unique within the same scope, declaring multiple anonymous references to the same base block will cause an override collision. To reference the same base block multiple times within the same scope, explicitly assign a unique block name to each `ref` block.
+{{< /hint >}}
 
 ## Overriding arguments
 
-The `ref` block definition can include the argument that would override the arguments provided in
-the original block. This is helpful if the block's behaviour needs adjustments per document.
+A `ref` block can include arguments that override the values defined in the base block. This allows you to define a standard component once (such as a specifically styled text block or a standard data query) and adjust its behavior for specific documents.
 
 For example:
 
 ```hcl
+# Define the base block at the root level
 content text "hello_world" {
   value = "Hello, World!"
 }
 
-document "foo" {
+document "example" {
 
+  # Reference the base block and override the 'value' argument
   content ref "hello_john" {
-    base = content.text.hello_world
+    base  = content.text.hello_world
     value = "Hello, John!"
   }
 
+  # Anonymous reference overriding the 'value' argument
   content ref {
-    base = content.text.hello_world
+    base  = content.text.hello_world
     value = "Hello, New World!"
-  }
-
-}
-```
-
-<!-- FIXME: https://github.com/blackstork-io/fabric/issues/29
-
-## Query input requirement
-
-Content blocks rely on `query` argument for selecting data needed for rendering (see content blocks' [Generic Arguments]({{< ref "content-blocks.md#generic-arguments" >}})). The JQ query uses the data path which is often document-specific and depends on the name of the data block. This hinders the re-usability of the content blocks.
-
-Fabric supports an explicit way for the content block to require the input data - `query_input` and `query_input_required` arguments. If `query_input_required` set to `true`, the content block expects `query_input` argument to be provided in the `ref` block.
-
-## Example
-
-```hcl
-data elasticsearch "foo" {
-  index = "test-index"
-  # ...
-}
-
-content text "qux" {
-  # Using `query_input` field in the context that contains the result of
-  # the `query_input` query
-  query = ".query_input | length"
-
-  # Require the referrer to specify `query_input` query that will be used
-  # to get the data for `query_input` field in the context
-  query_input_required = true
-  value = "The data contains {{ .query_result }} elements"
-}
-
-document "test-document" {
-
-  # Anonymous referrer block adops the name of the referenced block - `data.elasticsearch.foo`
-  data ref {
-    base = data.elasticsearch.foo
-  }
-
-  # Named referrer block keeps its name - `data.elasticsearch.bar`
-  data ref "bar" {
-    base = data.elasticsearch.foo
-  }
-
-  # Provided argument `index` overrides the value set in the original block.
-  data ref "baz" {
-    base = data.elasticsearch.foo
-    index = "another-test-index"
-  }
-
-  # Referred block requires `query_input` to be provided,
-  # so it can be used in query set in `query` argument in the original block.
-  content ref {
-    base = content.text.qux
-    query_input = ".data.elasticsearch.bar"
   }
 
 }
@@ -135,5 +86,4 @@ document "test-document" {
 
 ## Next steps
 
-To learn how to dynamically adapt the template structure to input data, see Dynamic Blocks documentations.
--->
+See [HCL Expressions]({{< ref "hcl.md" >}}) to learn which HashiCorp Configuration Language (HCL) expressions are supported in BlackStork templates and how to use them to construct dynamic arguments.

@@ -5,7 +5,7 @@ plugin:
   description: ""
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/elastic/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/elastic/"
 resource:
   type: data-source
 type: docs
@@ -17,23 +17,25 @@ type: docs
 
 ## Installation
 
-To use `elasticsearch` data source, you must install the plugin `blackstork/elastic`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `elasticsearch` data source locally via `blackstork-cli`, you must declare the `blackstork/elastic` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/elastic" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data elasticsearch` block:
 
 ```hcl
 config data elasticsearch {
@@ -73,7 +75,7 @@ config data elasticsearch {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data elasticsearch` block:
 
 ```hcl
 data elasticsearch {

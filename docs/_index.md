@@ -1,28 +1,36 @@
 ---
-title: What is Fabric?
-description: Fabric is a user-friendly open-source command-line tool for reporting workflow automation. Fabric comes with a versatile template language and a rich ecosystem of plugins.
+title: Introduction
+description: Technical documentation for the BlackStork reporting engine. Learn how to write templates, configure data integrations, and execute builds locally.
 menuName: Docs
 type: docs
+RightToC: false
 weight: 1
 ---
 
-# What's Fabric?
+# BlackStork Documentation
 
-Fabric is a user-friendly open-source command-line tool designed for reporting workflow automation. It comes with a versatile configuration language for reusable templates.
+BlackStork is an engine for automating cybersecurity and compliance reporting. This documentation covers the BlackStork configuration language used to build templates, the plugins with the integrations, and `blackstork-cli`, the source-available command-line tool for local execution.
 
-`fabric` CLI tool facilitates data collection from various sources and renders documents (reports, overviews, briefings, etc) from the templates in Fabric Configuration Language (FCL).
+The BlackStork configuration language (BCL) provides a declarative syntax for defining data requirements, document layout and document format inside the template. Templates are modular, meaning integration configs, data mutations and content blocks can be reused across different reports.
 
-[Fabric Configuration Language]({{< ref "language" >}}) offers a structured approach to defining data requirements and content structures. With its human-readable intuitive syntax and powerful features, FCL empowers users to create reusable modular templates.
+When a template is evaluated, the BlackStork engine executes a deterministic pipeline: it employes specified plugins to fetch data from external sources, and processes that data through your defined logic and content blocks, and renders a standardized document using your chosen formatter.
 
-Together, Fabric CLI tool and FCL offer a comprehensive solution for organizations looking to formalize and streamline their content generation processes, enhancing their cyber-security and compliance efforts.
+Because the templating language is decoupled from the execution environment, your configurations are fully portable. They can be built and evaluated collaboratively within the BlackStork SaaS platform, or executed locally and within CI/CD pipelines using `blackstork-cli`.
 
-## Get started
+## Building Templates
 
-- [Install]({{< ref "install.md" >}}) — how to install and run Fabric.
-- [Fabric CLI]({{< ref "cli.md" >}}) — Fabric CLI usage details.
-- [Tutorial]({{< ref "tutorial.md" >}}) — an extensive tutorial for starting with Fabric.
-- [Language]({{< ref "language.md" >}}) — Fabric Configuration Language details and main concepts.
-- [Plugins]({{< ref "plugins.md" >}}) — the documentation for the plugins Fabric supports.
-- [Data Sources]({{< ref "plugins/data-sources.md" >}}) — the data sources supported.
-- [Content Providers]({{< ref "plugins/content-providers.md" >}}) — the content providers supported.
-- [Publishers]({{< ref "plugins/publishers.md" >}}) — the outgoing integrations for rendered content.
+- [Tutorial]({{< ref "tutorial.md" >}}) — A step-by-step guide to writing your first template and rendering a document.
+- [Language]({{< ref "language.md" >}}) — Syntax and core concepts of the BlackStork configuration language.
+
+## Plugins & Integrations
+
+- [Plugins]({{< ref "plugins.md" >}}) — Overview of the plugin registry and how to extend the engine's capabilities.
+- [Data Sources]({{< ref "plugins/data-sources.md" >}}) — Supported integrations for querying structured data (e.g., SIEMs, TIPs, APIs).
+- [Content Providers]({{< ref "plugins/content-providers.md" >}}) — Supported integrations for content generation.
+- [Formatters]({{< ref "plugins/formatters.md" >}}) — Supported output formats and styling options for rendered documents.
+- [Publishers]({{< ref "plugins/publishers.md" >}}) — Outgoing integrations for routing and storing rendered documents.
+
+## Local Execution with `blackstork-cli`
+
+- [Install]({{< ref "install.md" >}}) — Instructions for downloading and installing `blackstork-cli` binary.
+- [CLI Reference]({{< ref "cli.md" >}}) — Usage details for `blackstork-cli`.

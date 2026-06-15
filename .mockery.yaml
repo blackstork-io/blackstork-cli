@@ -1,70 +1,79 @@
+# Copyright 2026 BlackStork BV
+#
+# Use of this software is governed by the Business Source License included in the
+# file LICENSE and at www.mariadb.com/bsl11.
+#
+# As of the Change Date specified in that file, in accordance with the Business
+# Source License, use of this software will be governed by the Apache License,
+# Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 with-expecter: true
-dir: mocks/{{ replaceAll .InterfaceDirRelative "internal" "internalpkg" }}
+dir: mocks/{{ .InterfaceDirRelative }}
 mockname: "{{.InterfaceName}}"
 outpkg: "{{.PackageName}}_mocks"
 filename: "{{.InterfaceName | snakecase}}.go"
 resolve-type-alias: False
 issue-845-fix: true
 packages:
-  github.com/blackstork-io/fabric/parser/definitions:
+  github.com/blackstork-io/fabric/specs/definitions:
     config:
       recursive: true
     interfaces:
-      FabricBlock:
-  github.com/blackstork-io/fabric/internal/github:
+      BlockDef:
+  github.com/blackstork-io/fabric/plugins/github:
     config:
     interfaces:
       Client:
       IssuesClient:
       GistClient:
-  github.com/blackstork-io/fabric/internal/openai/client:
+  github.com/blackstork-io/fabric/plugins/openai/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/hackerone/client:
+  github.com/blackstork-io/fabric/plugins/hackerone/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/virustotal/client:
+  github.com/blackstork-io/fabric/plugins/virustotal/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/splunk/client:
+  github.com/blackstork-io/fabric/plugins/splunk/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/nistnvd/client:
+  github.com/blackstork-io/fabric/plugins/nistnvd/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/iris/client:
+  github.com/blackstork-io/fabric/plugins/iris/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/elastic/kbclient:
+  github.com/blackstork-io/fabric/plugins/elastic/kbclient:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/snyk/client:
+  github.com/blackstork-io/fabric/plugins/snyk/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/builtin/hubapi:
+  github.com/blackstork-io/fabric/plugins/builtin/hubapi:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/microsoft:
+  github.com/blackstork-io/fabric/plugins/microsoft:
     config:
     interfaces:
       AzureClient:
       AzureOpenAIClient:
       MicrosoftGraphClient:
       MicrosoftSecurityClient:
-  github.com/blackstork-io/fabric/internal/atlassian/client:
+  github.com/blackstork-io/fabric/plugins/atlassian/client:
     config:
     interfaces:
       Client:
-  github.com/blackstork-io/fabric/internal/crowdstrike:
+  github.com/blackstork-io/fabric/plugins/crowdstrike:
     config:
     interfaces:
       Client:
@@ -73,7 +82,7 @@ packages:
       SpotVulnerabilitiesClient:
       IntelClient:
       DiscoverClient:
-  github.com/blackstork-io/fabric/internal/misp:
+  github.com/blackstork-io/fabric/plugins/misp:
     config:
     interfaces:
       Client:

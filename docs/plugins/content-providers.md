@@ -1,14 +1,14 @@
 ---
 title: Content Providers
-description: Explore a wide array of content providers through Fabric plugins. These powerful integrations enable the rendering of document content locally or via external APIs, covering various types including text, tables, graphs, code, and more. Enhance your document generation capabilities with Fabric's versatile content provider plugins.
+description: Overview of BlackStork content providers. Learn how to generate text, tables, charts, and LLM-driven narratives.
 type: docs
 weight: 20
 ---
 
 # Content providers
 
-Content providers are Fabric content renderers. The providers may generate content locally or use an
-external service (like OpenAI API) for content generation.
+Content providers process the structured data in your template to generate the actual components of your document. They can execute logic locally - to build tables, charts, or static text - or connect to external APIs, such as OpenAI, to dynamically draft narratives via Large Language Models (LLMs).
+
 
 ## Available content providers
 

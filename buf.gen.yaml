@@ -1,12 +1,21 @@
+# Copyright 2026 BlackStork BV
+#
+# Use of this software is governed by the Business Source License included in the
+# file LICENSE and at www.mariadb.com/bsl11.
+#
+# As of the Change Date specified in that file, in accordance with the Business
+# Source License, use of this software will be governed by the Apache License,
+# Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/blackstork-io/fabric/plugin
+    default: github.com/blackstork-io/blackstork-cli/plugin
 plugins:
   - plugin: buf.build/protocolbuffers/go
     out: .
-    opt: module=github.com/blackstork-io/fabric
+    opt: module=github.com/blackstork-io/blackstork-cli
   - plugin: buf.build/grpc/go
     out: .
-    opt: module=github.com/blackstork-io/fabric
+    opt: module=github.com/blackstork-io/blackstork-cli

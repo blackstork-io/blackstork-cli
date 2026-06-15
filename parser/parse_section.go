@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package parser
 
 import (
@@ -8,77 +17,65 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/circularRefDetector"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
-// Evaluates a defined plugin.
-func (db *DefinedBlocks) ParseSection(ctx context.Context, section *definitions.Section) (res *definitions.ParsedSection, diags diagnostics.Diag) {
-	if circularRefDetector.Check(section) {
-		// This produces a bit of an incorrect error and shouldn't trigger in normal operation
-		// but I re-check for the circular refs here out of abundance of caution:
-		// deadlocks or infinite loops may occur, and are hard to debug
+func ParseSection(
+	ctx context.Context,
+	blocksRegistry BlocksRegistry,
+	sectionDef *definitions.SectionDef,
+	refHist *utils.RefHistory,
+) (res *definitions.Section, diags diagnostics.Diag) {
+	log := appctx.Log(ctx)
+	log = log.With("section", sectionDef.Name())
+	log.DebugContext(
+		ctx, "Parsing section block",
+		"is_ref", sectionDef.IsRef(),
+		"ref_hist", refHist.Size(),
+	)
+
+	// Use a placeholder name if needed
+	blockName := sectionDef.Name()
+	if blockName == "" {
+		blockName = makeNamePlaceholder()
+	}
+
+	res = &definitions.Section{
+		Source:    sectionDef,
+		BlockName: blockName,
+	}
+
+	// Parsing body
+	body := sectionDef.Block.Body
+
+	var diag diagnostics.Diag
+	var validChildren []string
+
+	isRef := sectionDef.IsRef()
+	refBase, refBaseFound := body.Attributes[definitions.AttrRefBase]
+
+	var targetSection *definitions.Section
+
+	switch {
+	case isRef && !refBaseFound:
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Circular reference detected",
-			Detail:   "Looped back to this block through reference chain:",
-			Subject:  section.Block.DefRange().Ptr(),
-			Extra:    diagnostics.NewTracebackExtra(),
+			Summary:  "Ref block is missing `base` argument",
+			Subject:  body.MissingItemRange().Ptr(),
+			Context:  &body.SrcRange,
 		})
-		return
-	}
-	section.Once.Do(func() {
-		res, diags = db.parseSection(ctx, section)
-		if diags.HasErrors() {
-			return
-		}
-		section.ParseResult = res
-		section.Parsed = true
-	})
-	if !section.Parsed {
-		if diags == nil {
-			diags.Append(diagnostics.RepeatedError)
-		}
-		return
-	}
-	res = section.ParseResult
-	return
-}
-
-func (db *DefinedBlocks) parseSection(ctx context.Context, section *definitions.Section) (parsed *definitions.ParsedSection, diags diagnostics.Diag) {
-	res := definitions.ParsedSection{}
-	res.Source = section
-	if title := section.Block.Body.Attributes["title"]; title != nil {
-		titleContent, diag := db.ParseTitle(ctx, title)
-		if !diag.Extend(diags) {
-			res.Title = titleContent
-		}
-	}
-
-	var origMeta *hcl.Range
-	var varsBlock *hclsyntax.Block
-	var refBase hclsyntax.Expression
-
-	var validChildren []string
-	if section.IsRef() {
-		base := section.Block.Body.Attributes["base"]
-		if base == nil {
-			diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing 'base' argument",
-				Detail:   "Ref blocks must contain a 'base' argument",
-				Subject:  section.Block.Body.MissingItemRange().Ptr(),
-			})
-			return
-		}
-		refBase = base.Expr
-		validChildren = []string{
-			definitions.BlockKindMeta,
-			definitions.BlockKindVars,
-		}
-	} else {
+		return nil, diags
+	case !isRef && refBaseFound:
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Non-ref block contains `base` argument",
+			Subject:  refBase.Range().Ptr(),
+			Context:  &body.SrcRange,
+		})
+	case !isRef && !refBaseFound: // happy path, no ref
 		validChildren = []string{
 			definitions.BlockKindContent,
 			definitions.BlockKindMeta,
@@ -86,149 +83,203 @@ func (db *DefinedBlocks) parseSection(ctx context.Context, section *definitions.
 			definitions.BlockKindVars,
 			definitions.BlockKindDynamic,
 		}
+	case isRef && refBaseFound: // happy path, a correct ref block
+		validChildren = []string{
+			definitions.BlockKindContent,
+			definitions.BlockKindMeta,
+			definitions.BlockKindSection,
+			definitions.BlockKindVars,
+			definitions.BlockKindDynamic,
+		}
+		targetBlock, diag := parseRefBase(ctx, blocksRegistry, sectionDef, refBase.Expr, refHist)
+		if diags.Extend(diag) {
+			break
+		}
+		targetSection = targetBlock.(*definitions.Section)
+
+		// Replace the name with base block name if not set in the definition
+		if res.Source.Name() == "" {
+			res.BlockName = targetSection.BlockName
+		}
 	}
+
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+
+	if title := body.Attributes["title"]; title != nil {
+		titleContent, diag := parseTitle(ctx, blocksRegistry, title)
+		if !diags.Extend(diag) {
+			res.Title = titleContent
+		}
+	} else if targetSection != nil && targetSection.Title != nil {
+		res.Title = targetSection.Title
+	}
+
+	// Prepend the ref base content blocks
+	if targetSection != nil {
+		res.Content = targetSection.Content
+	}
+
+	var origVars *definitions.Vars
+	localVar := body.Attributes[definitions.AttrLocalVar]
+
 	validChildrenSet := utils.SliceToSet(validChildren)
 
-	for _, block := range section.Block.Body.Blocks {
+	newBlocks := []*hclsyntax.Block{}
+
+	for _, block := range body.Blocks {
 		if !utils.Contains(validChildrenSet, block.Type) {
+			log.WarnContext(
+				ctx, "Section contains an invalid block",
+				"block_type", block.Type,
+				"block_labels", block.Labels,
+			)
 			diags.Append(definitions.NewNestingDiag(
-				section.Block.Type,
+				sectionDef.Block.Type,
 				block,
-				section.Block.Body,
+				body,
 				validChildren,
 			))
 			continue
 		}
 		switch block.Type {
 		case definitions.BlockKindContent:
-			plugin, diag := definitions.DefinePlugin(block, false)
+			contentDef, diag := definitions.DefineExecBlockDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			call, diag := db.ParsePlugin(ctx, plugin)
+			content, diag := parseContentBlock(ctx, blocksRegistry, contentDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Plugin: call,
-			})
+			res.Content = append(res.Content, content)
+
 		case definitions.BlockKindMeta:
-			if origMeta != nil {
+			if res.Meta != nil {
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Meta block redefinition",
-					Detail: fmt.Sprintf(
-						"%s block allows at most one meta block, original meta block was defined at %s:%d",
-						section.Block.Type, origMeta.Filename, origMeta.Start.Line,
-					),
+					Summary:  "More than one inline meta block defined",
+					Detail:   "Only one inline meta block can be defined inside content block. Ignoring all meta blocks after the first one.",
+					// Detail: fmt.Sprintf(
+					// 	"Only one `meta` block allowed in `%s` and one is already defined at %s:%d",
+					// 	sectionDef.Block.Type,
+					// 	// origMeta.Filename,
+					// 	// origMeta.Start.Line,
+					// ),
 					Subject: block.DefRange().Ptr(),
-					Context: section.Block.Body.Range().Ptr(),
+					Context: body.Range().Ptr(),
 				})
 				continue
 			}
 			var meta definitions.MetaBlock
 			if diags.Extend(gohcl.DecodeBody(block.Body, nil, &meta)) {
-				continue
+				break
 			}
 			res.Meta = &meta
-			origMeta = block.DefRange().Ptr()
+
 		case definitions.BlockKindVars:
-			if varsBlock != nil {
+			if origVars != nil {
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Vars block redefinition",
 					Detail: fmt.Sprintf(
-						"%s block allows at most one vars block, original vars block was defined at %s:%d",
-						section.Block.Type, varsBlock.DefRange().Filename, varsBlock.DefRange().Start.Line,
+						"Only one inline `vars` block can be defined inside `%s` block. Ignoring all vars blocks after the first one",
+						sectionDef.Block.Type,
+						// block.DefRange().Filename,
+						// block.DefRange().Start.Line,
 					),
 					Subject: block.DefRange().Ptr(),
-					Context: section.Block.Body.Range().Ptr(),
+					Context: body.Range().Ptr(),
 				})
-				continue
+				break
 			}
-			varsBlock = block
+
+			origVars, diag = ParseVars(ctx, block, localVar)
+			diags.Extend(diag)
 
 		case definitions.BlockKindSection:
-			subSection, diag := definitions.DefineSection(block, false)
+			subSectionDef, diag := definitions.DefineSectionDef(block, false)
 			if diags.Extend(diag) {
 				continue
 			}
-			circularRefDetector.Add(section, block.DefRange().Ptr())
-			parsedSubSection, diag := db.ParseSection(ctx, subSection)
-			circularRefDetector.Remove(section, &diag)
+			subSection, diag := ParseSection(ctx, blocksRegistry, subSectionDef, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Section: parsedSubSection,
-			})
+			res.Content = append(res.Content, subSection)
 		case definitions.BlockKindDynamic:
-			dynamic, diag := db.ParseDynamic(ctx, block)
+			dynamic, diag := parseDynamic(ctx, blocksRegistry, block, refHist)
 			if diags.Extend(diag) {
 				continue
 			}
-			res.Content = append(res.Content, &definitions.ParsedContent{
-				Dynamic: dynamic,
-			})
+			res.Content = append(res.Content, dynamic)
+		default:
+			// only non-common blocks are kept
+			newBlocks = append(newBlocks, block)
 		}
 	}
 
-	var diag diagnostics.Diag
-	res.Vars, diag = ParseVars(
-		ctx,
-		varsBlock,
-		section.Block.Body.Attributes[definitions.AttrLocalVar],
-	)
-	diags.Extend(diag)
-
-	if requiredVarsAttr := section.Block.Body.Attributes[definitions.AttrRequiredVars]; requiredVarsAttr != nil {
-		diag := gohcl.DecodeExpression(requiredVarsAttr.Expr, nil, &res.RequiredVars)
-		diags.Extend(diag)
-	}
-
-	res.IsIncluded = section.Block.Body.Attributes[definitions.AttrIsIncluded]
-
-	if refBase == nil {
-		parsed = &res
-		return
-	}
-	// Parse ref
-	baseSection, diag := Resolve[*definitions.Section](db, refBase)
 	if diags.Extend(diag) {
-		return
-	}
-	circularRefDetector.Add(section, refBase.Range().Ptr())
-	defer circularRefDetector.Remove(section, &diags)
-	if circularRefDetector.Check(baseSection) {
-		diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Circular reference detected",
-			Detail:   "Looped back to this block through reference chain:",
-			Subject:  section.Block.DefRange().Ptr(),
-			Extra:    diagnostics.NewTracebackExtra(),
-		})
-		return
-	}
-	baseEval, diag := db.ParseSection(ctx, baseSection)
-	if diags.Extend(diag) {
-		return
+		return res, diags
 	}
 
-	// update from base:
-	if res.Title == nil {
-		res.Title = baseEval.Title
-	}
-	if res.Meta == nil {
-		res.Meta = baseEval.Meta
-	}
-	if res.IsIncluded == nil {
-		res.IsIncluded = baseEval.IsIncluded
-	}
-	res.Vars = res.Vars.MergeWithBaseVars(baseEval.Vars)
-	res.RequiredVars = append(res.RequiredVars, baseEval.RequiredVars...)
+	// assign only non-common blocks to the body's list
+	body.Blocks = newBlocks
 
-	res.Content = append(res.Content, baseEval.Content...)
+	res.Vars = &definitions.Vars{}
 
-	parsed = &res
-	return
+	// Process original vars first
+
+	if origVars == nil {
+		origVars, diag = ParseVars(ctx, nil, localVar)
+		if diags.Extend(diag) {
+			origVars = nil
+		}
+	}
+	res.Vars.Extend(origVars)
+
+	// Apply target block vars after
+
+	if targetSection != nil {
+		res.Vars.Extend(targetSection.Vars)
+	}
+
+	// Collect `required_vars` and pop it to avoid validation errors when checking runner-specific attrs later
+	var requiredVarsCombined []*hclsyntax.Attribute
+	if reqVarsAttr, found := utils.Pop(body.Attributes, definitions.AttrRequiredVars); found {
+		requiredVarsCombined = append(requiredVarsCombined, reqVarsAttr)
+	}
+
+	// Combine required vars from origin and target
+	if targetSection != nil {
+		requiredVarsCombined = append(requiredVarsCombined, targetSection.RequiredVarsCombined...)
+	}
+	res.RequiredVarsCombined = requiredVarsCombined
+
+	// Collect `depends_on` and pop it to avoid validation errors when checking runner-specific attrs later
+	var dependsOnCombined []*hclsyntax.Attribute
+	if depAttr, ok := utils.Pop(body.Attributes, definitions.AttrDependsOn); ok {
+		dependsOnCombined = append(dependsOnCombined, depAttr)
+	}
+	if targetSection != nil {
+		dependsOnCombined = append(dependsOnCombined, targetSection.DependsOnCombined...)
+	}
+	res.DependsOnCombined = dependsOnCombined
+
+	if origIsIncluded, found := body.Attributes[definitions.AttrIsIncluded]; found {
+		res.IsIncluded = origIsIncluded
+	} else if targetSection != nil && targetSection.IsIncluded != nil {
+		res.IsIncluded = targetSection.IsIncluded
+	}
+
+	if res.Title == nil && targetSection != nil {
+		res.Title = targetSection.Title
+	}
+
+	if res.Meta == nil && targetSection != nil {
+		res.Meta = targetSection.Meta
+	}
+
+	return res, diags
 }

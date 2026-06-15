@@ -5,7 +5,7 @@ plugin:
   description: "The `misp_events` data source fetches MISP events"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/misp/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/misp/"
 resource:
   type: data-source
 type: docs
@@ -20,23 +20,25 @@ The `misp_events` data source fetches MISP events
 
 ## Installation
 
-To use `misp_events` data source, you must install the plugin `blackstork/misp`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `misp_events` data source locally via `blackstork-cli`, you must declare the `blackstork/misp` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/misp" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data misp_events` block:
 
 ```hcl
 config data misp_events {
@@ -66,7 +68,7 @@ config data misp_events {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data misp_events` block:
 
 ```hcl
 data misp_events {

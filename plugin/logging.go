@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugin
 
 import (
@@ -8,86 +17,135 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
 // WithLogging wraps the plugin with logging instrumentation.
-func WithLogging(plugin *Schema, logger *slog.Logger) *Schema {
-	logger = logger.With("component", "plugin")
-	plugin.ContentProviders = makeContentProvidersLogging(plugin.Name, plugin.ContentProviders, logger)
-	plugin.DataSources = makeDataSourcesLogging(plugin.Name, plugin.DataSources, logger)
-	plugin.Publishers = makePublishersLogging(plugin.Name, plugin.Publishers, logger)
+func WithLogging(plugin *Schema, log *slog.Logger) *Schema {
+	log = log.With("plugin", plugin.Name)
+	plugin.ContentProviders = makeContentProvidersLogging(plugin.ContentProviders, log)
+	plugin.DataSources = makeDataSourcesLogging(plugin.DataSources, log)
+	plugin.Formatters = makeFormattersLogging(plugin.Formatters, log)
+	plugin.Publishers = makePublishersLogging(plugin.Publishers, log)
 	return plugin
 }
 
-func makeContentProvidersLogging(plugin string, providers ContentProviders, logger *slog.Logger) ContentProviders {
+func makeContentProvidersLogging(providers ContentProviders, log *slog.Logger) ContentProviders {
 	result := make(ContentProviders)
 	for name, provider := range providers {
-		provider.ContentFunc = makeContentProviderLogging(plugin, name, *provider, logger)
+		provider.ContentFunc = makeContentProviderLogging(name, *provider, log)
 		result[name] = provider
 	}
 	return result
 }
 
-func makeDataSourcesLogging(plugin string, sources DataSources, logger *slog.Logger) DataSources {
+func makeDataSourcesLogging(sources DataSources, log *slog.Logger) DataSources {
 	result := make(DataSources)
 	for name, source := range sources {
-		source.DataFunc = makeDataSourceLogging(plugin, name, *source, logger)
+		source.DataFunc = makeDataSourceLogging(name, *source, log)
 		result[name] = source
 	}
 	return result
 }
 
-func makePublishersLogging(plugin string, publishers Publishers, logger *slog.Logger) Publishers {
+func makePublishersLogging(publishers Publishers, log *slog.Logger) Publishers {
 	result := make(Publishers)
 	for name, publisher := range publishers {
-		publisher.PublishFunc = makePublisherLogging(plugin, name, *publisher, logger)
+		publisher.PublishFunc = makePublisherLogging(name, *publisher, log)
 		result[name] = publisher
 	}
 	return result
 }
 
-func makePublisherLogging(plugin, name string, publisher Publisher, logger *slog.Logger) PublishFunc {
+func makePublisherLogging(name string, publisher Publisher, log *slog.Logger) PublishFunc {
 	next := publisher.PublishFunc
 	return func(ctx context.Context, params *PublishParams) diagnostics.Diag {
-		logger.DebugContext(ctx, "Executing publisher", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
-			slog.String("publisher", name),
-			slog.String("format", params.Format.String()),
-			slog.Any("config", logDataBlockValue(params.Config)),
-			slog.Any("args", logDataBlockValue(params.Args)),
-			slog.String("document_name", params.DocumentName),
-		))
-		return next(ctx, params)
+		_log := log.With(
+			"publisher", name,
+			// "config", logDataBlockValue(params.Config),
+			// "args", logDataBlockValue(params.Args),
+			"document", params.DocumentName,
+		)
+		if params.FormattedContent != nil {
+			_log = _log.With("format", params.FormattedContent.Format)
+		}
+		_log.DebugContext(ctx, "Executing publisher")
+		err := next(ctx, params)
+		if err != nil {
+			_log.ErrorContext(ctx, "Error received from publisher", "err", err)
+		}
+		return err
 	}
 }
 
-func makeContentProviderLogging(plugin, name string, provider ContentProvider, logger *slog.Logger) ProvideContentFunc {
+func makeFormattersLogging(formatters Formatters, log *slog.Logger) Formatters {
+	result := make(Formatters)
+	for name, formatter := range formatters {
+		formatter.FormatFunc = makeFormatterLogging(name, *formatter, log)
+		result[name] = formatter
+	}
+	return result
+}
+
+func makeFormatterLogging(name string, formatter Formatter, log *slog.Logger) FormatFunc {
+	next := formatter.FormatFunc
+	return func(ctx context.Context, params *FormatParams) (*FormattedContent, diagnostics.Diag) {
+		_log := log.With(
+			"name", name,
+			"format", formatter.Format,
+			// "config", logDataBlockValue(params.Config),
+			// "args", logDataBlockValue(params.Args),
+		)
+		_log.DebugContext(ctx, "Executing formatter")
+		res, err := next(ctx, params)
+		if err != nil {
+			_log.ErrorContext(ctx, "Error received from formatter", "err", err)
+		}
+		return res, err
+	}
+}
+
+func makeContentProviderLogging(name string, provider ContentProvider, log *slog.Logger) ProvideContentFunc {
 	next := provider.ContentFunc
-	return func(ctx context.Context, params *ProvideContentParams) (*ContentResult, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing content provider", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
-			slog.String("provider", name),
-			slog.Any("config", logDataBlockValue(params.Config)),
-			slog.Any("args", logDataBlockValue(params.Args)),
-			slog.Uint64("content_id", uint64(params.ContentID)),
-		))
-		return next(ctx, params)
+	return func(ctx context.Context, params *ProvideContentParams) (*ContentProviderResult, error) {
+		_log := log.With(
+			"content_provider", name,
+			"config", logDataBlockValue(params.Config),
+			"args", logDataBlockValue(params.Args),
+		)
+		_log.DebugContext(ctx, "Executing content provider")
+		res, err := next(ctx, params)
+		if err != nil {
+			if diags, ok := err.(diagnostics.Diag); ok {
+				if diags.HasErrors() {
+					_log.ErrorContext(ctx, "Error received from content provider", "err", diags.Error())
+				}
+				for _, d := range diags {
+					_log.DebugContext(ctx, "Diagnostic received from content provider", "severity", d.Severity, "diag", d)
+				}
+			}
+			return nil, err
+		}
+		return res, nil
 	}
 }
 
-func makeDataSourceLogging(plugin, name string, source DataSource, logger *slog.Logger) RetrieveDataFunc {
+func makeDataSourceLogging(name string, source DataSource, log *slog.Logger) RetrieveDataFunc {
 	next := source.DataFunc
 	return func(ctx context.Context, params *RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
-		logger.DebugContext(ctx, "Executing datasource", "params", slog.GroupValue(
-			slog.String("plugin", plugin),
-			slog.String("datasource", name),
-			slog.Any("config", logDataBlockValue(params.Config)),
-			slog.Any("args", logDataBlockValue(params.Args)),
-		))
-		return next(ctx, params)
+		_log := log.With(
+			"data_source", name,
+			"config", logDataBlockValue(params.Config),
+			"args", logDataBlockValue(params.Args),
+		)
+		_log.DebugContext(ctx, "Executing data source")
+		res, err := next(ctx, params)
+		if err != nil {
+			_log.ErrorContext(ctx, "Error received from data source", "err", err)
+		}
+		return res, err
 	}
 }
 
@@ -121,7 +179,7 @@ func logDataAttr(attr *dataspec.Attr) (val slog.Attr) {
 	} else {
 		val.Value = logCtyValue(attr.Value)
 	}
-	return
+	return val
 }
 
 func logCtyValue(value cty.Value) slog.Value {

@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package pluginapiv1
 
 import (
@@ -6,8 +15,8 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
 func panicToErr(r any) error {
@@ -104,11 +113,11 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 			} else {
 				retVal = cty.StringVal(primitive.Str)
 			}
-			return
+			return retVal, retTy
 		case *Cty_Primitive_Num:
 			if decodeType {
 				retTy = cty.Number
-				return
+				return retVal, retTy
 			}
 			var v big.Float
 			err := v.GobDecode(primitive.Num)
@@ -116,14 +125,14 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 				panic(fmt.Errorf("failed to decode a number: %w", err))
 			}
 			retVal = cty.NumberVal(&v)
-			return
+			return retVal, retTy
 		case *Cty_Primitive_Bln:
 			if decodeType {
 				retTy = cty.Bool
 			} else {
 				retVal = cty.BoolVal(primitive.Bln)
 			}
-			return
+			return retVal, retTy
 		default:
 			panic(fmt.Errorf("unsupported primitive value %T", val))
 		}
@@ -154,7 +163,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 			}
 			retVal = cty.ObjectVal(attrs)
 		}
-		return
+		return retVal, retTy
 	case *Cty_Map:
 		var key string
 		defer func() {
@@ -184,7 +193,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 				} else {
 					retVal = cty.MapValEmpty(elementTy)
 				}
-				return
+				return retVal, retTy
 			}
 			panic("No values received in the map")
 		} else {
@@ -193,7 +202,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 				vals[key], _ = decodeCty(value, decodeType)
 			}
 			retVal = cty.MapVal(vals)
-			return
+			return retVal, retTy
 		}
 	case *Cty_List:
 		vals, types := decodeSequence(data.List, decodeType)
@@ -206,7 +215,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 				retVal = cty.ListVal(vals)
 			}
 		}
-		return
+		return retVal, retTy
 	case *Cty_Set:
 		vals, types := decodeSequence(data.Set, decodeType)
 		if decodeType {
@@ -218,7 +227,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 				retVal = cty.SetVal(vals)
 			}
 		}
-		return
+		return retVal, retTy
 	case *Cty_Tuple:
 		vals, types := decodeSequence(data.Tuple, decodeType)
 		if decodeType {
@@ -226,7 +235,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 		} else {
 			retVal = cty.TupleVal(vals)
 		}
-		return
+		return retVal, retTy
 	case *Cty_Null:
 		ty := data.Null.GetType()
 		if ty == nil {
@@ -238,17 +247,17 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 		} else {
 			retVal = cty.NullVal(ctyTy)
 		}
-		return
+		return retVal, retTy
 	case *Cty_Caps:
 		switch val := data.Caps.GetData().(type) {
 		case *Cty_Capsule_PluginData:
 			if decodeType {
 				retTy = plugindata.Encapsulated.CtyType()
 			} else {
-				pluginData := decodeData(val.PluginData)
+				pluginData := DecodeData(val.PluginData)
 				retVal = plugindata.Encapsulated.ToCty(&pluginData)
 			}
-			return
+			return retVal, retTy
 		default:
 			panic(fmt.Errorf("unsupported encapsulated value %T", val))
 		}
@@ -262,7 +271,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 		}
 		_, ctyTy := decodeCty(ty, true)
 		retVal = cty.UnknownVal(ctyTy)
-		return
+		return retVal, retTy
 	case *Cty_Dyn:
 		if decodeType {
 			retTy = cty.DynamicPseudoType
@@ -271,7 +280,7 @@ func decodeCty(val *Cty, decodeType bool) (retVal cty.Value, retTy cty.Type) {
 			// and would be decoded that way. Keeping for completeness
 			retVal = cty.DynamicVal
 		}
-		return
+		return retVal, retTy
 	default:
 		panic(fmt.Errorf("unsupported Cty %T", data))
 	}

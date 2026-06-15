@@ -1,8 +1,17 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package pluginapiv1
 
 import (
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
 func decodeSchema(src *Schema) (*plugin.Schema, error) {
@@ -13,10 +22,17 @@ func decodeSchema(src *Schema) (*plugin.Schema, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	contentProviders, err := decodeContentProviderSchemaMap(src.GetContentProviders())
 	if err != nil {
 		return nil, err
 	}
+
+	formatters, err := decodeFormatterSchemaMap(src.GetFormatters())
+	if err != nil {
+		return nil, err
+	}
+
 	publishers, err := decodePublisherSchemaMap(src.GetPublishers())
 	if err != nil {
 		return nil, err
@@ -26,6 +42,7 @@ func decodeSchema(src *Schema) (*plugin.Schema, error) {
 		Version:          src.GetVersion(),
 		DataSources:      dataSources,
 		ContentProviders: contentProviders,
+		Formatters:       formatters,
 		Publishers:       publishers,
 		Doc:              src.GetDoc(),
 		Tags:             src.GetTags(),
@@ -90,11 +107,10 @@ func decodeContentProviderSchema(src *ContentProviderSchema) (*plugin.ContentPro
 		return nil, err
 	}
 	return &plugin.ContentProvider{
-		Args:            dataspec.RootSpecFromBlock(args),
-		Config:          dataspec.RootSpecFromBlock(config),
-		InvocationOrder: decodeInvocationOrder(src.GetInvocationOrder()),
-		Doc:             src.GetDoc(),
-		Tags:            src.GetTags(),
+		Args:   dataspec.RootSpecFromBlock(args),
+		Config: dataspec.RootSpecFromBlock(config),
+		Doc:    src.GetDoc(),
+		Tags:   src.GetTags(),
 	}, nil
 }
 
@@ -123,42 +139,43 @@ func decodePublisherSchema(src *PublisherSchema) (*plugin.Publisher, error) {
 		return nil, err
 	}
 	return &plugin.Publisher{
-		Args:           dataspec.RootSpecFromBlock(args),
-		Config:         dataspec.RootSpecFromBlock(config),
-		Doc:            src.GetDoc(),
-		Tags:           src.GetTags(),
-		AllowedFormats: decodeOutputFormats(src.GetAllowedFormats()),
+		Args:    dataspec.RootSpecFromBlock(args),
+		Config:  dataspec.RootSpecFromBlock(config),
+		Doc:     src.GetDoc(),
+		Tags:    src.GetTags(),
+		Formats: src.GetFormats(),
 	}, nil
 }
 
-func decodeOutputFormats(src []OutputFormat) []plugin.OutputFormat {
-	dst := make([]plugin.OutputFormat, len(src))
-	for i, v := range src {
-		dst[i] = decodeOutputFormat(v)
+func decodeFormatterSchemaMap(src map[string]*FormatterSchema) (plugin.Formatters, error) {
+	dst := make(plugin.Formatters, len(src))
+	var err error
+	for k, v := range src {
+		dst[k], err = decodeFormatterSchema(v)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return dst
+	return dst, nil
 }
 
-func decodeInvocationOrder(src InvocationOrder) plugin.InvocationOrder {
-	switch src {
-	case InvocationOrder_INVOCATION_ORDER_BEGIN:
-		return plugin.InvocationOrderBegin
-	case InvocationOrder_INVOCATION_ORDER_END:
-		return plugin.InvocationOrderEnd
-	default:
-		return plugin.InvocationOrderUnspecified
+func decodeFormatterSchema(src *FormatterSchema) (*plugin.Formatter, error) {
+	if src == nil {
+		return nil, nil
 	}
-}
-
-func decodeOutputFormat(src OutputFormat) plugin.OutputFormat {
-	switch src {
-	case OutputFormat_OUTPUT_FORMAT_HTML:
-		return plugin.OutputFormatHTML
-	case OutputFormat_OUTPUT_FORMAT_MD:
-		return plugin.OutputFormatMD
-	case OutputFormat_OUTPUT_FORMAT_PDF:
-		return plugin.OutputFormatPDF
-	default:
-		return plugin.OutputFormatUnspecified
+	args, err := decodeBlockSpec(src.GetArgs())
+	if err != nil {
+		return nil, err
 	}
+	config, err := decodeBlockSpec(src.GetConfig())
+	if err != nil {
+		return nil, err
+	}
+	return &plugin.Formatter{
+		Args:    dataspec.RootSpecFromBlock(args),
+		Config:  dataspec.RootSpecFromBlock(config),
+		Doc:     src.GetDoc(),
+		Format:  src.GetFormat(),
+		FileExt: src.GetFileExt(),
+	}, nil
 }

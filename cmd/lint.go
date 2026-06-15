@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package cmd
 
 import (
@@ -5,9 +14,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/blackstork-io/fabric/engine"
-	"github.com/blackstork-io/fabric/internal/builtin"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/engine"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugins/builtin"
 )
 
 var fullLint bool
@@ -19,14 +28,12 @@ func init() {
 
 var lintCmd = &cobra.Command{
 	Use:   "lint",
-	Short: "Evaluate *.fabric files for syntax mistakes",
+	Short: "Evaluate *.blackstork.hcl files for syntax mistakes",
 	Long:  `Doesn't call plugins, only checks the *.fabric templates for correctness`,
 	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		ctx := cmd.Context()
 		var diags diagnostics.Diag
 		eng := engine.New(
-			engine.WithLogger(slog.Default()),
-			engine.WithTracer(tracer),
 			engine.WithBuiltIn(builtin.Plugin(version, slog.Default(), tracer)),
 		)
 		defer func() {
@@ -34,18 +41,19 @@ var lintCmd = &cobra.Command{
 		}()
 		diag := eng.ParseDir(ctx, cliArgs.sourceDir)
 		if diags.Extend(diag) {
-			return
+			return err
 		}
 		if fullLint {
 			if diags.Extend(eng.LoadPluginResolver(ctx, false)) {
-				return
+				return err
 			}
-			if diags.Extend(eng.LoadPluginRunner(ctx)) {
-				return
+			err := eng.LoadPluginRunner(ctx)
+			if err != nil {
+				return err
 			}
 		}
 		diag = eng.Lint(ctx, fullLint)
 		diags.Extend(diag)
-		return
+		return err
 	},
 }

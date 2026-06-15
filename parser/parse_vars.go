@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package parser
 
 import (
@@ -7,23 +16,23 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/dataspec/deferred"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec/deferred"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
 var varsSpec = &dataspec.AttrSpec{
-	Name: "vars",
+	Name: definitions.BlockKindVars,
 	Type: plugindata.Encapsulated.CtyType(),
 }
 
-func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.Attribute) (parsed *definitions.ParsedVars, diags diagnostics.Diag) {
+func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.Attribute) (parsed *definitions.Vars, diags diagnostics.Diag) {
 	if block == nil && localVar == nil {
-		parsed = &definitions.ParsedVars{}
-		return
+		parsed = &definitions.Vars{}
+		return parsed, diags
 	}
 	if block != nil && localVar != nil {
 		localVarInVars := block.Body.Attributes[definitions.LocalVarName]
@@ -39,19 +48,20 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Local var specified together with vars block",
-				Detail: "It is recommended to use either vars block or local var, not both. " +
-					"You can define a variable `local` in the vars block to achieve the same effect.",
+				Detail: "It's recommended to use either `vars` block or `local_var`, not both at the same time. " +
+					"You can define a variable named `local` in an existing `vars` block if needed.",
 				Subject: localVar.Range().Ptr(),
 			})
 		}
 	}
+
 	var varCount int
 	if block != nil {
 		for _, subBlock := range block.Body.Blocks {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "Unsupported nesting",
-				Detail:   `Vars block does not support nested blocks, did you mean to use nested maps?`,
+				Summary:  "Invalid nested block",
+				Detail:   "`vars` block doesn't support nested blocks.",
 				Subject:  subBlock.Range().Ptr(),
 			})
 		}
@@ -63,7 +73,7 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 		varCount++
 	}
 	ctx = deferred.WithQueryFuncs(ctx)
-	evalCtx := fabctx.GetEvalContext(ctx)
+	evalCtx := appctx.GetEvalContext(ctx)
 	vars := make([]*dataspec.Attr, 0, varCount)
 
 	if block != nil {
@@ -85,13 +95,7 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 			vars = append(vars, val)
 		}
 	}
-	byName := make(map[string]int, len(vars))
-	for i, v := range vars {
-		byName[v.Name] = i
-	}
-	parsed = &definitions.ParsedVars{
-		Variables: vars,
-		ByName:    byName,
-	}
-	return
+	parsed = &definitions.Vars{}
+	parsed.Append(vars...)
+	return parsed, diags
 }

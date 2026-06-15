@@ -1,15 +1,25 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"slices"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin/ast/nodes"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
 type Schema struct {
@@ -19,7 +29,16 @@ type Schema struct {
 	Tags             []string
 	DataSources      DataSources
 	ContentProviders ContentProviders
+	Formatters       Formatters
 	Publishers       Publishers
+}
+
+func (p *Schema) Shortname() string {
+	parts := strings.SplitN(p.Name, "/", 2)
+	if len(parts) == 2 {
+		return parts[1]
+	}
+	return p.Name
 }
 
 func (p *Schema) Validate() diagnostics.Diag {
@@ -50,7 +69,11 @@ func (p *Schema) Validate() diagnostics.Diag {
 	return diags
 }
 
-func (p *Schema) RetrieveData(ctx context.Context, name string, params *RetrieveDataParams) (_ plugindata.Data, diags diagnostics.Diag) {
+func (p *Schema) RetrieveData(
+	ctx context.Context,
+	name string,
+	params *RetrieveDataParams,
+) (_ plugindata.Data, diags diagnostics.Diag) {
 	if p == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -76,7 +99,68 @@ func (p *Schema) RetrieveData(ctx context.Context, name string, params *Retrieve
 	return source.Execute(ctx, params)
 }
 
-func (p *Schema) ProvideContent(ctx context.Context, name string, params *ProvideContentParams) (_ *ContentResult, diags diagnostics.Diag) {
+func (p *Schema) ProvideContent(
+	ctx context.Context,
+	name string,
+	params *ProvideContentParams,
+) (_ *ContentProviderResult, err error) {
+	if p == nil {
+		return nil, errors.New("no schema defined")
+	}
+	if p.ContentProviders == nil {
+		return nil, errors.New("no content providers found")
+	}
+
+	log := appctx.Log(ctx)
+	log = log.With("content_provider", name)
+
+	provider, ok := p.ContentProviders[name]
+	if !ok || provider == nil {
+		return nil, errors.New("content provider not found")
+	}
+
+	result, err := provider.Execute(ctx, params)
+	if err != nil {
+		log.ErrorContext(ctx, "Error while executing content provider", "err", err)
+		return nil, err
+	}
+
+	meta, ok := params.DataContext[MetaDataKey]
+	if ok {
+		metaMap := meta.(plugindata.Map)
+		result.Content.SetMeta(metaMap)
+	}
+
+	// set exec details on the content block
+	execDetails := &ExecDetails{
+		PluginName:    p.Name,
+		PluginVersion: p.Version,
+		Runner:        name,
+	}
+	result.Content.SetExecDetails(execDetails)
+
+	// set block details on the content block
+	blockDetailsData, ok := params.DataContext[BlockDetailsDataKey]
+	if ok {
+		blockDetails, err := ParseBlockDetails(blockDetailsData)
+		if err != nil {
+			log.ErrorContext(ctx, "Error while parsing block details data", "err", err)
+			return nil, err
+		}
+		result.Content.SetBlockDetails(blockDetails)
+	} else {
+		log.ErrorContext(ctx, "No block details found in data context")
+		return nil, errors.New("block details not found")
+	}
+
+	return result, nil
+}
+
+func (p *Schema) Format(
+	ctx context.Context,
+	name string,
+	params *FormatParams,
+) (_ *FormattedContent, diags diagnostics.Diag) {
 	if p == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
@@ -84,31 +168,37 @@ func (p *Schema) ProvideContent(ctx context.Context, name string, params *Provid
 			Detail:   "No schema defined",
 		}}
 	}
-	if p.ContentProviders == nil {
+	if p.Formatters == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "No content providers",
-			Detail:   "No content providers defined in schema",
+			Summary:  "No formatters found",
+			Detail:   "No formatters defined in schema",
 		}}
 	}
-	provider, ok := p.ContentProviders[name]
-	if !ok || provider == nil {
+	formatter, ok := p.Formatters[name]
+	if !ok || formatter == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "Content provider not found",
-			Detail:   fmt.Sprintf("Content provider '%s' not found in schema", name),
+			Summary:  "Formatter not found",
+			Detail:   fmt.Sprintf("Formatter '%s' not found in schema", name),
 		}}
 	}
-	result, diags := provider.Execute(ctx, params)
+
+	result, diags := formatter.Execute(ctx, params)
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	// TODO: set metadata in content provider
-	result.Content.SetMeta(&nodes.ContentMeta{
-		Provider: name,
-		Plugin:   p.Name,
-		Version:  p.Version,
-	})
+
+	meta, ok := params.DataContext["meta"]
+	if ok {
+		result.Meta = meta.(plugindata.Map)
+	}
+
+	result.ExecDetails = &ExecDetails{
+		Runner:        name,
+		PluginName:    p.Name,
+		PluginVersion: p.Version,
+	}
 	return result, diags
 }
 
@@ -123,7 +213,7 @@ func (p *Schema) Publish(ctx context.Context, name string, params *PublishParams
 	if p.Publishers == nil {
 		return diagnostics.Diag{{
 			Severity: hcl.DiagError,
-			Summary:  "No publishers",
+			Summary:  "No publishers found",
 			Detail:   "No publishers defined in schema",
 		}}
 	}
@@ -133,13 +223,6 @@ func (p *Schema) Publish(ctx context.Context, name string, params *PublishParams
 			Severity: hcl.DiagError,
 			Summary:  "Publisher not found",
 			Detail:   fmt.Sprintf("Publisher '%s' not found in schema", name),
-		}}
-	}
-	if !slices.Contains(publisher.AllowedFormats, params.Format) {
-		return diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid format",
-			Detail:   fmt.Sprintf("Publisher '%s' does not support format '%s'", name, params.Format),
 		}}
 	}
 	return publisher.Execute(ctx, params)

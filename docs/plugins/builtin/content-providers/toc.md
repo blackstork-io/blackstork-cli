@@ -2,10 +2,10 @@
 title: "`toc` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Produces table of contents"
+  description: "Renders a list of contents (TOC) from the headers found in a defined scope"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: content-provider
 type: docs
@@ -16,55 +16,48 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "toc" "content provider" >}}
 
 ## Description
+Renders a list of contents (TOC) from the headers found in a defined scope.
 
-Produces table of contents.
+The `toc` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
-Inspects the rendered document for headers of a certain size and creates a linked
-table of contents
+## Configuration
 
+This content provider does not accept any configuration arguments.
 
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+## Usage
 
-
-#### Configuration
-
-The content provider doesn't support any configuration arguments.
-
-#### Usage
-
-The content provider supports the following execution arguments:
+This content provider accepts the following arguments within a `content toc` block:
 
 ```hcl
 content toc {
-  # Largest header size which produces entries in the table of contents
+  # Largest size of the header to be included the table of contents
   #
   # Optional integer.
   # Must be between 0 and 5 (inclusive)
   # Default value:
   start_level = 0
 
-  # Smallest header size which produces entries in the table of contents
+  # Smallest size of the header to be included in the table of contents
   #
   # Optional integer.
   # Must be between 0 and 5 (inclusive)
   # Default value:
   end_level = 2
 
-  # Whether to use ordered list for the contents
+  # Render as ordered list. If `false`, TOC is rendered as unordered list.
   #
   # Optional bool.
   # Default value:
-  ordered = false
+  as_ordered_list = false
 
-  # Scope of the headers to evaluate.
-  #   "document" – look for headers in the whole document
-  #   "section" – look for headers only in the current section
-  #   "auto" – behaves as "section" if the "toc" block is inside of a section; else – behaves as "document"
+  # Scope for TOC to cover:
+  #   "document" – collect headers in the document;
+  #   "current" – collect headers in the current section or in the document, if TOC block is defined on the document's root level;
   #
   # Optional string.
-  # Must be one of: "document", "section", "auto"
+  # Must be one of: "document", "current"
   # Default value:
-  scope = "auto"
+  scope = "current"
 }
 ```
 

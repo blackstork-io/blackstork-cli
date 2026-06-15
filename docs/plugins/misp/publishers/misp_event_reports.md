@@ -5,7 +5,7 @@ plugin:
   description: "Publishes content to misp event reports"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/misp/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/misp/"
 resource:
   type: publisher
 type: docs
@@ -17,32 +17,34 @@ type: docs
 
 ## Installation
 
-To use `misp_event_reports` publisher, you must install the plugin `blackstork/misp`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `misp_event_reports` publisher locally via `blackstork-cli`, you must declare the `blackstork/misp` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/misp" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
-#### Formats
+## Supported Formats
 
-The publisher supports the following document formats:
+This publisher supports the delivery of documents processed by the following formatters:
 
 - `md`
 
-To set the output format, specify it inside `publish` block with `format` argument.
+To specify the format, use the `format` argument inside the `publish` block to reference a specific `format` block or a formatter short name.
 
 
-#### Configuration
+## Configuration
 
-The publisher supports the following configuration arguments:
+This publisher accepts the following configuration arguments within a `config publish misp_event_reports` block:
 
 ```hcl
 config publish misp_event_reports {
@@ -71,12 +73,12 @@ config publish misp_event_reports {
 
 ```
 
-#### Usage
+## Usage
 
-The publisher supports the following execution arguments:
+This publisher accepts the following arguments within a `publish misp_event_reports` block:
 
 ```hcl
-# In addition to the arguments listed, `publish` block accepts `format` argument.
+# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
 
 publish misp_event_reports {
   # Required string.
@@ -102,4 +104,5 @@ publish misp_event_reports {
 }
 
 ```
+
 

@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package eval
 
 import (
@@ -7,107 +16,159 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec/constraint"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
 type PluginPublishAction struct {
 	*PluginAction
 	Publisher *plugin.Publisher
-	Format    plugin.OutputFormat
+	Format    *string
 }
 
-func (block *PluginPublishAction) Publish(ctx context.Context, dataCtx plugindata.Map, documentName string) diagnostics.Diag {
+func (block *PluginPublishAction) Publish(
+	ctx context.Context,
+	dataCtx plugindata.Map,
+	content plugin.Content,
+	formattedContent *plugin.FormattedContent,
+	documentName string,
+) diagnostics.Diag {
 	return block.Publisher.Execute(ctx, &plugin.PublishParams{
-		Config:       block.Config,
-		Args:         block.Args,
-		DataContext:  dataCtx,
-		Format:       block.Format,
-		DocumentName: documentName,
+		Config:           block.Config,
+		Args:             block.Args,
+		DataContext:      dataCtx,
+		DocumentName:     documentName,
+		Content:          content,
+		FormattedContent: formattedContent,
 	})
 }
 
-func LoadPluginPublishAction(ctx context.Context, publishers Publishers, node *definitions.ParsedPlugin) (_ *PluginPublishAction, diags diagnostics.Diag) {
-	p, ok := publishers.Publisher(node.PluginName)
+func LoadPluginPublishAction(
+	ctx context.Context,
+	publishers Publishers,
+	blockDef *definitions.PublishBlock,
+	dataCtx plugindata.Map,
+) (_ *PluginPublishAction, diags diagnostics.Diag) {
+	publisher, ok := publishers.Publisher(blockDef.RunnerName)
 	if !ok {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,
 			Summary:  "Missing publisher",
-			Detail:   fmt.Sprintf("'%s' not found in any plugin", node.PluginName),
+			Detail:   fmt.Sprintf("'%s' not found in any plugin", blockDef.RunnerName),
 		}}
 	}
 	var cfg *dataspec.Block
-	if p.Config != nil {
-		cfg, diags = node.Config.ParseConfig(ctx, p.Config)
+	if publisher.Config != nil && blockDef.Config != nil {
+		cfg, diags = blockDef.Config.ParseConfig(ctx, publisher.Config)
 		if diags.HasErrors() {
 			return nil, diags
 		}
-	} else if node.Config.Exists() {
+	} else if publisher.Config != nil && blockDef.Config == nil {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "No configuration provided for publish block",
+			Detail: fmt.Sprintf(
+				"Publish block for publisher `%s` requires configuration but none was found.",
+				blockDef.RunnerName,
+			),
+			Context: blockDef.Source.Block.Range().Ptr(),
+		})
+	} else if publisher.Config == nil && blockDef.Config != nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Publisher doesn't support configuration",
-			Detail: fmt.Sprintf("Publisher '%s' does not support configuration, "+
-				"but was provided with one. Remove it.", node.PluginName),
-			Subject: node.Config.Range().Ptr(),
-			Context: node.Invocation.Range().Ptr(),
+			Detail: fmt.Sprintf(
+				"Publisher '%s' doesn't support configuration, but one was provided.",
+				blockDef.RunnerName,
+			),
+			Context: blockDef.Source.Block.Range().Ptr(),
+		})
+	}
+
+	var format *string
+	formatAttr, found := utils.Pop(blockDef.Source.Block.Body.Attributes, "format")
+
+	if found && len(publisher.Formats) > 0 {
+		val, diag := dataspec.DecodeAttr(appctx.GetEvalContext(ctx), formatAttr, &dataspec.AttrSpec{
+			Name:        "format",
+			Type:        cty.String,
+			Constraints: constraint.RequiredMeaningful,
+			// FIXME: how does it work with an empty Formats list?
+			OneOf: constraint.OneOf(
+				utils.FnMap(publisher.Formats, func(f string) cty.Value {
+					return cty.StringVal(f)
+				}),
+			),
+		})
+		if diags.Extend(diag) {
+			return nil, diags
+		}
+		formatStr := val.Value.AsString()
+		format = &formatStr
+	} else if found && len(publisher.Formats) == 0 {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Publisher doesn't support format specification",
+			Detail: fmt.Sprintf(
+				"Publisher '%s' does not support format specification, but was provided with one.",
+				blockDef.RunnerName,
+			),
+			Subject: blockDef.Config.Range().Ptr(),
+			Context: blockDef.Source.Block.Range().Ptr(),
+		})
+	} else if !found && len(publisher.Formats) > 0 {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "No format specified for publisher",
+			Detail:   fmt.Sprintf("Format value must be set for the publisher '%s'", blockDef.RunnerName),
+			Subject:  blockDef.Config.Range().Ptr(),
+			Context:  blockDef.Source.Block.Range().Ptr(),
 		})
 		return nil, diags
 	}
 
-	var format plugin.OutputFormat
-	// XXX: So format is optional? Not including format in invocation doesn't validate it
-	// anyway, this would change with the new AST
-	if attr, found := utils.Pop(node.Invocation.Body.Attributes, "format"); found {
-		val, diag := dataspec.DecodeAttr(fabctx.GetEvalContext(ctx), attr, &dataspec.AttrSpec{
-			Name:        "format",
-			Type:        cty.String,
-			Constraints: constraint.RequiredMeaningful,
-			OneOf: constraint.OneOf(utils.FnMap(p.AllowedFormats, func(f plugin.OutputFormat) cty.Value {
-				return cty.StringVal(f.String())
-			})),
-		})
-
-		if diags.Extend(diag) {
-			return
-		}
-		formatStr := val.Value.AsString()
-		switch formatStr {
-		case plugin.OutputFormatMD.String():
-			format = plugin.OutputFormatMD
-		case plugin.OutputFormatHTML.String():
-			format = plugin.OutputFormatHTML
-		case plugin.OutputFormatPDF.String():
-			format = plugin.OutputFormatPDF
-		default:
-			diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid format",
-				Detail:   fmt.Sprintf("'%s' is not a valid format", formatStr),
-				Subject:  &attr.SrcRange,
-			})
-			return
-		}
-	}
-
-	args, diag := dataspec.DecodeAndEvalBlock(ctx, node.Invocation.Block, p.Args, nil)
+	args, diag := dataspec.DecodeAndEvalBlock(ctx, blockDef.Source.Block, publisher.Args, dataCtx)
 	if diags.Extend(diag) {
 		return nil, diags
 	}
 	return &PluginPublishAction{
 		PluginAction: &PluginAction{
-			PluginName: node.PluginName,
-			BlockName:  node.BlockName,
-			Meta:       node.Meta,
+			RunnerName: blockDef.RunnerName,
+			BlockName:  blockDef.BlockName,
+			meta:       blockDef.Meta,
 			Config:     cfg,
 			Args:       args,
 		},
-		Publisher: p,
+		Publisher: publisher,
 		Format:    format,
 	}, diags
+}
+
+func LoadStdoutPluginPublishAction(ctx context.Context, publishers Publishers, format string) (_ *PluginPublishAction, diags diagnostics.Diag) {
+	publisherName := "stdout"
+	blockName := "default-stdout"
+
+	publisher, ok := publishers.Publisher(publisherName)
+	if !ok {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Missing publisher",
+			Detail:   fmt.Sprintf("Publisher `%s` not found in the installed plugins", publisherName),
+		}}
+	}
+
+	return &PluginPublishAction{
+		PluginAction: &PluginAction{
+			RunnerName: publisherName,
+			BlockName:  blockName,
+		},
+		Publisher: publisher,
+		Format:    &format,
+	}, nil
 }

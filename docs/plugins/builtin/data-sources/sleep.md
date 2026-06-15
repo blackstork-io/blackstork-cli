@@ -5,7 +5,7 @@ plugin:
   description: "Sleeps for the specified duration. Useful for testing and debugging"
   tags: ["debug"]
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: data-source
 type: docs
@@ -20,15 +20,16 @@ type: docs
 Sleeps for the specified duration. Useful for testing and debugging.
 
 
-The data source is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `sleep` data source is built into the BlackStork engine. It is available out-of-the-box
+and requires no installation or dependency declaration.
 
 ## Configuration
 
-The data source doesn't support any configuration arguments.
+This data source does not accept any configuration arguments.
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data sleep` block:
 
 ```hcl
 data sleep {

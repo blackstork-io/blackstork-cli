@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
@@ -6,9 +15,9 @@ package pluginapi.v1;
 
 message Data {
     oneof data {
-        string string_val = 1;
-        double number_val = 2;
-        bool   bool_val   = 3;
+        string     string_val = 1;
+        double     number_val = 2;
+        bool       bool_val   = 3;
         ListData   list_val   = 4;
         MapData    map_val    = 5;
         google.protobuf.Timestamp time_val = 6;

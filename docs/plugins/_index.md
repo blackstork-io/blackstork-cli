@@ -1,34 +1,54 @@
 ---
 title: Plugins
-description: Discover the power of Fabric plugins, which implement various data sources and content providers to enhance your templating experience. Data sources enable loading data from files, external services, APIs, or data storage, while content providers render document content locally or via external APIs, supporting text, tables, graphs, code, and more.
+description: Overview of the BlackStork plugin ecosystem. Learn how to declare dependencies, install integrations, and extend the engine's capabilities.
 type: docs
 weight: 50
 ---
 
 # Plugins
 
-## Data sources, content providers and publishers
+Plugins extend the core capabilities of the BlackStork engine. They are packaged integrations that allow your templates to interact with external APIs, create specific types of content and output different file formats.
+
+A single plugin typically provides a combination of the following components:
 
 Fabric plugins implement various [data sources]({{< ref "data-sources.md" >}}), [content providers]({{< ref "content-providers.md" >}}) and [publishers]({{< ref "publishers.md" >}}):
 
-- **data sources** are integrations responsible for loading data from local or external sources:
-  files, external services and API, databases or cloud storage solutions.
-- **content providers** render the content locally or with external API (like LLM). The providers
-  produce various types of content: text, tables, graphs, code, etc.
-- **publishers** are outgoing integrations that deliver rendered document to local or external
-  destinations, for storage or dissemination.
+- **[Data sources]({{< ref "data-sources.md" >}})**: integrations to query structured data from external security tools, databases, or local files.
+- **[Content providers]({{< ref "content-providers.md" >}})**: renderers that generate text, tables, and charts locally, or via external APIs (such as LLMs).
+- **[Formatters]({{< ref "formatters.md" >}})**: specifications that compile the evaluated document into final file formats (Markdown, HTML, PDF).
+- **[Publishers]({{< ref "publishers.md" >}})**: outgoing integrations that route and save rendered documents to external destinations.
 
 ## Dependencies
 
-The global configuration must include all required plugins (see [Global configuration]({{< ref "../language/configs.md/#global-configuration" >}})). A plugin name consists of a namespace (usually a vendor's name) and a short name. For example, [`blackstork/elastic`]({{< ref "./elastic/" >}}) plugin (built by BlackStork) implements [Elasticsearch data source]({{< ref "./elastic/data-sources/elasticsearch" >}}).
+To use a plugin's components in your templates, you must declare the plugin as a dependency in your global configuration block (see [Global configuration]({{< ref "../language/configs.md/#global-configuration" >}})).
+A plugin identifier consists of a namespace (the author or vendor) and a short name. 
+
+For example, the [`blackstork/elastic`]({{< ref "./elastic/" >}}) plugin provides the [Elasticsearch data source]({{< ref "./elastic/data-sources/elasticsearch" >}}).
+
+Specify the required plugins and their version constraints within the `blackstork` block at the root of your configuration:
+
+```hcl
+blackstork {
+  plugin_versions = {
+    "blackstork/elastic" = ">= 0.4.0"
+    "blackstork/openai"  = "~> 0.3.1"
+  }
+}
+```
 
 ## Installation
 
-Plugin releases are independent from Fabric releases and have their own release cycle and version.
-You can find a list of plugins released by BlackStork at the [Releases page](https://github.com/blackstork-io/fabric/releases)
-in Fabric GitHub repository.
+Plugin releases are maintained independently from the core BlackStork engine and follow their own versioning lifecycles.
 
-To automatically download and install required plugins, use `fabric install` command. See [Installing plugins]({{< ref "../install.md#installing-plugins" >}}) for more details.
+If you are using the BlackStork SaaS platform, plugin dependencies are resolved automatically by the web engine.
+
+If you are executing builds locally or in a CI/CD pipeline, use the CLI to resolve and download your
+declared dependencies. Running the install command fetches the required plugins from the registry
+and places them in your local `.blackstork/` directory:
+
+```bash
+blackstork-cli install
+```
 
 ## Available plugins
 

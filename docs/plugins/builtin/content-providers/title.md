@@ -2,10 +2,10 @@
 title: "`title` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Produces a title"
+  description: "Produces a heading block"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: content-provider
 type: docs
@@ -17,22 +17,21 @@ type: docs
 
 ## Description
 
-Produces a title.
+Produces a heading block.
 
-The title size after calculations must be in an interval [0; 5] inclusive, where 0
-corresponds to the largest size (`<h1>`) and 5 corresponds to (`<h6>`)
-
-
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The title size after calculations must be in an interval [1; 6] inclusive, where 1
+corresponds to the largest size (`<h1>`) and 6 corresponds to (`<h6>`)
 
 
-#### Configuration
+The `title` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
-The content provider doesn't support any configuration arguments.
+## Configuration
 
-#### Usage
+This content provider does not accept any configuration arguments.
 
-The content provider supports the following execution arguments:
+## Usage
+
+This content provider accepts the following arguments within a `content title` block:
 
 ```hcl
 content title {
@@ -43,15 +42,13 @@ content title {
   # For example:
   value = "Vulnerability Report"
 
-  # Sets the absolute size of the title.
-  # If `null` – absoulute title size is determined from the document structure
+  # Sets the absolute size of the title. If `null` – absoulute title size is determined from the document structure.
   #
   # Optional integer.
   # Default value:
   absolute_size = null
 
-  # Adjusts the absolute size of the title.
-  # The value (which may be negative) is added to the `absolute_size` to produce the final title size
+  # Adjusts absolute size of the title. The value (which may be negative) is added to the `absolute_size` to produce the final title size.
   #
   # Optional integer.
   # Default value:

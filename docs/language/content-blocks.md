@@ -1,79 +1,73 @@
 ---
 title: Content Blocks
-description: Learn how to use Fabric content blocks efficiently for building modular and reusable document templates.
+description: Use content blocks to process structured data into text, tables, and AI-generated narratives within your BlackStork templates.
 type: docs
 weight: 60
 ---
+
 # Content blocks
 
-`content` blocks define document segments: text paragraphs, tables, graphs, lists, etc.
+The `content` block defines the specific segments of your report, such as text paragraphs, tables, charts, or lists. 
 
-The block signature includes the name of the content provider that will execute the content block.
+The engine renders `content` blocks in the exact order they are declared within the template, establishing the flow of your final document.
+
+The block signature requires the name of the content provider that will execute the block.
+
 
 ```hcl
-# Root-level definition of a content block
-content <content-provider-name> "<block-name>" {
+# Root-level named content block
+content <content-provider> "<block-name>" {
   # ...
 }
 
 document "foobar" {
 
-  # In-document named definition of a content block
-  content <content-provider-name> "<block-name>" {
+  # In-document named content block
+  content <content-provider> "<block-name>" {
     # ...
   }
 
-  # In-document anonymous definition of a content block
-  content <content-provider-name> {
+  # In-document anonymous content block
+  content <content-provider> {
     # ...
   }
 
 }
 ```
 
-The order of the `content` blocks in the template determines the order of the generated content in
-the document.
+If you define a `content` block at the root level of the file (outside of a `document` or `section` block), you must provide a block name. The combination of block type (`content`), provider name, and block name creates a unique identifier allowing you to reference the block elsewhere.
 
-If the block is at the root level of the file, outside of the `document` block, both names –
-the content provider name and the block name – are required. A combination of block type `content`,
-content provider name, and block name serves as a unique identifier of a block within the codebase.
+If you define the block directly within a `document` or `section`, the block name is optional.
 
-If the content block is defined within the document template, only a content provider name is
-required and a block name is optional.
-
-A content block is rendered by a specified content provider. See [Content Providers]({{< ref
-"content-providers.md" >}}) for the list of the content providers supported by Fabric.
+Refer to [Content Providers]({{< ref "content-providers.md" >}}) for a complete list of supported rendering providers.
 
 ## Supported arguments
 
-The arguments provided in the block are either generic arguments or provider-specific arguments.
+A `content` block accepts both generic arguments and arguments specific to the selected content provider.
 
 ### Generic arguments
 
-- `config`: (optional) a reference to a named configuration block for the content provider. If
-  provided, it takes precedence over the default configuration. See content provider
-  [configuration details]({{< ref "configs.md#block-configuration" >}}) for more information.
-- `local_var`: (optional) a shortcut for specifying a local variable. See [Variables]({{< ref
-  "context.md#variables" >}}) for the details.
+- `config`: (optional) A string referencing a named `config` block. If provided, the engine uses this configuration instead of the default configuration for the provider. See [Block configuration]({{< ref "configs.md#block-configuration" >}}) for details.
+- `local_var`: (optional) A shortcut to define a single local variable named `local` within the block's scope. See [Local variable]({{< ref "context.md#local-variable" >}}).
 
 ### Content provider arguments
 
-Content provider arguments differ per content provider. See the documentation for a specific content provider (find it in [Content Providers]({{< ref "content-providers.md" >}}) documentation) for the details on the supported arguments.
+Arguments determining what the block renders (such as template strings, prompts, or array mappings) depend strictly on the content provider. Refer to the specific [Content Providers]({{< ref "content-providers.md" >}}) documentation for the supported arguments.
 
-## Supported nested blocks
+## Supported blocks
 
-- `meta`: (optional) a block containing metadata for the block. See [Metadata]({{< ref "configs.md#metadata" >}}) for details.
-- `config`: (optional) an inline configuration for the block. If provided, it takes precedence over the `config` argument and default configuration for the content provider.
-- `vars`: (optional) a block with variable definitions. See [Variables]({{< ref
-  "context.md#variables" >}}) for the details.
+- `meta`: (optional) Defines metadata for the content block. See [Metadata]({{< ref "configs.md#metadata" >}}).
+- `config`: (optional) Defines an inline configuration for the block. If provided, this block takes highest precedence, overriding both the `config` argument and the default configuration for the content provider.
+- `vars`: (optional) Defines variables within the scope of the content block. The engine evaluates these variables before executing the provider, allowing you to manipulate context data before injecting it into the content. See [Variables]({{< ref "context.md#variables" >}}).
 
 ## References
 
-See [References]({{< ref references.md >}}) for the details about referencing content blocks.
+You can reuse a content block defined elsewhere in your configuration by using a `ref` block. See [References]({{< ref "references.md" >}}) for details.
 
 ## Example
 
 ```hcl
+# Named configuration for a specific OpenAI account
 config content openai_text "test_account" {
   # Reading a key from an environment variable
   api_key = env.OPENAI_API_KEY
@@ -86,16 +80,18 @@ document "test-doc" {
   }
 
   content text {
-    # Query contains a JQ query executed against the context
+    # Extract the length of the array into a local variable using JQ
     local_var = query_jq(".vars.items | length")
 
-    # The context can be accessed in Go templates
+    # Inject variables directly into the Markdown string using Go templates
     value = "There are {{ .vars.local }} items: {{ .vars.items | toPrettyJson }}"
   }
 
   content openai_text {
+    # Reference the explicit configuration block defined above
     config = config.content.openai_text.test_account
 
+    # Pass the context variable into the LLM prompt
     prompt = <<-EOT
        Write a short story, just a paragraph, about space exploration
        using the values from the provided items list as character names:
@@ -106,7 +102,7 @@ document "test-doc" {
 }
 ```
 
-produces the following output:
+The engine processes the static text block and queries the OpenAI API for the second block, producing the following output:
 
 ```text
 There are 3 items: [
@@ -115,15 +111,9 @@ There are 3 items: [
   "ccc"
 ]
 
-In the vast expanse of outer space, aaa, bbb, and ccc embarked on a daring mission of exploration.
-Their spaceship soared through the galaxies, encountering unknown planets and celestial bodies. With
-aaa's courage leading the way, bbb's wisdom guiding their decisions, and ccc's ingenuity solving the
-complex challenges they faced, the trio delved deeper into the mysteries of the cosmos. Together,
-they pushed the boundaries of what was thought possible, and with each discovery, their bond grew
-stronger. In the endless sea of stars, they found not only the wonders of the universe but also the
-strength of their friendship.
+In the vast expanse of outer space, aaa, bbb, and ccc embarked on a daring mission of exploration. Their spaceship soared through the galaxies, encountering unknown planets and celestial bodies. With aaa's courage leading the way, bbb's wisdom guiding their decisions, and ccc's ingenuity solving the complex challenges they faced, the trio delved deeper into the mysteries of the cosmos.
 ```
 
 ## Next steps
 
-See [Section Blocks]({{< ref "section-blocks.md" >}}) documentation to learn how to group the content into the sections for better maintainability and re-usability.
+See [Section Blocks]({{< ref "section-blocks.md" >}}) to learn how to organize content blocks into logical chapters and iterate over data arrays.

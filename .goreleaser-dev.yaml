@@ -1,8 +1,17 @@
+# Copyright 2026 BlackStork BV
+#
+# Use of this software is governed by the Business Source License included in the
+# file LICENSE and at www.mariadb.com/bsl11.
+#
+# As of the Change Date specified in that file, in accordance with the Business
+# Source License, use of this software will be governed by the Apache License,
+# Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 
 version: 2
 
-project_name: fabric
+project_name: blackstork-cli
 
 env:
   - CGO_ENABLED=0
@@ -12,166 +21,184 @@ snapshot:
 
 builds:
   # CLI
-  - id: fabric
+  - id: blackstork-cli
     main: .
-    binary: fabric
+    binary: blackstork-cli
     ldflags:
-      - -X github.com/blackstork-io/fabric/cmd.version={{.Version}}
-      - -X github.com/blackstork-io/fabric/cmd.builtBy=goreleaser
+      - -X github.com/blackstork-io/blackstork-cli/cmd.version={{.Version}}
+      - -X github.com/blackstork-io/blackstork-cli/cmd.builtBy=goreleaser
     gcflags: all=-N -l
     no_unique_dist_dir: true
 
   # Plugins
 
   - id: elastic
-    main: ./internal/elastic/cmd
+    main: ./plugins/elastic/cmd
     binary: "plugins/blackstork/elastic@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
+
+  - id: eclecticiq
+    main: ./plugins/eclecticiq/cmd
+    binary: "plugins/blackstork/eclecticiq@{{ .Version }}"
+    ldflags: "-X main.version={{.Version}}"
+    gcflags: all=-N -l
+    no_unique_dist_dir: true
+    tags:
+      - blackstorkplugin
 
   - id: github
-    main: ./internal/github/cmd
+    main: ./plugins/github/cmd
     binary: "plugins/blackstork/github@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: graphql
-    main: ./internal/graphql/cmd
+    main: ./plugins/graphql/cmd
     binary: "plugins/blackstork/graphql@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: openai
-    main: ./internal/openai/cmd
+    main: ./plugins/openai/cmd
     binary: "plugins/blackstork/openai@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: opencti
-    main: ./internal/opencti/cmd
+    main: ./plugins/opencti/cmd
     binary: "plugins/blackstork/opencti@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: nistnvd
-    main: ./internal/nistnvd/cmd
+    main: ./plugins/nistnvd/cmd
     binary: "plugins/blackstork/nist_nvd@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: postgresql
-    main: ./internal/postgresql/cmd
+    main: ./plugins/postgresql/cmd
     binary: "plugins/blackstork/postgresql@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: sqlite
-    main: ./internal/sqlite/cmd
+    main: ./plugins/sqlite/cmd
     binary: "plugins/blackstork/sqlite@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: terraform
-    main: ./internal/terraform/cmd
+    main: ./plugins/terraform/cmd
     binary: "plugins/blackstork/terraform@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: hackerone
-    main: ./internal/hackerone/cmd
+    main: ./plugins/hackerone/cmd
     binary: "plugins/blackstork/hackerone@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: virustotal
-    main: ./internal/virustotal/cmd
+    main: ./plugins/virustotal/cmd
     binary: "plugins/blackstork/virustotal@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: splunk
-    main: ./internal/splunk/cmd
+    main: ./plugins/splunk/cmd
     binary: "plugins/blackstork/splunk@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: stixview
-    main: ./internal/stixview/cmd
+    main: ./plugins/stixview/cmd
     binary: "plugins/blackstork/stixview@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: snyk
-    main: ./internal/snyk/cmd
+    main: ./plugins/snyk/cmd
     binary: "plugins/blackstork/snyk@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: microsoft
-    main: ./internal/microsoft/cmd
+    main: ./plugins/microsoft/cmd
     binary: "plugins/blackstork/microsoft@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: iris
-    main: ./internal/iris/cmd
+    main: ./plugins/iris/cmd
     binary: "plugins/blackstork/iris@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
 
   - id: atlassian
-    main: ./internal/atlassian/cmd
+    main: ./plugins/atlassian/cmd
     binary: "plugins/blackstork/atlassian@{{ .Version }}"
     ldflags: "-X main.version={{.Version}}"
     gcflags: all=-N -l
     no_unique_dist_dir: true
     tags:
-      - fabricplugin
+      - blackstorkplugin
+
+  - id: MISP
+    main: ./plugins/misp/cmd
+    binary: "plugins/blackstork/misp@{{ .Version }}"
+    ldflags: "-X main.version={{.Version}}"
+    gcflags: all=-N -l
+    no_unique_dist_dir: true
+    tags:
+      - blackstorkplugin

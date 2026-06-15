@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugintest
 
 import (
@@ -9,11 +18,11 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics/diagtest"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
 // TestDecoder is a helper for testing block decoding.
@@ -123,14 +132,14 @@ func (td *TestDecoder) Decode(asserts ...[]diagtest.Assert) (val *dataspec.Block
 	td.t.Helper()
 	val, fm, diags := td.DecodeDiagFiles()
 	diagtest.Asserts.AssertMatch(asserts, td.t, diags, fm)
-	return
+	return val
 }
 
 // Decodes the block and returns diagnostics.
 func (td *TestDecoder) DecodeDiag() (val *dataspec.Block, diags diagnostics.Diag) {
 	td.t.Helper()
 	val, _, diags = td.DecodeDiagFiles()
-	return
+	return val, diags
 }
 
 func (td *TestDecoder) DecodeDiagFiles() (val *dataspec.Block, fm map[string]*hcl.File, diags diagnostics.Diag) {
@@ -148,15 +157,15 @@ func (td *TestDecoder) DecodeDiagFiles() (val *dataspec.Block, fm map[string]*hc
 
 	f, diag := hclsyntax.ParseConfig(data, filename, hcl.InitialPos)
 	if diags.Extend(diag) {
-		return
+		return val, fm, diags
 	}
 	fm[filename] = f
 	if td.evalCtx == nil {
-		td.evalCtx = fabctx.GetEvalContext(td.ctx)
+		td.evalCtx = appctx.GetEvalContext(td.ctx)
 	}
 	val, dgs := dataspec.DecodeAndEvalBlock(td.ctx, f.Body.(*hclsyntax.Body).Blocks[0], td.spec, td.dataCtx)
 	if diags.Extend(dgs) {
-		return
+		return val, fm, diags
 	}
-	return
+	return val, fm, diags
 }

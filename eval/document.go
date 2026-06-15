@@ -1,123 +1,290 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package eval
 
 import (
 	"context"
-	"log/slog"
-	"slices"
+	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/plugin"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
 type Document struct {
-	Source        *definitions.Document
-	Meta          *definitions.MetaBlock
-	Vars          *definitions.ParsedVars
-	RequiredVars  []string
-	DataBlocks    []*PluginDataAction
-	ContentBlocks []*Content
+	Source *definitions.Document
+	meta   *definitions.MetaBlock
+
+	Inputs []*definitions.InputBlock
+
+	Vars         *definitions.Vars
+	RequiredVars []string
+	DataBlocks   []*PluginDataAction
+
+	Title             ContentTreeEvalBlock
+	ContentTreeBlocks []ContentTreeEvalBlock
+
 	PublishBlocks []*PluginPublishAction
+	FormatBlocks  []*PluginFormatAction
+
+	DefaultPublish *PluginPublishAction
+	DefaultFormat  *PluginFormatAction
 }
 
-func (doc *Document) FetchData(ctx context.Context) (plugindata.Data, diagnostics.Diag) {
-	evaluator := makeAsyncDataEvaluator(ctx, doc, slog.Default())
-	return evaluator.Execute()
+func (doc *Document) FetchData(ctx context.Context) (plugindata.Map, diagnostics.Diag) {
+	return executeDataBlocksAsync(ctx, doc, nil)
 }
 
 func (doc *Document) FetchDataWithPath(ctx context.Context, path []string) (plugindata.Data, diagnostics.Diag) {
-	evaluator := makeAsyncDataEvaluatorWithPath(ctx, doc, path, slog.Default())
-	return evaluator.Execute()
+	return executeDataBlocksAsync(ctx, doc, path)
 }
 
-func filterChildrenByTags(children []*Content, requiredTags []string) []*Content {
-	return slices.DeleteFunc(children, func(child *Content) bool {
-		switch {
-		case child.Plugin != nil:
-			return !child.Plugin.Meta.MatchesTags(requiredTags)
-		case child.Section != nil:
-			if child.Section.meta.MatchesTags(requiredTags) {
-				return false
+func (doc *Document) GetTemplateName() string {
+	return doc.Source.Source.Name
+}
+
+func (doc *Document) GetName() string {
+	return fmt.Sprintf("%s.%s", definitions.BlockKindDocument, doc.GetTemplateName())
+}
+
+func (doc *Document) Meta() plugindata.Map {
+	if doc.meta == nil {
+		return plugindata.Map{}
+	}
+	return doc.meta.AsPluginData()
+}
+
+func GetFrame(block ContentTreeEvalBlock) *FrameNode {
+	node := &FrameNode{
+		ID:  block.ID(),
+		Key: block.EvalKey(),
+	}
+
+	switch block := block.(type) {
+	case *PluginContentAction:
+	case *Section:
+		if block.title != nil {
+			node.Title = GetFrame(block.title)
+		}
+	case *Dynamic:
+	default:
+	}
+	return node
+}
+
+func (doc *Document) GetFrame() *DocFrame {
+	var title *FrameNode
+	if doc.Title != nil {
+		title = GetFrame(doc.Title)
+	}
+
+	children := []*FrameNode{}
+	for _, block := range doc.ContentTreeBlocks {
+		if utils.IsNil(block) {
+			panic("GOT TYPED NIL :(")
+		}
+		children = append(children, GetFrame(block))
+	}
+
+	return &DocFrame{
+		Title:    title,
+		Children: children,
+	}
+}
+
+func (doc *Document) RenderContent(
+	ctx context.Context,
+	dataCtx plugindata.Map,
+	requiredTags []string,
+) (*plugin.ContentSection, plugindata.Map, diagnostics.Diag) {
+	log := appctx.Log(ctx)
+	log.InfoContext(ctx, "Processing document template")
+
+	// Eval and add `vars` and other keys to `dataCtx`
+	diag := applyBlockDataToDataCtx(
+		ctx,
+		"document",
+		doc.GetTemplateName(),
+		definitions.BlockKindDocument,
+		doc.Vars,
+		doc.RequiredVars,
+		doc.Meta(),
+		"",
+		0,
+		dataCtx,
+	)
+	if diag.HasErrors() {
+		log.ErrorContext(ctx, "Error while applying data to the context", "err", diag.Error())
+		return nil, nil, diag
+	}
+
+	log.DebugContext(ctx, "Executing content blocks")
+
+	result, diag := executeContentBlocksAsync(ctx, doc, requiredTags, dataCtx)
+	if diag.HasErrors() {
+		return nil, nil, diag
+	}
+
+	log.DebugContext(ctx, "Post-processing content blocks")
+
+	// Post-process to fill in unique blocks, like TOC
+	result, err := postExecProcessContentBlocks(ctx, result)
+	if err != nil {
+		diag.AppendErr(err, "Error while post-processing content blocks")
+		return nil, nil, diag
+	}
+
+	return result, dataCtx, nil
+}
+
+func (doc *Document) FormatContent(
+	ctx context.Context,
+	content *plugin.ContentSection,
+	data plugindata.Map,
+) (formattedContentMap map[string]*plugin.FormattedContent, diags diagnostics.Diag) {
+	log := appctx.Log(ctx)
+
+	// Collecting all required formats from publish blocks
+	formatters := map[string]*PluginFormatAction{}
+
+	for _, block := range doc.PublishBlocks {
+
+		if block.Format == nil {
+			continue
+		}
+
+		format := *block.Format
+		if _, ok := formatters[format]; ok {
+			// already registered
+			continue
+		}
+
+		// FIXME: we randomly pick any format from supported, which is not good
+		// there should be a way to specify exact formatter name in a publish block
+		var formatBlock *PluginFormatAction
+		for _, fb := range doc.FormatBlocks {
+			if fb.RunnerName == format {
+				formatBlock = fb
+				break
 			}
-			child.Section.children = filterChildrenByTags(child.Section.children, requiredTags)
-			return len(child.Section.children) == 0
 		}
-		return false
-	})
-}
 
-func (doc *Document) RenderContent(ctx context.Context, docDataCtx plugindata.Map, requiredTags []string) (*plugin.ContentSection, plugindata.Data, diagnostics.Diag) {
-	logger := slog.Default()
-	logger.WarnContext(ctx, "Render content for the document template", "document", doc.Source.Name)
-	data, diags := doc.FetchData(ctx)
+		if formatBlock == nil && format == doc.DefaultFormat.Formatter.Format {
+			formatBlock = doc.DefaultFormat
+			doc.FormatBlocks = append(doc.FormatBlocks, formatBlock)
+			log.InfoContext(ctx, "Registering default formatter", "formatter", formatBlock.RunnerName)
+		}
+
+		if formatBlock == nil {
+			diags.Extend(diagnostics.Diag{{
+				Severity: hcl.DiagError,
+				Summary:  "Formatter required by publisher not found",
+				Detail: fmt.Sprintf(
+					"Definition block for `%s` format required by `%s` publisher not found",
+					format,
+					block.RunnerName,
+				),
+			}})
+			continue
+		}
+
+		formatters[format] = formatBlock
+	}
+
 	if diags.HasErrors() {
-		return nil, nil, diags
-	}
-	docData := plugindata.Map{}
-	if doc.Meta != nil {
-		docData[definitions.BlockKindMeta] = doc.Meta.AsPluginData()
-	}
-	// static portion of the data context for this document
-	// will never change, all changes are made to the clone of this map
-	docDataCtx[definitions.BlockKindData] = data
-	docDataCtx[definitions.BlockKindDocument] = docData
-
-	diag := ApplyVars(ctx, doc.Vars, docDataCtx)
-
-	if diags.Extend(diag) {
-		return nil, nil, diags
+		return formattedContentMap, diags
 	}
 
-	// verify required vars
-	if len(doc.RequiredVars) > 0 {
-		diag = verifyRequiredVars(docDataCtx, doc.RequiredVars, doc.Source.Block)
+	contentData := content.AsData()
+
+	// prepare data for the formatter
+	docData := plugindata.Map{
+		definitions.BlockKindContent: contentData,
+		definitions.BlockKindMeta:    doc.Meta(),
+	}
+	data[definitions.BlockKindDocument] = docData
+
+	formattedContentMap = map[string]*plugin.FormattedContent{}
+	for format, formatter := range formatters {
+		formattedContent, diag := formatter.Execute(ctx, data, contentData)
 		if diags.Extend(diag) {
-			return nil, nil, diags
+			// do not return but collect all errors
+			continue
 		}
+		formattedContentMap[format] = formattedContent
 	}
 
-	// evaluate/expand dynamic blocks
-	children, diag := UnwrapDynamicContent(ctx, doc.ContentBlocks, docDataCtx)
-	if diags.Extend(diag) {
-		return nil, nil, diags
-	}
-	// filter out content blocks that do not match tags
-	if !doc.Meta.MatchesTags(requiredTags) {
-		children = filterChildrenByTags(children, requiredTags)
-	}
-
-	evaluator, diag := makeAsyncContentEvaluator(ctx, children, docDataCtx)
-	if diags.Extend(diag) {
-		return nil, nil, diags
-	}
-
-	result, diag := evaluator.Execute(docDataCtx)
-	if diags.Extend(diag) {
-		return nil, nil, diags
-	}
-
-	return result, docDataCtx, diags
+	return formattedContentMap, diags
 }
 
-func (doc *Document) Publish(ctx context.Context, content plugin.Content, data plugindata.Data, documentName string) diagnostics.Diag {
-	logger := *slog.Default()
-	logger.DebugContext(ctx, "Fetching data for the document template")
+func (doc *Document) Publish(
+	ctx context.Context,
+	content plugin.Content,
+	formattedContentMap map[string]*plugin.FormattedContent,
+	data plugindata.Data,
+) diagnostics.Diag {
+	log := appctx.Log(ctx)
+	log = log.With("document", doc.GetTemplateName())
+
 	docData := plugindata.Map{
 		definitions.BlockKindContent: content.AsData(),
-	}
-	if doc.Meta != nil {
-		docData[definitions.BlockKindMeta] = doc.Meta.AsPluginData()
+		definitions.BlockKindMeta:    doc.Meta(),
 	}
 	dataCtx := plugindata.Map{
 		definitions.BlockKindData:     data,
 		definitions.BlockKindDocument: docData,
 	}
+
 	var diags diagnostics.Diag
+
+	if len(doc.PublishBlocks) == 0 {
+		log.WarnContext(ctx, "No publish blocks found")
+		return diags
+	}
+
+	// Calling publish blocks while passing in a requested formatter
+
 	for _, block := range doc.PublishBlocks {
-		diag := block.Publish(ctx, dataCtx, documentName)
+
+		var formattedContent *plugin.FormattedContent
+		if block.Format != nil {
+			var ok bool
+			formattedContent, ok = formattedContentMap[*block.Format]
+			if !ok {
+				log.ErrorContext(ctx, "Formatted content not available for publisher")
+				return diagnostics.Diag{{
+					Severity: hcl.DiagError,
+					Summary:  "Formatted content not found while publishing content",
+					Detail: fmt.Sprintf(
+						"Content formatted as `%s` is not availalbe for publisher `%s.%s`",
+						*block.Format,
+						block.RunnerName,
+						block.BlockName,
+					),
+				}}
+			}
+		}
+
+		log.DebugContext(
+			ctx, "Executing publish block",
+			"publisher", block.RunnerName,
+			"block_name", block.BlockName,
+		)
+
+		documentName := doc.GetTemplateName()
+		diag := block.Publish(ctx, dataCtx, content, formattedContent, documentName)
 		if diag != nil {
 			diags.Extend(diag)
 		}
@@ -125,44 +292,102 @@ func (doc *Document) Publish(ctx context.Context, content plugin.Content, data p
 	return diags
 }
 
-func LoadDocument(ctx context.Context, plugins Plugins, node *definitions.ParsedDocument) (_ *Document, diags diagnostics.Diag) {
-	block := Document{
-		Source:       node.Source,
-		Meta:         node.Meta,
+func LoadDocument(
+	ctx context.Context,
+	runners Runners,
+	node *definitions.Document,
+	dataCtx plugindata.Map,
+) (_ *Document, diags diagnostics.Diag) {
+	log := appctx.Log(ctx)
+
+	doc := Document{
+		Source:       node,
+		meta:         node.Meta,
+		Inputs:       node.Inputs,
 		Vars:         node.Vars,
 		RequiredVars: node.RequiredVars,
 	}
 	dataNames := make(map[[2]string]struct{})
-	for _, child := range node.Data {
-		decoded, diag := LoadDataAction(ctx, plugins, child)
+
+	for _, child := range node.DataBlocks {
+		dataAction, diag := LoadDataAction(ctx, runners, child, dataCtx)
 		if diags.Extend(diag) {
+			log.ErrorContext(ctx, "Error while loading data block", "err", diagnostics.GetDiagsDetails(diags))
 			return nil, diags
 		}
-		key := [2]string{decoded.PluginName, decoded.BlockName}
+		key := [2]string{dataAction.RunnerName, dataAction.BlockName}
 		if _, found := dataNames[key]; found {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "Data conflict",
-				Detail:   "Data block with the same name already exists.",
-				Subject:  &decoded.SrcRange,
+				Summary:  "Name conflict",
+				Detail:   "Data block with the same name is already defined.",
+				Subject:  &dataAction.SrcRange,
 			})
 		}
 		dataNames[key] = struct{}{}
-		block.DataBlocks = append(block.DataBlocks, decoded)
+		doc.DataBlocks = append(doc.DataBlocks, dataAction)
 	}
-	for _, child := range node.Content {
-		decoded, diag := LoadContent(ctx, plugins, child)
+
+	if node.Title != nil {
+		decoded, diag := LoadContent(ctx, runners, node.Title)
 		if diags.Extend(diag) {
+			log.ErrorContext(ctx, "Error while loading title", "err", diagnostics.GetDiagsDetails(diags))
 			return nil, diags
 		}
-		block.ContentBlocks = append(block.ContentBlocks, decoded)
+		doc.Title = decoded
 	}
-	for _, child := range node.Publish {
-		decoded, diag := LoadPluginPublishAction(ctx, plugins, child)
+
+	for _, child := range node.ContentTreeBlocks {
+		decoded, diag := LoadContent(ctx, runners, child)
 		if diags.Extend(diag) {
+			log.ErrorContext(ctx, "Error while loading block", "err", diagnostics.GetDiagsDetails(diags))
 			return nil, diags
 		}
-		block.PublishBlocks = append(block.PublishBlocks, decoded)
+		if utils.IsNil(decoded) {
+			log.ErrorContext(ctx, "Received nil instead of decoded content tree block", "type", fmt.Sprintf("%T", decoded))
+			continue
+		}
+		doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, decoded)
 	}
-	return &block, diags
+
+	for _, child := range node.FormatBlocks {
+		decoded, diag := LoadPluginFormatAction(ctx, runners, child, dataCtx)
+		if diags.Extend(diag) {
+			log.ErrorContext(ctx, "Error while loading format block", "err", diagnostics.GetDiagsDetails(diags))
+			return nil, diags
+		}
+		doc.FormatBlocks = append(doc.FormatBlocks, decoded)
+	}
+
+	for _, child := range node.PublishBlocks {
+		decoded, diag := LoadPluginPublishAction(ctx, runners, child, dataCtx)
+		if diags.Extend(diag) {
+			log.ErrorContext(ctx, "Error while loading publish block", "err", diagnostics.GetDiagsDetails(diags))
+			return nil, diags
+		}
+		if decoded == nil {
+			for _, d := range diag {
+				if d.Severity == hcl.DiagWarning {
+					log.WarnContext(ctx, d.Summary, "block_runner", child.RunnerName, "block_name", child.BlockName, "diag", diag)
+				}
+			}
+			continue
+		}
+		doc.PublishBlocks = append(doc.PublishBlocks, decoded)
+	}
+
+	// Default publisher / formatter instances
+	var diag diagnostics.Diag
+
+	doc.DefaultPublish, diag = LoadStdoutPluginPublishAction(ctx, runners, "md")
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+
+	doc.DefaultFormat, diag = LoadMarkdownPluginFormatAction(ctx, runners)
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+
+	return &doc, diags
 }

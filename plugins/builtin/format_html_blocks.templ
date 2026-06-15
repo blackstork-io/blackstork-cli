@@ -1,0 +1,365 @@
+package builtin
+
+import (
+	"context"
+	"fmt"
+	"html/template"
+	"io"
+	"log/slog"
+	"maps"
+	"math"
+
+	"github.com/google/uuid"
+	"github.com/gosimple/slug"
+
+	"github.com/blackstork-io/blackstork-cli/plugin"
+)
+
+// RenderOverride is a bridge component to execute the dynamic template string
+templ RenderOverride(tmplStr string, data any) {
+	@templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+		return executeDynamicTemplate(ctx, w, tmplStr, data)
+	})
+}
+
+type TOCItem struct {
+	Value      string
+	Anchor     string
+	MarginLeft string
+}
+
+templ ContentHTML(
+	ctx context.Context,
+	log *slog.Logger,
+	templatePerType map[TypedBlock]string,
+	templatePerName map[NamedBlock]string,
+	content plugin.Content,
+	level int,
+	onlyNode *uuid.UUID,
+) {
+	{{
+
+		if onlyNode != nil && content.ID() != *onlyNode && content.Kind() != plugin.SectionKind {
+			return
+		}
+
+		_log := log.With(
+			"content_id", content.ID(),
+			"content_kind", content.Kind(),
+			"content_name", content.BlockDetails().Name,
+		)
+
+		overrideTmpl, found := getOverrideTemplateForBlock(
+			templatePerType,
+			templatePerName,
+			content,
+			level,
+		)
+
+		data := prepareElementContext(content)
+
+		var wrapHTMLFunc func(string) any
+
+		if found {
+			wrapHTMLFunc = func(val string) any {
+				return template.HTML(val)
+			}
+		} else {
+			wrapHTMLFunc = func(val string) any {
+				return templ.Raw(val)
+			}
+		}
+
+		// pre-render element text values MD->HTML
+		switch content.Kind() {
+		case plugin.TextKind, plugin.BlockquoteKind:
+			value := data["value"].(string)
+			rendered, err := renderMarkdownToHTML(value)
+			if err != nil {
+				_log.ErrorContext(ctx, "Error while rendering value as Markdown into HTML", "err", err)
+				rendered = "[RENDERING ERROR]"
+			}
+			data["value_html"] = wrapHTMLFunc(rendered)
+
+		case plugin.ListKind:
+
+			itemsHTML := []any{}
+
+			for _, item := range data["items_rendered"].([]any) {
+				rendered, err := renderMarkdownToHTML(item.(string))
+				if err != nil {
+					_log.ErrorContext(ctx, "Error while rendering list item value as Markdown into HTML", "err", err)
+					rendered = "[RENDERING ERROR]"
+				}
+				itemsHTML = append(itemsHTML, wrapHTMLFunc(rendered))
+			}
+
+			data["items_rendered_html"] = itemsHTML
+		case plugin.TableKind:
+			headersHTML := []any{}
+			for _, header := range data["headers"].([]any) {
+				rendered, err := renderMarkdownToHTML(header.(string))
+				if err != nil {
+					_log.ErrorContext(ctx, "Error while rendering table header value as Markdown into HTML", "err", err)
+					rendered = "[RENDERING ERROR]"
+				}
+				headersHTML = append(headersHTML, wrapHTMLFunc(rendered))
+			}
+			data["headers_html"] = headersHTML
+
+			rowsHTML := []any{}
+
+			for _, row := range data["rows"].([]any) {
+				cellsHTML := []any{}
+
+				for _, cell := range row.([]any) {
+					cellDetails := cell.(map[string]any)
+					cellValue := cellDetails["value"].(string)
+					rendered, err := renderMarkdownToHTML(cellValue)
+					if err != nil {
+						_log.ErrorContext(ctx, "Error while rendering table cell value as Markdown into HTML", "err", err)
+						rendered = "[RENDERING ERROR]"
+					}
+					cellDetails["value_html"] = wrapHTMLFunc(rendered)
+					cellsHTML = append(cellsHTML, cellDetails)
+				}
+				rowsHTML = append(rowsHTML, cellsHTML)
+			}
+			data["rows_html"] = rowsHTML
+		}
+	}}
+
+	if found {
+		// No only-specific-node rendering with overrides
+		if content.Kind() == plugin.SectionKind {
+			{{
+			sectionComponents, err := prerenderSectionComponents(
+				ctx,
+				log,
+				templatePerType,
+				templatePerName,
+				content.(*plugin.ContentSection),
+				level,
+			)
+			if err != nil {
+				log.ErrorContext(ctx, "Error while prerendering section components", "err", err)
+				sectionComponents = map[string]any{"title": "ERROR while rendering sectino"}
+			}
+			maps.Copy(data, sectionComponents)
+			}}
+		}
+		@RenderOverride(overrideTmpl, data)
+		{{
+		return
+		}}
+	}
+	{{
+	// log.DebugContext(ctx, "Using default rendering for content element")
+	}}
+	// Default formatting
+	switch content := content.(type) {
+		case *plugin.ContentSection:
+			if onlyNode != nil {
+				if content.Title != nil {
+					@ContentHTML(ctx, log, templatePerType, templatePerName, content.Title, level, onlyNode)
+				}
+				for _, child := range content.Children {
+					@ContentHTML(ctx, log, templatePerType, templatePerName, child, level+1, onlyNode)
+				}
+				{{
+				// return early
+				return
+				}}
+			}
+			// the section is a document root
+			if level == documentRootLevel {
+				<main class="max-w-4xl mx-auto px-8 pt-5 pb-10">
+					if content.Title != nil {
+						@ContentHTML(ctx, log, templatePerType, templatePerName, content.Title, level, nil)
+					}
+					for _, child := range content.Children {
+						@ContentHTML(ctx, log, templatePerType, templatePerName, child, level+1, nil)
+					}
+				</main>
+			} else {
+				<section>
+					if content.Title != nil {
+						@ContentHTML(ctx, log, templatePerType, templatePerName, content.Title, level, nil)
+					}
+					for _, child := range content.Children {
+						@ContentHTML(ctx, log, templatePerType, templatePerName, child, level+1, nil)
+					}
+				</section>
+			}
+		case *plugin.ContentElement:
+			@DefaultContentElementHTML(content.Kind(), content.ID(), data, level)
+		default:
+			{{
+			log.ErrorContext(ctx, "Unknown content element found", "type", fmt.Sprintf("%T", content))
+			}}
+			{ "[unknown-content-element-type]" }
+	}
+}
+
+templ DefaultContentElementHTML(kind plugin.ContentKind, id uuid.UUID, data map[string]any, level int) {
+	switch kind {
+		case plugin.EmptyKind:
+		case plugin.TextKind:
+			<div
+				data-node={ id.String() }
+				data-value={ data["value"].(string) }
+				style="display: block; margin-top: 1em; margin-bottom: 1em; line-height: 1.5; min-height: 1.5em;">
+				{{ cmp := data["value_html"].(templ.Component) }}
+				@cmp
+			</div>
+		case plugin.TitleKind:
+			{{
+				heading := data["value"].(string)
+				absoluteLevel := int(data["size"].(float64))
+				headingLevel := min(absoluteLevel, 5)
+
+				slug := slug.Make(heading)
+			}}
+			switch headingLevel {
+				case 1:
+					<h1 id={ slug } data-node={ id.String() }>{ heading }</h1>
+				case 2:
+					<h2 id={ slug } data-node={ id.String() }>{ heading }</h2>
+				case 3:
+					<h3 id={ slug } data-node={ id.String() }>{ heading }</h3>
+				case 4:
+					<h4 id={ slug } data-node={ id.String() }>{ heading }</h4>
+				case 5:
+					<h5 id={ slug } data-node={ id.String() }>{ heading }</h5>
+				case 6:
+					<h6 id={ slug } data-node={ id.String() }>{ heading }</h6>
+				default:
+					<h4 id={ slug } data-node={ id.String() }>{ heading }</h4>
+			}
+		case plugin.HTMLKind:
+			@templ.Raw(data["value"].(string))
+		case plugin.BlockquoteKind:
+			<blockquote data-node={ id.String() } data-value={ data["value"].(string) }>
+				@data["value_html"].(templ.Component)
+			</blockquote>
+		case plugin.ImageKind:
+			<img
+				src={ data["src"].(string) }
+				alt={ data["alt"].(string) }
+			/>
+		case plugin.CodeKind:
+			<pre>
+				<code data-node={ id.String() }>
+					{ data["value"].(string) }
+				</code>
+			</pre>
+		case plugin.ListKind:
+			{{
+				listFormat := string(data["format"].(string))
+				itemsRendered := data["items_rendered_html"].([]any)
+			}}
+			switch listFormat {
+				case UnorderedListFormat:
+					<ul>
+						for _, item := range itemsRendered {
+							<li>
+								@item.(templ.Component)
+							</li>
+						}
+					</ul>
+				case OrderedListFormat:
+					<ol>
+						for _, item := range itemsRendered {
+							<li>
+								@item.(templ.Component)
+							</li>
+						}
+					</ol>
+			}
+		case plugin.TableKind:
+			{{
+				headers := data["headers_html"].([]any)
+				rows := data["rows_html"].([]any)
+			}}
+			<table>
+				<thead>
+					<tr>
+						for _, header := range headers {
+							<th>
+								@header.(templ.Component)
+							</th>
+						}
+					</tr>
+				</thead>
+				<tbody>
+					for _, row := range rows {
+						<tr>
+							{{
+								cells := row.([]any)
+							}}
+							for _, cell := range cells {
+								{{
+									cellDetails := cell.(map[string]any)
+								}}
+								<td>
+									@cellDetails["value_html"].(templ.Component)
+								</td>
+							}
+						</tr>
+					}
+				</tbody>
+			</table>
+		case plugin.TOCKind:
+			{{
+				headings := data["headings"].([]any)
+				isOrdered := data["is_ordered"].(bool)
+				sharedLevel := math.MaxInt32
+
+				for _, headAttrs := range headings {
+					headMap := headAttrs.(map[string]any)
+					level := int(headMap["level"].(float64))
+					if level < sharedLevel {
+						sharedLevel = level
+					}
+				}
+
+				var tocItems []TOCItem
+
+				for _, headAttrs := range headings {
+					headMap := headAttrs.(map[string]any)
+					value := headMap["value"].(string)
+					level := int(headMap["level"].(float64))
+
+					lineLevel := level - sharedLevel
+					if lineLevel < 0 {
+						lineLevel = 0
+					}
+
+					tocItems = append(tocItems, TOCItem{
+						Value:      value,
+						Anchor:     "#" + slug.Make(value),
+						MarginLeft: fmt.Sprintf("%.1frem", float64(lineLevel)*1.5),
+					})
+				}
+			}}
+			if len(headings) > 0 {
+				if isOrdered {
+					<ol class="toc-list">
+						for _, item := range tocItems {
+							<li style={ fmt.Sprintf("margin-left: %s", item.MarginLeft) }>
+								<a href={ templ.SafeURL(item.Anchor) }>{ item.Value }</a>
+							</li>
+						}
+					</ol>
+				} else {
+					<ul class="toc-list">
+						for _, item := range tocItems {
+							<li style={ fmt.Sprintf("margin-left: %s", item.MarginLeft) }>
+								<a href={ templ.SafeURL(item.Anchor) }>{ item.Value }</a>
+							</li>
+						}
+					</ul>
+				}
+			}
+	}
+}

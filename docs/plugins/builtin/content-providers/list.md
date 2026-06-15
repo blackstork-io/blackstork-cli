@@ -5,7 +5,7 @@ plugin:
   description: "Produces a list of items"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: content-provider
 type: docs
@@ -18,16 +18,15 @@ type: docs
 ## Description
 Produces a list of items
 
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `list` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
+## Configuration
 
-#### Configuration
+This content provider does not accept any configuration arguments.
 
-The content provider doesn't support any configuration arguments.
+## Usage
 
-#### Usage
-
-The content provider supports the following execution arguments:
+This content provider accepts the following arguments within a `content list` block:
 
 ```hcl
 content list {
@@ -42,14 +41,13 @@ content list {
   item_template = "{{.}}"
 
   # Optional string.
-  # Must be one of: "unordered", "ordered", "tasklist"
+  # Must be one of: "unordered", "ordered"
   # Default value:
   format = "unordered"
 
   # List of items to render.
   #
   # Required list of jq queriable.
-  # Must be non-empty
   #
   # For example:
   items = ["First item", "Second item", "Third item"]

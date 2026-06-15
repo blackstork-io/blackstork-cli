@@ -1,85 +1,93 @@
 ---
 title: Evaluation Context
-description: Learn about the evaluation context, the data structure that during rendering holds data available for the Fabric template blocks.
+description: Understand the BlackStork evaluation context. Learn how to query data, use variables, accept inputs, and manipulate JSON structures with JQ.
 type: docs
 weight: 45
 ---
 
 # Evaluation context
 
-The evaluation context keeps all available data during the template evaluation. This includes the
-results of `data` block executions, the template metadata, and defined variables.
+The evaluation context is the central data structure that holds all information available during a template evaluation. It contains the raw structured data returned by data sources, template metadata, inputs, and any manually defined variables.
 
-The context data can be queried with `query_jq()` function and accessed in Go templates (if
-supported by the plugin).
+Data inside the context is typically extracted or manipulated using the `query_jq()` function, and available for querying in Go templates.
 
 ## Keys
 
-The context is a dictionary. To access the values in the context, use JSON paths in [JQ queries](https://jqlang.github.io/jq/manual/).
+The context acts as a single JSON dictionary. You navigate this dictionary using standard [JQ JSON paths](https://jqlang.github.io/jq/manual/). 
 
-Using JQ-style JSON path syntax, the root keys are:
+The top-level root keys are:
 
-- `.data` — stores the results of the `data` blocks evaluation under
-  `.data.<data-source-name>.<block-name>` keys
-- `.document` — contains the data about the current document template. For example, `.document.meta`
-  has values from the `meta` block defined on the root level of the template
-- `.vars` — holds the values of variables defined in the current or parent blocks.
+- `.data` — Stores the structured JSON results returned by `data` blocks. The path format is `.data.<data-source-name>.<block-name>`.
+- `.inputs` — Stores runtime input parameters (or their fallback default values). The path format is `.inputs.<input-name>`.
+- `.document` — Contains metadata about the current document template. For example, `.document.meta` holds the attributes defined in the `meta` block at the root of the document.
+- `.vars` — Stores the values of variables defined in the current block or inherited from parent blocks.
 
-The context also can contain local properties:
+Depending on where a query is executed, the context may also contain localized metadata keys:
 
-- `.section` — holds the data about the current section, when called inside one. Similar to
-  `.document.meta`, `.section.meta` contains the data from `meta` block defined inside the section.
-- `.content` — holds the data about the current content block, when called inside one. Similar to
-  `.document.meta` and `.section.meta`, `.content.meta` stores the data from `meta` block defined
-  inside the content block.
+- `.section` — When evaluated inside a `section` block, this holds metadata specific to that section (e.g., `.section.meta`).
+- `.content` — When evaluated inside a `content` block, this holds metadata specific to that piece of content (e.g., `.content.meta`).
 
-## Variables
+## Inputs
 
-Define variables inside the template using the `vars` block:
+The `input` block defines expected runtime parameters for the template. This is the primary method for making the templates dynamic and reusable across both `blackstork-cli` and the BlackStork SaaS platform.
 
 ```hcl
-vars {
-  foo = 1
-  bar = {
-    x = "a"
-    y = env.CUSTOM_ENV_VAR
-  }
-  # The variables are evaluated in the order of definition
-  baz = query_jq(".vars.foo")
+input "target_ip" {
+  label         = "Target IP Address"
+  type          = "string"
+  default_value = "127.0.0.1"
+}
+
+input "include_history" {
+  type          = "boolean"
+  default_value = true
 }
 ```
 
-The `vars` block can be defined inside `document`, `section`, `content`, dynamic and reference blocks.
+The `input` blocks must be defined on the root level of the `document` block.
 
-The variable can hold static values (like `foo` in the example above) or the results of data
-mutations (like `bar` that holds the result of JQ query executed in `query_jq()`).
+Once defined, inputs are injected into the evaluation context under the `.inputs` key. For example, `.inputs.target_ip` returns the value provided by the user at runtime, or `"127.0.0.1"` if none was supplied.
 
-After evaluation the variables become available in the context under the `.vars` root keyword.
-For example, `.vars.foo` and `.vars.bar` JQ paths refer to the values of `foo` and `bar` variables.
+
+## Variables
+
+You can define variables or construct new data structures inside the template using the `vars` block:
+
+```hcl
+vars {
+  limit = 100
+
+  # Variables can reference inputs
+  target = query_jq(".inputs.target_ip")
+
+  # Variables are evaluated in the order they are defined
+  api_payload = {
+    ip    = query_jq(".vars.target")
+    limit = query_jq(".vars.limit")
+  }
+}
+```
+
+The `vars` block can be placed inside `document`, `section`, `content`, and reference blocks. The values become accessible in the context under the `.vars` key (e.g., `.vars.api_payload`).
 
 ### Local variable
 
-To define a local variable, use `local_var` argument. It's a shortcut that defines a single local
-variable named `local` in the current block.
-
-For example:
+For convenience, you can define a single, inline variable within a block using the `local_var` argument. This simply creates a variable named `local` in the current scope.
 
 ```hcl
 content text {
   local_var = "World"
-  value = "Hello, {{ .vars.local }}!"
+  value     = "Hello, {{ .vars.local }}!"
 }
 ```
 
-content block will render `Hello, World!`.
+When evaluated, this block renders `Hello, World!`.
 
-### Inheritance
+### Inheritance and Scope
 
-Variables defined in a parent block (such as `document` or `section`) are available for use in
-nested blocks. Note that nested blocks can redefine a variable in their context, shadowing the
-parent variable's value inside their scope.
+Variables defined in a parent block (like `document` or a parent `section`) are automatically inherited by all nested blocks.
 
-For example:
+However, a nested block can redefine an inherited variable within its own `vars` block. This shadows the parent variable's value only within that specific nested scope.
 
 ```hcl
 section {
@@ -90,7 +98,7 @@ section {
 
   section {
     vars {
-      foo = 33
+      foo = 33 # Shadows the parent 'foo'
       baz = 44
     }
 
@@ -104,12 +112,9 @@ section {
 
 ### Querying the context
 
-To filter and mutate the data in the context, use [JQ queries](https://jqlang.github.io/jq/manual/).
+To filter, extract, or mutate data within the context, use the `query_jq()` function.
 
-`query_jq()` function accepts a string argument as a query, executes the query against the
-evaluation context, and returns the results.
-
-For example:
+This function accepts a string argument containing a standard [JQ expression](https://jqlang.github.io/jq/manual/), executes it against the current evaluation context, and returns the resulting JSON structure.
 
 ```hcl
 section {
@@ -138,4 +143,4 @@ section {
 
 ## Next steps
 
-See [Data Blocks]({{< ref "data-blocks.md" >}}) documentation to learn how to define data requirements in the templates.
+See [Data Blocks]({{< ref "data-blocks.md" >}}) to learn how to fetch structured data from external sources into the evaluation context.

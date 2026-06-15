@@ -5,7 +5,7 @@ plugin:
   description: "Fetches RSS / Atom / JSON feed from a provided URL"
   tags: ["rss","http"]
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/builtin/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
 resource:
   type: data-source
 type: docs
@@ -22,15 +22,16 @@ Fetches RSS / Atom / JSON feed from a provided URL.
 The full content of the items can be fetched and added to the feed. The data source supports basic authentication.
 
 
-The data source is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `rss` data source is built into the BlackStork engine. It is available out-of-the-box
+and requires no installation or dependency declaration.
 
 ## Configuration
 
-The data source doesn't support any configuration arguments.
+This data source does not accept any configuration arguments.
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data rss` block:
 
 ```hcl
 data rss {
@@ -63,12 +64,19 @@ data rss {
   # Default value:
   fill_in_content = false
 
-  # If the data source should pretend to be a browser while fetching the feed and the feed items.
+  # If the HTTP errors should be ignored. If set to "true", the data source will return
+  # an empty dict when the endpoint returns a non-success HTTP status code.
+  #
+  # Optional bool.
+  # Default value:
+  ignore_failures = false
+
+  # If the data source should pretend to be a browser while fetching a feed and the feed items.
   # If set to "false", the default user-agent value "blackstork-rss/0.0.1" will be used.
   #
   # Optional bool.
   # Default value:
-  use_browser_user_agent = false
+  use_browser_user_agent = true
 
   # Maximum number of items to fill the content in per feed.
   #

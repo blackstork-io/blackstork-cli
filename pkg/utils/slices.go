@@ -1,6 +1,15 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package utils
 
-import "github.com/blackstork-io/fabric/pkg/diagnostics"
+import "github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
 
 // Sets slice[idx] = val, growing the slice if needed, and returns the updated slice.
 func SetAt[T any](slice []T, idx int, val T) []T {
@@ -44,7 +53,7 @@ func FnMapErr[I, O any](s []I, fn func(I) (O, error)) (out []O, err error) {
 			break
 		}
 	}
-	return
+	return out, err
 }
 
 // Produce a new slice by applying function fn to items of the slice s.

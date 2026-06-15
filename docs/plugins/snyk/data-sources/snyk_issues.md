@@ -5,7 +5,7 @@ plugin:
   description: "The `snyk_issues` data source fetches issues from Snyk"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/snyk/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/snyk/"
 resource:
   type: data-source
 type: docs
@@ -20,23 +20,25 @@ The `snyk_issues` data source fetches issues from Snyk.
 
 ## Installation
 
-To use `snyk_issues` data source, you must install the plugin `blackstork/snyk`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `snyk_issues` data source locally via `blackstork-cli`, you must declare the `blackstork/snyk` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/snyk" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data snyk_issues` block:
 
 ```hcl
 config data snyk_issues {
@@ -52,7 +54,7 @@ config data snyk_issues {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data snyk_issues` block:
 
 ```hcl
 data snyk_issues {

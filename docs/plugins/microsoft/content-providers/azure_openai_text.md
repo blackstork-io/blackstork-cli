@@ -5,7 +5,7 @@ plugin:
   description: ""
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/microsoft/"
+  source_github: "https://github.com/blackstork-io/fabric/tree/main/plugins/microsoft/"
 resource:
   type: content-provider
 type: docs

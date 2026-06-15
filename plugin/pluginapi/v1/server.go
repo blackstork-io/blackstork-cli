@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package pluginapiv1
 
 import (
@@ -9,7 +18,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
-	"github.com/blackstork-io/fabric/plugin"
+	"github.com/blackstork-io/blackstork-cli/plugin"
 )
 
 func Serve(schema *plugin.Schema) {
@@ -32,13 +41,9 @@ type grpcServer struct {
 }
 
 func (srv *grpcServer) GetSchema(ctx context.Context, req *GetSchemaRequest) (*GetSchemaResponse, error) {
-	slog.DebugContext(ctx, "GetSchema")
 	defer func() {
 		if r := recover(); r != nil {
-			slog.ErrorContext(ctx, "GetSchema done", "panic", r)
 			panic(r)
-		} else {
-			slog.DebugContext(ctx, "GetSchema done")
 		}
 	}()
 	schema, diags := encodeSchema(srv.schema)
@@ -72,12 +77,15 @@ func (srv *grpcServer) RetrieveData(ctx context.Context, req *RetrieveDataReques
 		Args:   args,
 	})
 	return &RetrieveDataResponse{
-		Data:        encodeData(data),
+		Data:        EncodeData(data),
 		Diagnostics: encodeDiagnosticList(diags),
 	}, nil
 }
 
-func (srv *grpcServer) ProvideContent(ctx context.Context, req *ProvideContentRequest) (*ProvideContentResponse, error) {
+func (srv *grpcServer) ProvideContent(
+	ctx context.Context,
+	req *ProvideContentRequest,
+) (*ProvideContentResponse, error) {
 	slog.DebugContext(ctx, "ProvideContent")
 	defer func() {
 		if r := recover(); r != nil {
@@ -97,20 +105,58 @@ func (srv *grpcServer) ProvideContent(ctx context.Context, req *ProvideContentRe
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
 	}
 	datactx := decodeMapData(req.GetDataContext().GetValue())
-	result, diags := srv.schema.ProvideContent(ctx, provider, &plugin.ProvideContentParams{
+	result, err := srv.schema.ProvideContent(ctx, provider, &plugin.ProvideContentParams{
 		Config:      cfg,
 		Args:        args,
 		DataContext: datactx,
-		ContentID:   req.GetContentId(),
 	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error while producing content: %v", err)
+	}
 	return &ProvideContentResponse{
-		Result:      encodeContentResult(result),
+		Result: encodeContentProviderResult(result),
+		// FIXME: receiveing no diagnostics from the plugin
+		Diagnostics: []*Diagnostic{},
+	}, nil
+}
+
+func (srv *grpcServer) FormatContent(ctx context.Context, req *FormatContentRequest) (*FormatContentResponse, error) {
+	slog.DebugContext(ctx, "Formatting")
+	defer func() {
+		if r := recover(); r != nil {
+			slog.ErrorContext(ctx, "Formatting failed", "panic", r)
+			panic(r)
+		} else {
+			slog.DebugContext(ctx, "Formatter done")
+		}
+	}()
+	formatterName := req.GetFormatter()
+	cfg, err := decodeBlock(req.GetConfig())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode config: %v", err)
+	}
+	args, err := decodeBlock(req.GetArgs())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
+	}
+	datactx := decodeMapData(req.GetDataContext().GetValue())
+	contentTree := decodeMapData(req.GetContent().GetValue())
+	content, diags := srv.schema.Format(ctx, formatterName, &plugin.FormatParams{
+		Config:      cfg,
+		Args:        args,
+		Content:     contentTree,
+		DataContext: datactx,
+	})
+	return &FormatContentResponse{
+		Result: &FormattedContent{
+			Content: content.Content,
+			Format:  content.Format,
+		},
 		Diagnostics: encodeDiagnosticList(diags),
 	}, nil
 }
 
 func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*PublishResponse, error) {
-	slog.DebugContext(ctx, "Publish")
 	defer func() {
 		if r := recover(); r != nil {
 			slog.ErrorContext(ctx, "Publishing failed", "panic", r)
@@ -129,13 +175,22 @@ func (srv *grpcServer) Publish(ctx context.Context, req *PublishRequest) (*Publi
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode args: %v", err)
 	}
 	datactx := decodeMapData(req.GetDataContext().GetValue())
-	format := decodeOutputFormat(req.GetFormat())
+	contentRaw := req.GetContent()
+	var content plugin.Content
+	if contentRaw != nil {
+		content, err = DecodeContent(contentRaw)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to decode content: %v", err)
+		}
+	}
+	formattedContent := decodeFormattedContent(req.GetFormattedContent())
 	diags := srv.schema.Publish(ctx, publisher, &plugin.PublishParams{
-		Config:       cfg,
-		Args:         args,
-		DataContext:  datactx,
-		Format:       format,
-		DocumentName: req.GetDocumentName(),
+		Config:           cfg,
+		Args:             args,
+		DataContext:      datactx,
+		DocumentName:     req.GetDocumentName(),
+		Content:          content,
+		FormattedContent: formattedContent,
 	})
 	return &PublishResponse{
 		Diagnostics: encodeDiagnosticList(diags),

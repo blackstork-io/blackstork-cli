@@ -1,21 +1,28 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package pluginapiv1
 
 import (
 	"fmt"
 	"log/slog"
 
-	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/plugin"
-	astv1 "github.com/blackstork-io/fabric/plugin/ast/v1"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin"
 )
 
-func encodeContentResult(src *plugin.ContentResult) *ContentResult {
+func encodeContentProviderResult(src *plugin.ContentProviderResult) *ContentProviderResult {
 	if src == nil {
 		return nil
 	}
-	return &ContentResult{
-		Content:  EncodeContent(src.Content),
-		Location: encodeLocation(src.Location),
+	return &ContentProviderResult{
+		Content: EncodeContent(src.Content),
 	}
 }
 
@@ -28,32 +35,51 @@ func EncodeContent(src plugin.Content) *Content {
 		if val == nil {
 			break
 		}
-		el := &ContentElement{
-			Markdown: val.AsMarkdownSrc(),
-			Meta:     astv1.EncodeMetadata(val.Meta()),
-		}
-		if val.IsAst() {
-			el.Ast = val.AsSerializedNode()
-		}
+
+		attrs := encodeMapData(val.Attrs())
+		blockDetails := encodeBlockDetails(val.BlockDetails())
+		execDetails := encodeExecDetails(val.ExecDetails())
+		meta := encodeMapData(val.Meta())
+
+		id := val.ID()
+
 		variant = &Content_Element{
-			Element: el,
+			Element: &ContentElement{
+				Id:           id[:],
+				BlockDetails: &blockDetails,
+				ExecDetails:  &execDetails,
+				Meta:         &meta,
+				Kind:         string(val.Kind()),
+				Attrs:        &attrs,
+				// DataContext: encodeMapData(val.DataContext()),
+			},
 		}
 	case *plugin.ContentSection:
 		if val == nil {
 			break
 		}
+
+		blockDetails := encodeBlockDetails(val.BlockDetails())
+		meta := encodeMapData(val.Meta())
+
+		id := val.ID()
+
+		var title *Content
+		if val.Title != nil {
+			title = EncodeContent(val.Title)
+		}
+
 		variant = &Content_Section{
 			Section: &ContentSection{
-				Children: utils.FnMap(val.Children, EncodeContent),
-				Meta:     astv1.EncodeMetadata(val.Meta()),
+				Id:           id[:],
+				BlockDetails: &blockDetails,
+				Meta:         &meta,
+				Title:        title,
+				Children:     utils.FnMap(val.Children, EncodeContent),
 			},
 		}
-	case *plugin.ContentEmpty:
-		variant = &Content_Empty{
-			Empty: &ContentEmpty{},
-		}
 	default:
-		slog.Error("unknown content type", "type", fmt.Sprintf("%T", src))
+		slog.Error("Unknown content type encountered during encoding", "type", fmt.Sprintf("%T", src))
 	}
 
 	return &Content{
@@ -61,23 +87,20 @@ func EncodeContent(src plugin.Content) *Content {
 	}
 }
 
-func encodeLocation(src *plugin.Location) *Location {
-	if src == nil {
-		return nil
-	}
-	return &Location{
-		Index:  src.Index,
-		Effect: encodeLocationEffect(src.Effect),
+func encodeBlockDetails(src *plugin.BlockDetails) BlockDetails {
+	return BlockDetails{
+		Kind:   src.Kind,
+		Runner: src.Runner,
+		Name:   src.Name,
+		Id:     src.ID,
+		Depth:  uint32(src.Depth),
 	}
 }
 
-func encodeLocationEffect(src plugin.LocationEffect) LocationEffect {
-	switch src {
-	case plugin.LocationEffectBefore:
-		return LocationEffect_LOCATION_EFFECT_BEFORE
-	case plugin.LocationEffectAfter:
-		return LocationEffect_LOCATION_EFFECT_AFTER
-	default:
-		return LocationEffect_LOCATION_EFFECT_UNSPECIFIED
+func encodeExecDetails(src *plugin.ExecDetails) ExecDetails {
+	return ExecDetails{
+		PluginName:    src.PluginName,
+		PluginVersion: src.PluginVersion,
+		Runner:        src.Runner,
 	}
 }

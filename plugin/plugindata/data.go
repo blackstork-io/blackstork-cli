@@ -1,9 +1,20 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package plugindata
 
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -61,6 +72,24 @@ func (d Map) Any() any {
 	return dst
 }
 
+func (d Map) SetWithPath(path []string, value Data) {
+	leafKey := path[len(path)-1]
+	branchKeys := path[0 : len(path)-1]
+
+	submap := d
+
+	for _, key := range branchKeys {
+		if keyVal, exists := submap[key]; exists {
+			submap = keyVal.(Map)
+		} else {
+			keyVal := make(Map)
+			submap[key] = keyVal
+			submap = keyVal
+		}
+	}
+	submap[leafKey] = value
+}
+
 func (d Map) Clone() Map {
 	dst := make(Map, len(d))
 	for k, v := range d {
@@ -93,7 +122,7 @@ func (d List) Any() any {
 type Time time.Time
 
 func (d Time) Any() any {
-	return (time.Time)(d)
+	return time.Time(d)
 }
 
 func (d List) Clone() List {
@@ -164,9 +193,7 @@ func ParseAny(v any) (Data, error) {
 	case time.Time:
 		return Time(v), nil
 	case []any:
-		// TODO: potential bug:
-		// this case would trigger only for []any, not, for example, []string
-		// this can be worked around using reflection
+		// this case would trigger only for []any
 		dst := make(List, len(v))
 		for i, e := range v {
 			d, err := ParseAny(e)
@@ -179,7 +206,44 @@ func ParseAny(v any) (Data, error) {
 	case map[string]any:
 		return ParseMapAny(v)
 	default:
-		return nil, fmt.Errorf("unsupported data type %T", v)
+		// Fallback to reflection for types not explicitly handled above.
+		// This is where we solve the `[]string` vs `[]any` problem.
+		val := reflect.ValueOf(v)
+		switch val.Kind() {
+		case reflect.Slice:
+			// Handles any kind of slice, e.g., []string, []int, []CustomStruct
+			dst := make(List, val.Len())
+			for i := range val.Len() {
+				// Get the element, convert it back to `any`, and recurse.
+				elem := val.Index(i).Interface()
+				parsedElem, err := ParseAny(elem)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing slice element at index %d: %w", i, err)
+				}
+				dst[i] = parsedElem
+			}
+			return dst, nil
+		case reflect.Map:
+			// Handling any map with string keys, for example, `map[string]int` or `map[string]string`.
+			if val.Type().Key().Kind() != reflect.String {
+				return nil, fmt.Errorf("unsupported map key type: `%s` (only string keys are supported)", val.Type().Key())
+			}
+
+			dst := make(Map, val.Len())
+			iter := val.MapRange()
+			for iter.Next() {
+				key := iter.Key().String()
+				// Get the value, convert it back to `any`, and recurse.
+				val := iter.Value().Interface()
+				parsedVal, err := ParseAny(val)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing map value for key %q: %w", key, err)
+				}
+				dst[key] = parsedVal
+			}
+			return dst, nil
+		}
+		return nil, fmt.Errorf("unsupported data type: `%T`", v)
 	}
 }
 
@@ -202,22 +266,59 @@ type Convertible interface {
 	AsPluginData() Data
 }
 
-func IsTruthy(d Data) bool {
+func IsTruthy(d Data) (bool, error) {
 	switch d := d.(type) {
 	case Bool:
-		return bool(d)
+		return bool(d), nil
 	case Number:
-		return float64(d) != 0
+		return float64(d) != 0, nil
 	case String:
-		return string(d) != ""
+		return string(d) != "", nil
 	case List:
-		return len(d) > 0
+		return len(d) > 0, nil
 	case Map:
-		return len(d) > 0
+		return len(d) > 0, nil
 	case nil:
-		return false
+		return false, nil
 	default:
-		slog.Debug("unsupported data type", "dt", d)
-		return false
+		return false, fmt.Errorf("unsupported data type: `%T`", d)
+	}
+}
+
+func ParseString(input, typeName string) (Data, error) {
+	// Trim whitespace to avoid common parsing errors
+	input = strings.TrimSpace(input)
+
+	switch strings.ToLower(typeName) {
+
+	case "string", "secret":
+		return String(input), nil
+
+	case "bool":
+		// Standard lib: accepts 1, t, T, TRUE, true, 0, f, F, FALSE, false
+		boolV, err := strconv.ParseBool(input)
+		if err != nil {
+			return nil, err
+		}
+		return Bool(boolV), nil
+
+	case "datetime":
+		// RFC3339 is the standard implementation for ISO8601
+		val, err := time.Parse(time.RFC3339, input)
+		if err != nil {
+			return nil, err
+		}
+		return Time(val), nil
+
+	case "number":
+		// Standard 64-bit precision float
+		val, err := strconv.ParseFloat(input, 64)
+		if err != nil {
+			return nil, err
+		}
+		return Number(val), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported type: %s", typeName)
 	}
 }

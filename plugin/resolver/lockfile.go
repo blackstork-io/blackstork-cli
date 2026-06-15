@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package resolver
 
 import (
@@ -74,7 +83,7 @@ func ReadLockFile(r io.Reader) (*LockFile, error) {
 
 // ReadLockFileFrom parses a lock configuration from a local file.
 func ReadLockFileFrom(path string) (*LockFile, error) {
-	file, err := os.Open(path) //nolint:gosec // Path is controlled by admin configuration
+	file, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return &LockFile{}, nil
 	} else if err != nil {
@@ -99,7 +108,7 @@ func SaveLockFileTo(path string, lockFile *LockFile) error {
 	if lockFile == nil {
 		return fmt.Errorf("plugin lock file is nil")
 	}
-	file, err := os.Create(path) //nolint:gosec // Path is controlled by admin configuration
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}

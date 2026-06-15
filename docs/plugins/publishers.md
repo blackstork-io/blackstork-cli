@@ -1,14 +1,13 @@
 ---
 title: Publishers
-description: A wide range of publishers served by Fabric plugins allow users to publish the documents for storage or dissemination to local and external destinations.
+description: Overview of BlackStork publishers. Learn how to route and save rendered documents to local directories or external platforms.
 type: docs
-weight: 30
+weight: 40
 ---
 
 # Publishers
 
-Publishers are Fabric outgoing integrations, responsible for delivering produced documents to local
-and external destinations, for storage or dissemination.
+Publishers handle the final delivery of the rendered document. They are outgoing integrations that route the formatted output to local directories, cloud storage buckets, or external platforms (like Confluence or ticketing systems).
 
 ## Available publishers
 

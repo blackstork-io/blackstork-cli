@@ -1,0 +1,22 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
+package eval
+
+type FrameNode struct {
+	ID       string       `json:"id"                 validate:"required,min=1"`
+	Key      EvalKey      `json:"key"                validate:"required"`
+	Title    *FrameNode   `json:"title,omitempty"`
+	Children []*FrameNode `json:"children,omitempty" validate:"dive"`
+}
+
+type DocFrame struct {
+	Title    *FrameNode   `json:"title,omitempty"`
+	Children []*FrameNode `json:"children,omitempty"`
+}

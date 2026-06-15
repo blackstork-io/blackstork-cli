@@ -1,42 +1,67 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 syntax = "proto3";
 
 package pluginapi.v1;
-import "ast/v1/ast.proto";
 
+import "pluginapi/v1/data.proto";
 
-enum LocationEffect {
-    LOCATION_EFFECT_UNSPECIFIED = 0;
-    LOCATION_EFFECT_BEFORE      = 1;
-    LOCATION_EFFECT_AFTER       = 2;
-}
-
-message Location {
-    uint32         index  = 1;
-    LocationEffect effect = 2;
-}
-
-message ContentResult {
-    Content  content  = 1;
-    Location location = 2;
+message ContentProviderResult {
+    Content content  = 1;
 }
 
 message Content {
     oneof value {
-        ContentElement           element = 1;
-        ContentSection           section = 2;
-        ContentEmpty             empty   = 3;
+        ContentElement element = 1;
+        ContentSection section = 2;
     };
 }
 
+message BlockDetails {
+    string kind = 1;
+    string runner = 2;
+    string name = 3;
+    string id = 4;
+    uint32 depth = 5;
+}
+
+message ExecDetails {
+    string plugin_name = 1;
+    string plugin_version = 2;
+    string runner = 3;
+}
+
 message ContentSection {
-    repeated Content children = 1;
-    ast.v1.Metadata  meta     = 2;
+    BlockDetails block_details = 1;
+    MapData meta = 2;
+    optional Content title = 3;
+    repeated Content children = 4;
+    bytes id = 5;
 }
 
 message ContentElement {
-    bytes markdown = 1;
-    optional ast.v1.FabricContentNode ast = 2;
-    ast.v1.Metadata  meta     = 3;
+    BlockDetails block_details = 1;
+    ExecDetails  exec_details = 2;
+    MapData meta = 3;
+
+    string kind = 4;
+
+    MapData attrs = 5;
+    MapData data_context = 6;
+
+    bytes id = 7;
 }
 
-message ContentEmpty {}
+message FormattedContent {
+    MapData meta = 1;
+    ExecDetails exec_details = 2;
+    string format = 3;
+    bytes content = 4;
+}

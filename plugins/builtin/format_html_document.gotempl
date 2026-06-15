@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full antialiased scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{- if .Description}}
+    <meta name="description" content="{{.Description}}">
+    {{- end}}
+    <title>{{.Title}}</title>
+    {{- range .JSSources}}
+    <script defer type="application/javascript" src="{{.}}"></script>
+    {{- end}}
+    {{- range .CSSSources}}
+    <link type="text/css" rel="stylesheet" href="{{.}}" />
+    {{- end}}
+    {{- if .JS}}
+    <script type="text/javascript">
+        {{.JS}}
+    </script>
+    {{- end}}
+    {{- if .CSS}}
+    <style>
+        {{.CSS}}
+    </style>
+    {{- end}}
+    {{- if .TailwindCSS}}
+    <style type="text/tailwindcss">
+        {{.TailwindCSS}}
+    </style>
+    {{- end}}
+</head>
+<body class="h-full">
+ {{.Content}}
+</body>
+</html>
+

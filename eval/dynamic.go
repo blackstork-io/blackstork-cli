@@ -1,49 +1,140 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package eval
 
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"maps"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/gohcl"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/parser"
-	"github.com/blackstork-io/fabric/parser/definitions"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/utils"
-	"github.com/blackstork-io/fabric/plugin/dataspec"
-	"github.com/blackstork-io/fabric/plugin/dataspec/constraint"
-	"github.com/blackstork-io/fabric/plugin/dataspec/deferred"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/utils"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec/constraint"
+	"github.com/blackstork-io/blackstork-cli/specs/dataspec/deferred"
+	"github.com/blackstork-io/blackstork-cli/specs/definitions"
+)
+
+const (
+	itemIndexVarName = "dynamic_item_index"
+	itemKeyVarName   = "dynamic_item_key"
+	itemValueVarName = "dynamic_item"
 )
 
 type Dynamic struct {
-	block    *hclsyntax.Block
-	items    *dataspec.Attr
-	children []*Content
+	blockName string
+	source    *definitions.Dynamic
+
+	items *dataspec.Attr
+
+	children []ContentTreeEvalBlock
+
+	dependsOn []EvalKey
+
+	id string
+}
+
+func (d *Dynamic) isContentTreeEvalBlock() {}
+
+func (d *Dynamic) EvalKey() EvalKey {
+	return EvalKey{
+		Kind: d.Kind(),
+		Name: d.blockName,
+	}
+}
+
+func (d *Dynamic) Kind() string {
+	return definitions.BlockKindDynamic
+}
+
+func (d *Dynamic) addNameSuffix(val string) {
+	d.blockName += ":" + val
+}
+
+func (d *Dynamic) makeNewID() {
+	uid, err := uuid.NewV7()
+	if err != nil {
+		panic(fmt.Sprintf("Error generating a UUID v7: %v", err))
+	}
+	d.id = uid.String()
+}
+
+func (d *Dynamic) ID() string {
+	if d.id == "" {
+		d.makeNewID()
+	}
+	return d.id
+}
+
+func (d *Dynamic) Clone(suffix string) ContentTreeEvalBlock {
+	res := &Dynamic{
+		blockName: d.blockName,
+		source:    d.source,
+		items:     d.items,
+		children:  utils.FnMap(d.children, func(b ContentTreeEvalBlock) ContentTreeEvalBlock { return b.Clone(suffix) }),
+		dependsOn: d.dependsOn,
+	}
+	res.makeNewID()
+	if suffix != "" {
+		res.addNameSuffix(suffix)
+	}
+	return res
 }
 
 var dynamicBlockItems = &dataspec.AttrSpec{
 	Name:        "items",
 	Type:        plugindata.Encapsulated.CtyType(),
-	Doc:         "Items to be iterated over (list or map)",
+	Doc:         "A list or a map of items to be iterated over",
 	Constraints: constraint.Required,
 }
 
-func LoadDynamic(ctx context.Context, providers ContentProviders, node *definitions.ParsedDynamic) (_ *Dynamic, diags diagnostics.Diag) {
+func LoadDynamic(
+	ctx context.Context,
+	providers ContentProviders,
+	dynamicDef *definitions.Dynamic,
+) (_ *Dynamic, diags diagnostics.Diag) {
 	var diag diagnostics.Diag
 	block := &Dynamic{
-		block:    node.Block,
-		children: make([]*Content, 0, len(node.Content)),
+		source:    dynamicDef,
+		blockName: dynamicDef.BlockName,
+		// block:    dynamicDef.Source.Block,
+		children: make([]ContentTreeEvalBlock, 0, len(dynamicDef.Children)),
 	}
-	evalCtx := fabctx.GetEvalContext(deferred.WithQueryFuncs(ctx))
-	block.items, diag = dataspec.DecodeAttr(evalCtx, node.Items, dynamicBlockItems)
+	evalCtx := appctx.GetEvalContext(deferred.WithQueryFuncs(ctx))
+	block.items, diag = dataspec.DecodeAttr(evalCtx, dynamicDef.Items, dynamicBlockItems)
 	diags.Extend(diag)
 
-	for _, child := range node.Content {
+	// Evaluate dependsOn lists
+	if dynamicDef.DependsOn != nil {
+		var depNames []string
+		diag := gohcl.DecodeExpression(dynamicDef.DependsOn.Expr, nil, &depNames)
+		if diags.Extend(diag) {
+			return nil, diags
+		}
+		for _, name := range depNames {
+			defKey, err := definitions.KeyFromName(name)
+			if err != nil {
+				diags.Extend(diagnostics.FromErr(err))
+				return nil, diags
+			}
+			evalKey := EvalKeyFromDefKey(*defKey)
+			block.dependsOn = append(block.dependsOn, evalKey)
+		}
+	}
+
+	for _, child := range dynamicDef.Children {
 		decoded, diag := LoadContent(ctx, providers, child)
 		diags.Extend(diag)
 		block.children = append(block.children, decoded)
@@ -51,174 +142,148 @@ func LoadDynamic(ctx context.Context, providers ContentProviders, node *definiti
 	return block, diags
 }
 
-func applyDynamicContentVars(ctx context.Context, children []*Content, dataCtx plugindata.Map, dynVarVals *definitions.ParsedVars) (res []*Content, diags diagnostics.Diag) {
-	res = make([]*Content, 0, len(children))
-
-	// unwrap dynamic content
-	for _, child := range children {
-		switch {
-		case child.Plugin != nil:
-			plugin := utils.Clone(child.Plugin)
-			plugin.Vars = plugin.Vars.MergeWithBaseVars(dynVarVals)
-			res = append(res, &Content{Plugin: plugin})
-		case child.Section != nil:
-			section := utils.Clone(child.Section)
-			section.vars = section.vars.MergeWithBaseVars(dynVarVals)
-			res = append(res, &Content{Section: section})
-		case child.Dynamic != nil:
-			nonDynamicContent, diag := unwrapDynamicItem(ctx, child.Dynamic, dataCtx)
-			diags.Extend(diag)
-			res = append(res, nonDynamicContent...)
-		default:
-			slog.Warn("Child has unknown type")
-			res = append(res, child)
-		}
-	}
-	return
-}
-
-// unwrapDynamicContent unwraps dynamic content in children
-func UnwrapDynamicContent(ctx context.Context, children []*Content, dataCtx plugindata.Map) (res []*Content, diags diagnostics.Diag) {
-	return unwrapDynamicContent(deferred.WithQueryFuncs(ctx), children, dataCtx)
-}
-
-func unwrapDynamicContent(ctx context.Context, children []*Content, dataCtx plugindata.Map) (res []*Content, diags diagnostics.Diag) {
-	// Goal: expand dynamic content on the first layer of children
-	// (without descending into child sections)
-	res = make([]*Content, 0, len(children))
-
-	// unwrap dynamic content
-	for _, child := range children {
-		if child.Dynamic == nil {
-			res = append(res, child)
-			continue
-		}
-		nonDynamicContent, diag := unwrapDynamicItem(ctx, child.Dynamic, dataCtx)
-		diags.Extend(diag)
-		res = append(res, nonDynamicContent...)
-	}
-	return
-}
-
-func unwrapDynamicItem(ctx context.Context, dynamic *Dynamic, dataCtx plugindata.Map) (res []*Content, diags diagnostics.Diag) {
-	val, diag := dataspec.EvalAttr(ctx, dynamic.items, dataCtx)
+func evalItemsAttr(
+	ctx context.Context,
+	items *dataspec.Attr,
+	dataCtx *plugindata.Map,
+) (data *plugindata.Data, diags diagnostics.Diag) {
+	val, diag := dataspec.EvalAttr(ctx, items, *dataCtx)
 	if diags.Extend(diag) || val.IsNull() {
-		return
+		return nil, diags
 	}
-	data := plugindata.Encapsulated.MustFromCty(val)
+	data = plugindata.Encapsulated.MustFromCty(val)
 	if data == nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid dynamic block items",
-			Detail:   "Dynamic block items must be a list or a map, got nil",
-			Subject:  dynamic.items.ValueRange.Ptr(),
+			Summary:  "Invalid `items` value for a dynamic block",
+			Detail:   "The value of `items` attribute for a dynamic block must be a list or a map.",
+			Subject:  items.ValueRange.Ptr(),
 		})
-		return
+		return nil, diags
 	}
+	return data, diags
+}
 
-	var dynamicItems [][2]plugindata.Data
-	switch dt := (*data).(type) {
+type dynamicItem struct {
+	idx int
+	key *string
+	val plugindata.Data
+}
+
+func evaluateDynamicBlock(
+	ctx context.Context,
+	requiredTags []string,
+	dynamic *Dynamic,
+	items plugindata.Data,
+	depth int,
+	dataCtx *plugindata.Map,
+) (_ []RenderableContent, diags diagnostics.Diag) {
+	var dynamicItems []dynamicItem
+	switch items := items.(type) {
 	case nil:
 		return
 	case plugindata.List:
-		dynamicItems = make([][2]plugindata.Data, 0, len(dt))
-		for idx, item := range dt {
-			dynamicItems = append(dynamicItems, [2]plugindata.Data{
-				plugindata.Number(idx),
-				item,
+		dynamicItems = make([]dynamicItem, 0, len(items))
+		for idx, item := range items {
+			dynamicItems = append(dynamicItems, dynamicItem{
+				idx: idx,
+				val: item,
 			})
 		}
 	case plugindata.Map:
-		dynamicItems = make([][2]plugindata.Data, 0, len(dt))
-		for key, item := range dt {
-			dynamicItems = append(dynamicItems, [2]plugindata.Data{
-				plugindata.String(key),
-				item,
+		dynamicItems = make([]dynamicItem, 0, len(items))
+		idx := 0
+		for key, item := range items {
+			dynamicItems = append(dynamicItems, dynamicItem{
+				idx: idx,
+				key: &key,
+				val: item,
 			})
+			idx += 1
 		}
 	default:
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid dynamic block items",
-			Detail:   fmt.Sprintf("Dynamic block items must be a list or a map, got %T", dt),
+			Summary:  "Invalid dynamic block items type",
+			Detail:   fmt.Sprintf("Dynamic block items value must be a list or a map, got %T", items),
 			Subject:  dynamic.items.ValueRange.Ptr(),
 		})
 		return
 	}
 
-	newDataCtx := maps.Clone(dataCtx)
-	vars := getVarsCopy(newDataCtx)
-	for _, kv := range dynamicItems {
-		vars[itemIndexVarName] = kv[0]
-		vars[itemVarName] = kv[1]
-		newDynVarVals, diag := parseDynVars(ctx, kv[0], kv[1], dynamic.items.ValueRange)
-		if diags.Extend(diag) {
-			return
+	res := []RenderableContent{}
+
+	for _, item := range dynamicItems {
+		// clone the context for the run
+		newDataCtx := dataCtx.Clone()
+
+		// add dynamic vars to the context
+		vars := plugindata.Map{}
+		if varsData, found := newDataCtx[definitions.BlockKindVars]; found {
+			vars = varsData.(plugindata.Map)
 		}
-		nonDynamicContent, diag := applyDynamicContentVars(ctx, dynamic.children, newDataCtx, newDynVarVals)
-		if diags.Extend(diag) {
-			// stop dynamic block processing on error: it's likely that
-			// the error will be repeated for each item and only add noise
-			break
+
+		vars[itemIndexVarName] = plugindata.Number(item.idx)
+		vars[itemValueVarName] = item.val
+
+		if item.key != nil {
+			vars[itemKeyVarName] = plugindata.String(*item.key)
 		}
-		res = append(res, nonDynamicContent...)
+		newDataCtx[definitions.BlockKindVars] = vars
+
+		// clone the children
+		for _, child := range dynamic.children {
+			clone := child.Clone(fmt.Sprintf("%d", item.idx))
+
+			nonDynamicContent, diag := evaluateContentTree(ctx, requiredTags, clone, depth, &newDataCtx)
+			if diags.Extend(diag) {
+				// stop dynamic block processing on error: it's likely that
+				// the error will be repeated for each item and only add noise
+				break
+			}
+
+			if nonDynamicContent != nil {
+				res = append(res, nonDynamicContent)
+			}
+		}
 	}
-	return
+	return res, diags
 }
 
-const (
-	itemIndexVarName = "dynamic_item_index"
-	itemVarName      = "dynamic_item"
-	itemNameVarName  = "item_name"
-)
-
-// getVarsCopy ensures a vars map exists in the context and returns it
-
-func parseDynVars(ctx context.Context, idx, val plugindata.Data, rng hcl.Range, itemName ...string) (parsed *definitions.ParsedVars, diags diagnostics.Diag) {
-	// use existing vars parser by creating a synthetic (dynamic_)vars block
-	attrs := map[string]*hclsyntax.Attribute{
-		itemIndexVarName: {
-			Name: itemIndexVarName,
-			Expr: &hclsyntax.LiteralValueExpr{
-				Val: plugindata.Encapsulated.ValToCty(idx),
-			},
-			SrcRange:    rng,
-			NameRange:   rng,
-			EqualsRange: rng,
-		},
-		itemVarName: {
-			Name: itemVarName,
-			Expr: &hclsyntax.LiteralValueExpr{
-				Val: plugindata.Encapsulated.ValToCty(val),
-			},
-			SrcRange:    rng,
-			NameRange:   rng,
-			EqualsRange: rng,
-		},
-	}
-
-	// Add item_name if provided
-	if len(itemName) > 0 {
-		attrs[itemNameVarName] = &hclsyntax.Attribute{
-			Name: itemNameVarName,
-			Expr: &hclsyntax.LiteralValueExpr{
-				Val: plugindata.Encapsulated.ValToCty(plugindata.String(itemName[0])),
-			},
-			SrcRange:    rng,
-			NameRange:   rng,
-			EqualsRange: rng,
-		}
-	}
-
-	return parser.ParseVars(ctx, &hclsyntax.Block{
-		Type:            "dynamic_vars",
-		TypeRange:       rng,
-		OpenBraceRange:  rng,
-		CloseBraceRange: rng,
-		Body: &hclsyntax.Body{
-			SrcRange:   rng,
-			EndRange:   rng,
-			Attributes: attrs,
-		},
-	}, nil)
-}
+// func parseDynVars(
+// 	ctx context.Context,
+// 	idx, val plugindata.Data,
+// 	rng hcl.Range,
+// ) (parsed *definitions.Vars, diags diagnostics.Diag) {
+// 	// use existing vars parser by creating a synthetic (dynamic_)vars block
+// 	return parser.ParseVars(ctx, &hclsyntax.Block{
+// 		Type:            "dynamic_vars",
+// 		TypeRange:       rng,
+// 		OpenBraceRange:  rng,
+// 		CloseBraceRange: rng,
+// 		Body: &hclsyntax.Body{
+// 			SrcRange: rng,
+// 			EndRange: rng,
+// 			Attributes: map[string]*hclsyntax.Attribute{
+// 				itemIndexVarName: {
+// 					Name: itemIndexVarName,
+// 					Expr: &hclsyntax.LiteralValueExpr{
+// 						Val: plugindata.Encapsulated.ValToCty(idx),
+// 					},
+// 					SrcRange:    rng,
+// 					NameRange:   rng,
+// 					EqualsRange: rng,
+// 				},
+// 				itemVarName: {
+// 					Name: itemVarName,
+// 					Expr: &hclsyntax.LiteralValueExpr{
+// 						Val: plugindata.Encapsulated.ValToCty(val),
+// 					},
+// 					SrcRange:    rng,
+// 					NameRange:   rng,
+// 					EqualsRange: rng,
+// 				},
+// 			},
+// 		},
+// 	}, nil)
+// }

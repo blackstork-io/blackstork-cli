@@ -6,9 +6,9 @@ plugin:
   tags: {{ formatTags .content_provider.Tags }}
   version: "{{ .plugin.Version }}"
   {{- if eq .plugin_shortname "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/{{ .plugin_shortname }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ .plugin_shortname }}/"
   {{- end }}
 resource:
   type: content-provider
@@ -26,45 +26,46 @@ type: docs
 {{end -}}
 
 {{ if eq .plugin.Name "blackstork/builtin" -}}
-The content provider is built-in, which means it's a part of `fabric` binary. It's available out-of-the-box, no installation required.
+The `{{ .name }}` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 {{ else -}}
 ## Installation
 
-To use `{{ .name }}` content provider, you must install the plugin `{{ .plugin.Name }}`.
+{{"{{"}}< hint note >{{"}}"}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{"{{"}}< /hint >{{"}}"}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for more details), as shown below:
+To use the `{{ .name }}` content provider locally via `blackstork-cli`, you must declare the `{{ .plugin.Name }}` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "{{ .plugin.Name }}" = ">= {{ .plugin.Version }}"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{"{{"}}< ref "configs.md#global-configuration" >{{"}}"}}) for details.
 {{ end }}
-
-#### Configuration
+## Configuration
 
 {{ $ctx := . -}}
 {{with .content_provider.Config -}}
-The content provider supports the following configuration arguments:
+This content provider accepts the following configuration arguments within a `config content {{ $ctx.name }}` block:
 
 ```hcl
 {{ renderDoc . "config" "content" $ctx.name -}}
 ```
 {{ else -}}
-The content provider doesn't support any configuration arguments.
+This content provider does not accept any configuration arguments.
 {{ end }}
-#### Usage
+## Usage
 
 {{with .content_provider.Args -}}
-The content provider supports the following execution arguments:
+This content provider accepts the following arguments within a `content {{ $ctx.name }}` block:
 
 ```hcl
 {{ renderDoc . "content" $ctx.name -}}
 ```
 {{ else }}
-The content provider doesn't define any execution arguments.
+This content provider does not accept any execution arguments.
 {{ end }}

@@ -5,7 +5,7 @@ plugin:
   description: "Retrieve issues from Jira"
   tags: []
   version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/fabric/tree/main/internal/atlassian/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/atlassian/"
 resource:
   type: data-source
 type: docs
@@ -20,23 +20,25 @@ Retrieve issues from Jira.
 
 ## Installation
 
-To use `jira_issues` data source, you must install the plugin `blackstork/atlassian`.
+{{< hint note >}}
+**BlackStork SaaS:** Plugin dependencies are resolved automatically by the platform. You do not need to install plugins or define the `blackstork` configuration block manually.
+{{< /hint >}}
 
-To install the plugin, add the full plugin name to the `plugin_versions` map in the Fabric global configuration block (see [Global configuration]({{< ref "configs.md#global-configuration" >}}) for more details), as shown below:
+To use the `jira_issues` data source locally via `blackstork-cli`, you must declare the `blackstork/atlassian` plugin as a dependency in your global configuration block.
 
 ```hcl
-fabric {
+blackstork {
   plugin_versions = {
     "blackstork/atlassian" = ">= v0.4.2"
   }
 }
 ```
 
-Note the version constraint set for the plugin.
+After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
 ## Configuration
 
-The data source supports the following configuration arguments:
+This data source accepts the following configuration arguments within a `config data jira_issues` block:
 
 ```hcl
 config data jira_issues {
@@ -68,7 +70,7 @@ config data jira_issues {
 
 ## Usage
 
-The data source supports the following execution arguments:
+This data source accepts the following arguments within a `data jira_issues` block:
 
 ```hcl
 data jira_issues {

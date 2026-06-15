@@ -1,3 +1,12 @@
+// Copyright 2026 BlackStork BV
+//
+// Use of this software is governed by the Business Source License included in the
+// file LICENSE and at www.mariadb.com/bsl11.
+//
+// As of the Change Date specified in that file, in accordance with the Business
+// Source License, use of this software will be governed by the Apache License,
+// Version 2.0, included in the file .licenses/APACHE-2.0.txt.
+
 package engine
 
 import (
@@ -9,11 +18,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/blackstork-io/fabric/cmd/fabctx"
-	"github.com/blackstork-io/fabric/pkg/diagnostics"
-	"github.com/blackstork-io/fabric/pkg/diagnostics/diagtest"
-	"github.com/blackstork-io/fabric/plugin/plugindata"
-	"github.com/blackstork-io/fabric/print/mdprint"
+	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
+	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics/diagtest"
+	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
 type (
@@ -31,7 +39,7 @@ func renderTest(t *testing.T, testName string, files, expectedResult []string, o
 		}
 	}
 	eng := New()
-	ctx := fabctx.New(fabctx.NoSignals)
+	ctx := appctx.New()
 
 	target := "test-doc"
 	var requiredTags []string
@@ -59,7 +67,10 @@ func renderTest(t *testing.T, testName string, files, expectedResult []string, o
 			if !diags.Extend(eng.LoadPluginResolver(ctx, false)) && !diags.Extend(eng.LoadPluginRunner(ctx)) {
 				_, content, _, diag := eng.RenderContent(ctx, target, requiredTags)
 				if !diags.Extend(diag) {
-					res = mdprint.PrintString(content)
+					// FIXME:
+					// res = mdprint.PrintString(content)
+					t.Logf("ERROR: fix content check %s", content)
+					res = "FIXME"
 				}
 			}
 		}

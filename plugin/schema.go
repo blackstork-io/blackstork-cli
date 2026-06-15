@@ -56,10 +56,13 @@ func (p *Schema) Validate() diagnostics.Diag {
 	if p.ContentProviders != nil {
 		diags = append(diags, p.ContentProviders.Validate()...)
 	}
+	if p.Formatters != nil {
+		diags = append(diags, p.Formatters.Validate()...)
+	}
 	if p.Publishers != nil {
 		diags = append(diags, p.Publishers.Validate()...)
 	}
-	if p.DataSources == nil && p.ContentProviders == nil && p.Publishers == nil {
+	if p.DataSources == nil && p.ContentProviders == nil && p.Formatters == nil && p.Publishers == nil {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Incomplete PluginSchema",

@@ -57,6 +57,9 @@ func makeHubPublisher(
 				},
 			},
 		},
+		Args: &dataspec.RootSpec{
+			Attrs: []*dataspec.AttrSpec{},
+		},
 		Formats:     []string{},
 		PublishFunc: publishHub(version, loader, log, tracer),
 	}

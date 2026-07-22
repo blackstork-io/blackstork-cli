@@ -28,7 +28,7 @@ import (
 
 const (
 	documentKind      = "document"
-	documentRootLevel = -1
+	DocumentRootLevel = -1
 )
 
 func executeDynamicTemplate(ctx context.Context, w io.Writer, tmplStr string, data any) error {
@@ -150,7 +150,7 @@ func getOverrideTemplateForBlock(
 	tKey, nKey := getBlockIdentity(content)
 
 	// Checking if the section is a document itself
-	if level == documentRootLevel && content.Kind() == plugin.SectionKind {
+	if level == DocumentRootLevel && content.Kind() == plugin.SectionKind {
 		docTypeKey := TypedBlock{kind: documentKind}
 		if tmpl, ok := templatePerType[docTypeKey]; ok {
 			return tmpl, true

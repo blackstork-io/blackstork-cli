@@ -172,7 +172,7 @@ templ ContentHTML(
 				}}
 			}
 			// the section is a document root
-			if level == documentRootLevel {
+			if level == DocumentRootLevel {
 				<main class="max-w-4xl mx-auto px-8 pt-5 pb-10">
 					if content.Title != nil {
 						@ContentHTML(ctx, log, templatePerType, templatePerName, content.Title, level, nil)

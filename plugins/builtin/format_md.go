@@ -300,7 +300,7 @@ func makeMarkdownFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.For
 		dataCtx := params.DataContext
 		dataCtx["format"] = plugindata.String(params.Format)
 
-		section, err := parseContentSection(params.Content)
+		section, err := ParseContentSection(params.Content)
 		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,

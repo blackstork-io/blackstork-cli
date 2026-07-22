@@ -21,31 +21,31 @@ import (
 	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 )
 
-func getDocument(dataCtx plugindata.Map) (*plugin.ContentSection, error) {
-	documentMap, ok := dataCtx["document"]
-	if !ok {
-		return nil, nil
-	}
-	contentMap, ok := documentMap.(plugindata.Map)["content"]
-	if !ok {
-		return nil, nil
-	}
-	return parseContentSection(contentMap.(plugindata.Map))
-}
+// func getDocument(dataCtx plugindata.Map) (*plugin.ContentSection, error) {
+// 	documentMap, ok := dataCtx["document"]
+// 	if !ok {
+// 		return nil, nil
+// 	}
+// 	contentMap, ok := documentMap.(plugindata.Map)["content"]
+// 	if !ok {
+// 		return nil, nil
+// 	}
+// 	return ParseContentSection(contentMap.(plugindata.Map))
+// }
+//
+// func getRootSection(dataCtx plugindata.Map) (*plugin.ContentSection, error) {
+// 	sectionMap, ok := dataCtx["section"]
+// 	if !ok || sectionMap == nil {
+// 		return nil, nil
+// 	}
+// 	contentMap, ok := sectionMap.(plugindata.Map)["content"]
+// 	if !ok {
+// 		return nil, nil
+// 	}
+// 	return ParseContentSection(contentMap.(plugindata.Map))
+// }
 
-func getRootSection(dataCtx plugindata.Map) (*plugin.ContentSection, error) {
-	sectionMap, ok := dataCtx["section"]
-	if !ok || sectionMap == nil {
-		return nil, nil
-	}
-	contentMap, ok := sectionMap.(plugindata.Map)["content"]
-	if !ok {
-		return nil, nil
-	}
-	return parseContentSection(contentMap.(plugindata.Map))
-}
-
-func parseContentSection(data plugindata.Map) (*plugin.ContentSection, error) {
+func ParseContentSection(data plugindata.Map) (*plugin.ContentSection, error) {
 	content, err := plugin.ParseContentData(data)
 	if err != nil {
 		return nil, err
@@ -57,20 +57,39 @@ func parseContentSection(data plugindata.Map) (*plugin.ContentSection, error) {
 	return section, nil
 }
 
-func firstTitle(el plugin.Content) plugin.Content {
+func FirstTitle(el plugin.Content) plugin.Content {
 	switch el := el.(type) {
 	case *plugin.ContentSection:
 		if el.Title != nil {
 			return el.Title
 		}
 		for _, c := range el.Children {
-			if titleEl := firstTitle(c); titleEl != nil {
+			if titleEl := FirstTitle(c); titleEl != nil {
 				return titleEl
 			}
 		}
 	case *plugin.ContentElement:
 		if el.Kind() == plugin.TitleKind {
 			return el
+		}
+	}
+	return nil
+}
+
+func FirstTitleValue(el plugin.Content) *string {
+	switch el := el.(type) {
+	case *plugin.ContentSection:
+		if el.Title != nil {
+			return extractTitlePlainValue(el.Title)
+		}
+		for _, c := range el.Children {
+			if titleEl := FirstTitle(c); titleEl != nil {
+				return extractTitlePlainValue(titleEl)
+			}
+		}
+	case *plugin.ContentElement:
+		if el.Kind() == plugin.TitleKind {
+			return extractTitlePlainValue(el)
 		}
 	}
 	return nil

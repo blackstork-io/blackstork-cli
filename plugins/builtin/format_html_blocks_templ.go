@@ -239,7 +239,7 @@ func ContentHTML(
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if level == documentRootLevel {
+			if level == DocumentRootLevel {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<main class=\"max-w-4xl mx-auto px-8 pt-5 pb-10\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

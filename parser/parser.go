@@ -53,7 +53,8 @@ func findTemplateFiles(rootDir fs.FS, recursive bool) (paths []string, diags dia
 			}
 			return nil
 		}
-		if strings.EqualFold(filepath.Ext(path), templateFileExt) {
+		// Ext() only gets the last part, so we need to check for suffix
+		if strings.HasSuffix(path, templateFileExt) {
 			paths = append(paths, path)
 		}
 		// check for .fabric for backward compatibility
@@ -124,11 +125,13 @@ func ParseDir(
 ) (BlocksRegistry, map[string]*hcl.File, diagnostics.Diag) {
 	var diags diagnostics.Diag
 
+	blocks := NewDefinedBlocks()
+
 	templateFiles, readDiags := findTemplateFiles(dir, true)
 
 	if len(templateFiles) == 0 {
-		log.WarnContext(ctx, "No templates found", "dir_path", dir)
-		return nil, nil, diagnostics.Diag{{
+		log.WarnContext(ctx, "No templates found", "dir", dir)
+		return blocks, nil, diagnostics.Diag{{
 			Severity: hcl.DiagWarning,
 			Summary:  "No templates found",
 			Detail:   fmt.Sprintf("No templates found in the provided directory `%s`", dir),
@@ -160,7 +163,6 @@ func ParseDir(
 		log.ErrorContext(ctx, "Errors while parsing files", "errs", errs)
 	}
 
-	blocks := NewDefinedBlocks()
 	fileMap := map[string]*hcl.File{}
 
 	for _, result := range parseResults {

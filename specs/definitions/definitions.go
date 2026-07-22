@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	BlockKindDocument        = "document"
-	BlockKindConfig          = "config"
-	BlockKindContent         = "content"
-	BlockKindPublish         = "publish"
-	BlockKindData            = "data"
-	BlockKindMeta            = "meta"
-	BlockKindInput           = "input"
-	BlockKindVars            = "vars"
-	BlockKindSection         = "section"
+	BlockKindDocument = "document"
+	BlockKindConfig   = "config"
+	BlockKindContent  = "content"
+	BlockKindPublish  = "publish"
+	BlockKindData     = "data"
+	BlockKindMeta     = "meta"
+	BlockKindInput    = "input"
+	BlockKindVars     = "vars"
+	BlockKindSection  = "section"
 
-	BlockKindDynamic         = "dynamic"
-	BlockKindFormat          = "format"
+	BlockKindDynamic = "dynamic"
+	BlockKindFormat  = "format"
 
 	BlockKindGlobalConfig    = "blackstork"
 	BlockKindGlobalConfigOld = "fabric"

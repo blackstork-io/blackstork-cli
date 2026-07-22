@@ -337,8 +337,8 @@ nextBlock:
 		if !blockSpec.AllowUnspecifiedBlocks {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unexpected block found",
-				Detail:   fmt.Sprintf("%s can not contain this block", formatHeader(block.Type, block.Labels)),
+				Summary:  "Unexpected sub-block found",
+				Detail:   fmt.Sprintf("%s can not contain block %s", formatHeader(block.Type, block.Labels), formatHeader(subBlock.Type, subBlock.Labels)),
 				Subject:  &subBlock.TypeRange,
 				Context:  &block.Body.SrcRange,
 			})
@@ -354,7 +354,7 @@ nextBlock:
 		if subSpec.Required && !specWasUsed[i] {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing a block",
+				Summary:  "Missing a sub-block",
 				Detail: fmt.Sprintf(
 					"%s requires a block of type %s to be defined",
 					formatHeader(block.Type, block.Labels),

@@ -28,7 +28,7 @@ type PluginFormatAction struct {
 	Formatter *plugin.Formatter
 }
 
-func (block *PluginFormatAction) Execute(
+func (a *PluginFormatAction) Execute(
 	ctx context.Context,
 	dataCtx plugindata.Map,
 	content plugindata.Map,
@@ -36,15 +36,27 @@ func (block *PluginFormatAction) Execute(
 	log := appctx.Log(ctx)
 	log.InfoContext(
 		ctx, "Formatting content",
-		"format", block.Formatter.Format,
+		"format", a.Formatter.Format,
 	)
-	return block.Formatter.Execute(ctx, &plugin.FormatParams{
-		Config:      block.Config,
-		Args:        block.Args,
+	return a.Formatter.Execute(ctx, &plugin.FormatParams{
+		Config:      a.Config,
+		Args:        a.Args,
 		Content:     content,
 		DataContext: dataCtx,
-		Format:      block.Formatter.Format,
+		Format:      a.Formatter.Format,
 	})
+}
+
+func (a *PluginFormatAction) Meta() *definitions.MetaBlock {
+	return a.meta
+}
+
+func (a *PluginFormatAction) FullName() string {
+	name := fmt.Sprintf("format.%s", a.RunnerName)
+	if a.BlockName != "" {
+		name += "." + a.BlockName
+	}
+	return name
 }
 
 func LoadPluginFormatAction(

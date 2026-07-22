@@ -18,7 +18,7 @@ import (
 type MetaBlock struct {
 	Name        string   `hcl:"name,optional"`
 	Description string   `hcl:"description,optional"`
-	Url         string   `hcl:"url,optional"`
+	URL         string   `hcl:"url,optional"`
 	License     string   `hcl:"license,optional"`
 	Authors     []string `hcl:"authors,optional"`
 	Tags        []string `hcl:"tags,optional"`
@@ -56,7 +56,7 @@ func (m *MetaBlock) AsPluginData() plugindata.Map {
 	return plugindata.Map{
 		"name":        plugindata.String(m.Name),
 		"description": plugindata.String(m.Description),
-		"url":         plugindata.String(m.Url),
+		"url":         plugindata.String(m.URL),
 		"license":     plugindata.String(m.License),
 		"authors":     authors,
 		"tags":        tags,

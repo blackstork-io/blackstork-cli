@@ -10,6 +10,10 @@
 package definitions
 
 import (
+	"reflect"
+
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/blackstork-io/blackstork-cli/parser/evaluation"
 )
 
@@ -44,6 +48,16 @@ func (b *FormatBlock) GetRunner() string {
 
 func (b *FormatBlock) GetName() string {
 	return b.BlockName
+}
+
+var ctyFormatBlockType = cty.Capsule("format_block", reflect.TypeFor[FormatBlock]())
+
+func (b *FormatBlock) CtyType() cty.Type {
+	return ctyFormatBlockType
+}
+
+func (b *FormatBlock) CtyValue() cty.Value {
+	return cty.CapsuleVal(b.CtyType(), b)
 }
 
 var (

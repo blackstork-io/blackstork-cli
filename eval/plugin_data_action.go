@@ -73,11 +73,16 @@ func LoadDataAction(
 
 	ds, ok := sources.DataSource(blockDef.RunnerName)
 	if !ok {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Missing data source",
-			Detail:   fmt.Sprintf("`%s` data source not found in installed plugins", blockDef.RunnerName),
-		}}
+		return nil, diagnostics.Diag{
+			{
+				Severity: hcl.DiagError,
+				Summary:  "Missing data source",
+				Detail: fmt.Sprintf(
+					"`%s` data source not found in installed plugins",
+					blockDef.RunnerName,
+				),
+			},
+		}
 	}
 	var cfg *dataspec.Block
 	if ds.Config != nil && blockDef.Config != nil {
@@ -85,7 +90,7 @@ func LoadDataAction(
 		if diags.HasErrors() {
 			return nil, diags
 		}
-	} else if ds.Config != nil && blockDef.Config == nil {
+	} else if ds.Config != nil && blockDef.Config == nil && ds.Config.IsRequired() {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No configuration provided for data block",

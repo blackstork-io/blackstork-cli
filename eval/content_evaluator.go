@@ -721,7 +721,6 @@ func executeContentBlocksAsync(
 					break
 				}
 				rootSection.Add(output)
-				// log.WarnContext(ctx, "ADDING OUTPUT", "output", output)
 			}
 		}
 	}

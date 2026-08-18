@@ -106,8 +106,11 @@ func (s *Section) Clone(suffix string) ContentTreeEvalBlock {
 		source:    s.source,
 		blockName: s.blockName,
 
-		title:    titleClone,
-		children: utils.FnMap(s.children, func(b ContentTreeEvalBlock) ContentTreeEvalBlock { return b.Clone(suffix) }),
+		title: titleClone,
+		children: utils.FnMap(
+			s.children,
+			func(b ContentTreeEvalBlock) ContentTreeEvalBlock { return b.Clone(suffix) },
+		),
 
 		meta: s.meta,
 		vars: s.vars,
@@ -200,7 +203,7 @@ func LoadSection(
 	}
 
 	block.isIncluded, diag = dataspec.DecodeAttr(
-		appctx.GetEvalContext(deferred.WithQueryFuncs(ctx)),
+		deferred.WithQueryFuncs(appctx.GetEvalContext(ctx)),
 		isIncluded,
 		isIncludedSpec,
 	)

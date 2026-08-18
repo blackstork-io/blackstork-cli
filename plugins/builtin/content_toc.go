@@ -157,8 +157,14 @@ func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentS
 		tocDepth := tocBlockDetails.Depth
 		tocLevel := tocDepth + 1
 
-		relativeStartLevel := startLevel + tocLevel
-		relativeEndLevel := endLevel + tocLevel
+		absoluteStartLevel := startLevel
+		absoluteEndLevel := endLevel
+
+		// if the scope if local, treat levels as relative
+		if scope != "document" {
+			absoluteStartLevel += tocLevel
+			absoluteEndLevel += tocLevel
+		}
 
 		headingsToKeep := slices.DeleteFunc(headings, func(el *plugin.ContentElement) bool {
 			levelData := el.Attr("level")
@@ -168,7 +174,7 @@ func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentS
 			}
 
 			level := int(levelData.(plugindata.Number))
-			return level < relativeStartLevel || level > relativeEndLevel
+			return level < absoluteStartLevel || level > absoluteEndLevel
 		})
 
 		headingsAttrs := utils.FnMap(headingsToKeep, func(el *plugin.ContentElement) plugindata.Map {

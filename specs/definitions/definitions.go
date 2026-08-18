@@ -44,6 +44,7 @@ const (
 	AttrRequiredVars = "required_vars"
 	AttrIsIncluded   = "is_included"
 	AttrDynamicItems = "items"
+	AttrFormatRef    = "format_ref"
 )
 
 type BlockDef interface {
@@ -52,7 +53,7 @@ type BlockDef interface {
 	Kind() string
 }
 
-func ToCtyValue(b BlockDef) cty.Value {
+func BlockDefToCtyValue(b BlockDef) cty.Value {
 	return cty.CapsuleVal(b.CtyType(), b)
 }
 

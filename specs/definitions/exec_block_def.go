@@ -68,10 +68,10 @@ func (p *ExecBlockDef) GetHCLBlock() *hclsyntax.Block {
 	return p.Block
 }
 
-var ctyExecBlockType = encapsulator.NewEncoder[ExecBlockDef]("exec_block", nil)
+var ctyExecBlockDefType = encapsulator.NewEncoder[ExecBlockDef]("exec_block_def", nil)
 
 func (p *ExecBlockDef) CtyType() cty.Type {
-	return ctyExecBlockType.CtyType()
+	return ctyExecBlockDefType.CtyType()
 }
 
 func DefineExecBlockDef(block *hclsyntax.Block, atTopLevel bool) (plugin *ExecBlockDef, diags diagnostics.Diag) {

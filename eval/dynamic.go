@@ -83,7 +83,10 @@ func (d *Dynamic) Clone(suffix string) ContentTreeEvalBlock {
 		blockName: d.blockName,
 		source:    d.source,
 		items:     d.items,
-		children:  utils.FnMap(d.children, func(b ContentTreeEvalBlock) ContentTreeEvalBlock { return b.Clone(suffix) }),
+		children: utils.FnMap(
+			d.children,
+			func(b ContentTreeEvalBlock) ContentTreeEvalBlock { return b.Clone(suffix) },
+		),
 		dependsOn: d.dependsOn,
 	}
 	res.makeNewID()
@@ -112,7 +115,7 @@ func LoadDynamic(
 		// block:    dynamicDef.Source.Block,
 		children: make([]ContentTreeEvalBlock, 0, len(dynamicDef.Children)),
 	}
-	evalCtx := appctx.GetEvalContext(deferred.WithQueryFuncs(ctx))
+	evalCtx := deferred.WithQueryFuncs(appctx.GetEvalContext(ctx))
 	block.items, diag = dataspec.DecodeAttr(evalCtx, dynamicDef.Items, dynamicBlockItems)
 	diags.Extend(diag)
 
@@ -205,8 +208,11 @@ func evaluateDynamicBlock(
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid dynamic block items type",
-			Detail:   fmt.Sprintf("Dynamic block items value must be a list or a map, got %T", items),
-			Subject:  dynamic.items.ValueRange.Ptr(),
+			Detail: fmt.Sprintf(
+				"Dynamic block items value must be a list or a map, got %T",
+				items,
+			),
+			Subject: dynamic.items.ValueRange.Ptr(),
 		})
 		return
 	}
@@ -235,7 +241,13 @@ func evaluateDynamicBlock(
 		for _, child := range dynamic.children {
 			clone := child.Clone(fmt.Sprintf("%d", item.idx))
 
-			nonDynamicContent, diag := evaluateContentTree(ctx, requiredTags, clone, depth, &newDataCtx)
+			nonDynamicContent, diag := evaluateContentTree(
+				ctx,
+				requiredTags,
+				clone,
+				depth,
+				&newDataCtx,
+			)
 			if diags.Extend(diag) {
 				// stop dynamic block processing on error: it's likely that
 				// the error will be repeated for each item and only add noise

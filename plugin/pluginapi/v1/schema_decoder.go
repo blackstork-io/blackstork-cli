@@ -139,11 +139,11 @@ func decodePublisherSchema(src *PublisherSchema) (*plugin.Publisher, error) {
 		return nil, err
 	}
 	return &plugin.Publisher{
-		Args:    dataspec.RootSpecFromBlock(args),
-		Config:  dataspec.RootSpecFromBlock(config),
-		Doc:     src.GetDoc(),
-		Tags:    src.GetTags(),
-		Formats: src.GetFormats(),
+		Args:               dataspec.RootSpecFromBlock(args),
+		Config:             dataspec.RootSpecFromBlock(config),
+		Doc:                src.GetDoc(),
+		Tags:               src.GetTags(),
+		AcceptedFormatters: src.GetAcceptedFormatters(),
 	}, nil
 }
 

@@ -26,12 +26,13 @@ import (
 func parsePublishBlock(
 	ctx context.Context,
 	blocksRegistry BlocksRegistry,
+	doc *definitions.Document,
 	execBlockDef *definitions.ExecBlockDef,
 	refHist *utils.RefHistory,
 ) (parsed *definitions.PublishBlock, diags diagnostics.Diag) {
 	log := appctx.Log(ctx)
 	log.DebugContext(
-		ctx, "Parsing a publish block",
+		ctx, "Parsing publish block",
 		"name", execBlockDef.Name(),
 		"publisher", execBlockDef.RunnerName(),
 		"is_ref", execBlockDef.IsRef(),
@@ -78,7 +79,14 @@ func parsePublishBlock(
 	case !isRef && !refBaseFound: // happy path, no ref
 		// do nothing
 	case isRef && refBaseFound: // happy path, a correct ref block
-		baseEval, diag := parseRefBase(ctx, blocksRegistry, execBlockDef, refBase.Expr, refHist)
+		baseEval, diag := parseRefBase(
+			ctx,
+			blocksRegistry,
+			execBlockDef.Kind(),
+			execBlockDef.GetHCLBlock().Body,
+			refBase.Expr,
+			refHist,
+		)
 		if diags.Extend(diag) {
 			return parsed, diags
 		}
@@ -99,7 +107,7 @@ func parsePublishBlock(
 		default:
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid block reference - mismatched type of a reference block",
+				Summary:  "Invalid block reference - mismatched type of referenced block",
 				Detail: fmt.Sprintf(
 					"`%s ref` block references a block of a mismatched type `%s` in `base` argument",
 					execBlockDef.Kind(),
@@ -178,7 +186,11 @@ func parsePublishBlock(
 
 	config, diag := parseExecBlockDefConfig(blocksRegistry, execBlockDef, configAttr, configBlock)
 	if diags.Extend(diag) {
-		log.ErrorContext(ctx, "Error while parsing config attr or inline config block", "err", diag)
+		if configAttr == nil {
+			log.ErrorContext(ctx, "Error while parsing inline `config` block", "err", diag)
+		} else {
+			log.ErrorContext(ctx, "Error while parsing `config` attribute", "err", diag)
+		}
 		return parsed, diags
 	}
 
@@ -195,11 +207,29 @@ func parsePublishBlock(
 			log.DebugContext(ctx, "Using default config for data block as no overrides provided")
 		} else {
 			res.Config = nil
-			// 			res.Config = &definitions.ConfigEmpty{
-			// 				ExecBlockDef: execBlockDef,
-			// 			}
 		}
 	}
 
+	// Collect `format` attr and pop it to avoid validation errors when
+	// checking runner-specific attrs later
+	formatAttr, _ := utils.Pop(body.Attributes, definitions.AttrFormatRef)
+	if formatAttr == nil {
+		log.WarnContext(ctx, "No format specified for `publish` block")
+	} else {
+		formatBlock, err := ParseFormatAttr(ctx, blocksRegistry, doc, body, formatAttr)
+		if err != nil {
+			log.ErrorContext(ctx, "Error while resolving format reference", "err", err)
+
+			diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Can't resolve format reference",
+				Subject:  body.Range().Ptr(),
+				Context:  &body.SrcRange,
+			})
+			return parsed, diags
+		}
+
+		res.Format = formatBlock
+	}
 	return &res, diags
 }

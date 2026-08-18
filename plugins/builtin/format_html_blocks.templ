@@ -38,7 +38,6 @@ templ ContentHTML(
 	onlyNode *uuid.UUID,
 ) {
 	{{
-
 		if onlyNode != nil && content.ID() != *onlyNode && content.Kind() != plugin.SectionKind {
 			return
 		}
@@ -80,6 +79,9 @@ templ ContentHTML(
 				rendered = "[RENDERING ERROR]"
 			}
 			data["value_html"] = wrapHTMLFunc(rendered)
+
+		case plugin.CodeKind:
+			data["value"] = wrapHTMLFunc(data["value"].(string))
 
 		case plugin.ListKind:
 
@@ -128,34 +130,28 @@ templ ContentHTML(
 			data["rows_html"] = rowsHTML
 		}
 	}}
-
 	if found {
 		// No only-specific-node rendering with overrides
 		if content.Kind() == plugin.SectionKind {
 			{{
-			sectionComponents, err := prerenderSectionComponents(
-				ctx,
-				log,
-				templatePerType,
-				templatePerName,
-				content.(*plugin.ContentSection),
-				level,
-			)
-			if err != nil {
-				log.ErrorContext(ctx, "Error while prerendering section components", "err", err)
-				sectionComponents = map[string]any{"title": "ERROR while rendering sectino"}
-			}
-			maps.Copy(data, sectionComponents)
+				sectionComponents, err := prerenderSectionComponents(
+					ctx,
+					log,
+					templatePerType,
+					templatePerName,
+					content.(*plugin.ContentSection),
+					level,
+				)
+				if err != nil {
+					log.ErrorContext(ctx, "Error while prerendering section components", "err", err)
+					sectionComponents = map[string]any{"title": fmt.Sprintf("ERROR while rendering section: %s", err)}
+				}
+				maps.Copy(data, sectionComponents)
 			}}
 		}
 		@RenderOverride(overrideTmpl, data)
-		{{
-		return
-		}}
+		{{ return }}
 	}
-	{{
-	// log.DebugContext(ctx, "Using default rendering for content element")
-	}}
 	// Default formatting
 	switch content := content.(type) {
 		case *plugin.ContentSection:
@@ -167,8 +163,8 @@ templ ContentHTML(
 					@ContentHTML(ctx, log, templatePerType, templatePerName, child, level+1, onlyNode)
 				}
 				{{
-				// return early
-				return
+					// return early
+					return
 				}}
 			}
 			// the section is a document root
@@ -194,9 +190,7 @@ templ ContentHTML(
 		case *plugin.ContentElement:
 			@DefaultContentElementHTML(content.Kind(), content.ID(), data, level)
 		default:
-			{{
-			log.ErrorContext(ctx, "Unknown content element found", "type", fmt.Sprintf("%T", content))
-			}}
+			{{ log.ErrorContext(ctx, "Unknown content element found", "type", fmt.Sprintf("%T", content)) }}
 			{ "[unknown-content-element-type]" }
 	}
 }
@@ -208,7 +202,8 @@ templ DefaultContentElementHTML(kind plugin.ContentKind, id uuid.UUID, data map[
 			<div
 				data-node={ id.String() }
 				data-value={ data["value"].(string) }
-				style="display: block; margin-top: 1em; margin-bottom: 1em; line-height: 1.5; min-height: 1.5em;">
+				style="display: block; margin-top: 1em; margin-bottom: 1em; line-height: 1.5; min-height: 1.5em;"
+			>
 				{{ cmp := data["value_html"].(templ.Component) }}
 				@cmp
 			</div>
@@ -250,7 +245,7 @@ templ DefaultContentElementHTML(kind plugin.ContentKind, id uuid.UUID, data map[
 		case plugin.CodeKind:
 			<pre>
 				<code data-node={ id.String() }>
-					{ data["value"].(string) }
+					@data["value"].(templ.Component)
 				</code>
 			</pre>
 		case plugin.ListKind:
@@ -294,13 +289,9 @@ templ DefaultContentElementHTML(kind plugin.ContentKind, id uuid.UUID, data map[
 				<tbody>
 					for _, row := range rows {
 						<tr>
-							{{
-								cells := row.([]any)
-							}}
+							{{ cells := row.([]any) }}
 							for _, cell := range cells {
-								{{
-									cellDetails := cell.(map[string]any)
-								}}
+								{{ cellDetails := cell.(map[string]any) }}
 								<td>
 									@cellDetails["value_html"].(templ.Component)
 								</td>

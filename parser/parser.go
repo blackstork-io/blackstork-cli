@@ -95,10 +95,10 @@ func ParseHclBytes(ctx context.Context, bytes []byte, path string) (*fileParseRe
 	}
 	body := utils.ToHclsyntaxBody(res.file.Body)
 
-	blocks, diags2 := parseBlockDefinitions(body)
-	if diags2.HasErrors() {
-		log.ErrorContext(ctx, "Error while parsing HCL blocks", "err", diags)
-		return nil, diags
+	blocks, defDiags := parseBlockDefinitions(body)
+	if defDiags.HasErrors() {
+		log.ErrorContext(ctx, "Error while parsing HCL blocks", "err", defDiags)
+		return nil, defDiags
 	}
 
 	res.Blocks = blocks

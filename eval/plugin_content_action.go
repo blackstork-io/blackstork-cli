@@ -120,8 +120,12 @@ func (a *PluginContentAction) RenderContent(
 	if err != nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Error while rendering content for %s: %s", a.EvalKey().AsName(), err),
-			Detail:   err.Error(),
+			Summary: fmt.Sprintf(
+				"Error while rendering content for %s: %s",
+				a.EvalKey().AsName(),
+				err,
+			),
+			Detail: err.Error(),
 		})
 		return nil, diags
 	}
@@ -148,11 +152,16 @@ func LoadPluginContentAction(
 ) (_ *PluginContentAction, diags diagnostics.Diag) {
 	provider, ok := providers.ContentProvider(blockDef.RunnerName)
 	if !ok {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Content provider is not found",
-			Detail:   fmt.Sprintf("'%s' content provider is not found in installed plugins", blockDef.RunnerName),
-		}}
+		return nil, diagnostics.Diag{
+			{
+				Severity: hcl.DiagError,
+				Summary:  "Content provider is not found",
+				Detail: fmt.Sprintf(
+					"'%s' content provider is not found in installed plugins",
+					blockDef.RunnerName,
+				),
+			},
+		}
 	}
 	var cfg *dataspec.Block
 	if provider.Config != nil && blockDef.Config != nil {
@@ -160,7 +169,7 @@ func LoadPluginContentAction(
 		if diags.HasErrors() {
 			return nil, diags
 		}
-	} else if provider.Config != nil && blockDef.Config == nil {
+	} else if provider.Config != nil && blockDef.Config == nil && provider.Config.IsRequired() {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No configuration provided for content block",
@@ -182,8 +191,10 @@ func LoadPluginContentAction(
 		})
 	}
 
+	evalCtx := deferred.WithQueryFuncs(appctx.GetEvalContext(ctx))
+
 	args, diag := dataspec.DecodeBlock(
-		deferred.WithQueryFuncs(ctx),
+		evalCtx,
 		blockDef.Source.Block,
 		provider.Args,
 	)
@@ -196,7 +207,7 @@ func LoadPluginContentAction(
 	}
 
 	isIncludedAttr, diag := dataspec.DecodeAttr(
-		appctx.GetEvalContext(deferred.WithQueryFuncs(ctx)),
+		evalCtx,
 		isIncluded,
 		isIncludedSpec,
 	)

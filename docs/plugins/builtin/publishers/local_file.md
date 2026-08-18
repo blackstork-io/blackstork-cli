@@ -17,16 +17,6 @@ type: docs
 
 The `local_file` publisher is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
-## Supported Formats
-
-This publisher supports the delivery of documents processed by the following formatters:
-
-- `md`
-- `pdf`
-- `html`
-
-To specify the format, use the `format` argument inside the `publish` block to reference a specific `format` block or a formatter short name.
-
 
 ## Configuration
 

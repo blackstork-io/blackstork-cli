@@ -37,7 +37,6 @@ func makeStdoutPublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publishe
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{},
 		},
-		Formats:     []string{"md", "html"},
 		PublishFunc: publishToStdout(log, tracer),
 	}
 }

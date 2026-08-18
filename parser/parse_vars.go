@@ -72,8 +72,7 @@ func ParseVars(ctx context.Context, block *hclsyntax.Block, localVar *hclsyntax.
 		localVar.Name = "local"
 		varCount++
 	}
-	ctx = deferred.WithQueryFuncs(ctx)
-	evalCtx := appctx.GetEvalContext(ctx)
+	evalCtx := deferred.WithQueryFuncs(appctx.GetEvalContext(ctx))
 	vars := make([]*dataspec.Attr, 0, varCount)
 
 	if block != nil {

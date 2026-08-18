@@ -88,7 +88,9 @@ func (reg *blocksRegistry) GetExecBlockDefsMap() map[definitions.Key]*definition
 	return reg.execBlockDefs
 }
 
-func (reg *blocksRegistry) GetExecBlockDefByKey(key definitions.Key) (*definitions.ExecBlockDef, bool) {
+func (reg *blocksRegistry) GetExecBlockDefByKey(
+	key definitions.Key,
+) (*definitions.ExecBlockDef, bool) {
 	val, ok := reg.execBlockDefs[key]
 	return val, ok
 }
@@ -124,16 +126,16 @@ func execBlocksMapToCty[V definitions.BlockDef](
 		switch k.Kind {
 		case definitions.BlockKindContent:
 			blockNameToVal := mapGetOrInit(contentBlocks, k.Runner)
-			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+			blockNameToVal[k.Name] = definitions.BlockDefToCtyValue(v)
 		case definitions.BlockKindData:
 			blockNameToVal := mapGetOrInit(dataBlocks, k.Runner)
-			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+			blockNameToVal[k.Name] = definitions.BlockDefToCtyValue(v)
 		case definitions.BlockKindFormat:
 			blockNameToVal := mapGetOrInit(formatBlocks, k.Runner)
-			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+			blockNameToVal[k.Name] = definitions.BlockDefToCtyValue(v)
 		case definitions.BlockKindPublish:
 			blockNameToVal := mapGetOrInit(publishBlocks, k.Runner)
-			blockNameToVal[k.Name] = definitions.ToCtyValue(v)
+			blockNameToVal[k.Name] = definitions.BlockDefToCtyValue(v)
 		default:
 			panic("Unsupported block kind encountered")
 		}
@@ -163,7 +165,7 @@ func execBlocksMapToCty[V definitions.BlockDef](
 }
 
 // The map to use in HCL eval context when block definitions are resolved
-func (reg *blocksRegistry) AsValueMap() map[string]cty.Value {
+func (reg *blocksRegistry) asValueMap() map[string]cty.Value {
 	content, data, format, publish := execBlocksMapToCty(reg.execBlockDefs)
 	cfgContent, cfgData, cfgFormat, cfgPublish := execBlocksMapToCty(reg.configDefs)
 
@@ -180,7 +182,7 @@ func (reg *blocksRegistry) AsValueMap() map[string]cty.Value {
 	} else {
 		sect := make(map[string]cty.Value, len(reg.sectionDefs))
 		for k, v := range reg.sectionDefs {
-			sect[k] = definitions.ToCtyValue(v)
+			sect[k] = definitions.BlockDefToCtyValue(v)
 		}
 		sections = cty.MapVal(sect)
 	}
@@ -193,6 +195,29 @@ func (reg *blocksRegistry) AsValueMap() map[string]cty.Value {
 		definitions.BlockKindPublish: publish,
 	}
 }
+
+// func (reg *blocksRegistry) asExtendedValueMap(doc *definitions.Document) map[string]cty.Value {
+// 	regMap := reg.asValueMap()
+//
+// 	// Add format blocks
+// 	formatBlocks := map[string]map[string]cty.Value{}
+//
+// 	for _, fb := range doc.FormatBlocks {
+// 		blockNameToVal := mapGetOrInit(formatBlocks, fb.RunnerName)
+// 		blockNameToVal[fb.BlockName] = definitions.BlockDefToCtyValue(fb.Source)
+// 	}
+//
+// 	var formatBlocksCty cty.Value
+// 	if len(formatBlocks) > 0 {
+// 		formatBlocksCty = utils.MapMapToCty(formatBlocks)
+// 	}
+//
+// 	regMap[definitions.BlockKindDocument] = cty.ObjectVal(map[string]cty.Value{
+// 		definitions.BlockKindFormat: formatBlocksCty,
+// 	})
+//
+// 	return regMap
+// }
 
 func (reg *blocksRegistry) Merge(other BlocksRegistry, override bool) (diags diagnostics.Diag) {
 	if other.GetGlobalConfig() != nil {
@@ -236,7 +261,7 @@ func (reg *blocksRegistry) ResolveRefBase(
 	expr hcl.Expression,
 	result Ctyable,
 ) (definitions.BlockDef, diagnostics.Diag) {
-	blockMap := reg.AsValueMap()
+	blockMap := reg.asValueMap()
 	switch result.(type) {
 	case *definitions.ExecBlockDef:
 		return Resolve[*definitions.ExecBlockDef](blockMap, expr)
@@ -249,10 +274,75 @@ func (reg *blocksRegistry) ResolveRefBase(
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Unsupported ref target block type",
-			Detail:   fmt.Sprintf("Error while trying to resolve a ref base expression. Unsupported target block type: `%T`", result),
+			Detail: fmt.Sprintf(
+				"Error while trying to resolve a ref base expression. Unsupported target block type: `%T`",
+				result,
+			),
 		})
 		return nil, diags
 	}
+}
+
+// func (reg *blocksRegistry) ResolveRefBaseOutInDoc(
+// 	doc *definitions.Document,
+// 	expr hcl.Expression,
+// 	result Ctyable,
+// ) (definitions.BlockDef, diagnostics.Diag) {
+// 	blockMap := reg.asExtendedValueMap(doc)
+// 	switch result.(type) {
+// 	case *definitions.ExecBlockDef:
+// 		return Resolve[*definitions.ExecBlockDef](blockMap, expr)
+// 	case *definitions.SectionDef:
+// 		return Resolve[*definitions.SectionDef](blockMap, expr)
+// 	case *definitions.ConfigDef:
+// 		return Resolve[*definitions.ConfigDef](blockMap, expr)
+// 	default:
+// 		var diags diagnostics.Diag
+// 		diags.Append(&hcl.Diagnostic{
+// 			Severity: hcl.DiagError,
+// 			Summary:  "Unsupported ref target block type",
+// 			Detail: fmt.Sprintf(
+// 				"Error while trying to resolve a ref base expression. Unsupported target block type: `%T`",
+// 				result,
+// 			),
+// 		})
+// 		return nil, diags
+// 	}
+// }
+
+func resolveFormatBlockInDoc(
+	doc *definitions.Document,
+	expr hcl.Expression,
+) (*definitions.FormatBlock, error) {
+	// Add format blocks
+	formatBlocks := map[string]map[string]cty.Value{}
+
+	for _, fb := range doc.FormatBlocks {
+		blockNameToVal := mapGetOrInit(formatBlocks, fb.RunnerName)
+		blockNameToVal[fb.BlockName] = fb.CtyValue()
+	}
+
+	var formatBlocksCty cty.Value
+	if len(formatBlocks) > 0 {
+		formatBlocksCty = utils.MapMapToCty(formatBlocks)
+	}
+
+	varsMap := map[string]cty.Value{
+		definitions.BlockKindDocument: cty.ObjectVal(map[string]cty.Value{
+			definitions.BlockKindFormat: formatBlocksCty,
+		}),
+	}
+
+	result, diag := Resolve[*definitions.FormatBlock](varsMap, expr)
+
+	if diag.HasErrors() {
+		return nil, fmt.Errorf(
+			"Error while resolving in-document block reference: %s",
+			diag.Error(),
+		)
+	}
+
+	return result, nil
 }
 
 func Resolve[B Ctyable](blockMap map[string]cty.Value, expr hcl.Expression) (B, diagnostics.Diag) {
@@ -285,7 +375,11 @@ func Resolve[B Ctyable](blockMap map[string]cty.Value, expr hcl.Expression) (B, 
 	return res, diags
 }
 
-func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](m M, key K, newBlock V) *hcl.Diagnostic {
+func AddIfMissing[M ~map[K]V, K comparable, V definitions.BlockDef](
+	m M,
+	key K,
+	newBlock V,
+) *hcl.Diagnostic {
 	if origBlock, found := m[key]; found {
 		kind := origBlock.Kind()
 		origDefRange := origBlock.GetHCLBlock().DefRange()

@@ -28,16 +28,18 @@ This formatter accepts the following arguments within a `format md` block:
 format md {
   # Arbitrary key-value map to be put in the frontmatter
   #
-  # Required jq queriable.
-  # Must be non-empty
+  # Optional jq queriable.
   #
   # For example:
-  frontmatter = {
-    key = "arbitrary value"
-    key2 = {
-      nested_key = 42
-    }
-  }
+  # frontmatter = {
+  #   key = "arbitrary value"
+  #   key2 = {
+  #     nested_key = 42
+  #   }
+  # }
+  #
+  # Default value:
+  frontmatter = null
 
   # Format of the frontmatter.
   #

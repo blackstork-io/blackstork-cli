@@ -33,15 +33,6 @@ blackstork {
 
 After declaring the dependency, execute `blackstork-cli install` to fetch the plugin. See [Configuration]({{< ref "configs.md#global-configuration" >}}) for details.
 
-## Supported Formats
-
-This publisher supports the delivery of documents processed by the following formatters:
-
-- `md`
-- `html`
-
-To specify the format, use the `format` argument inside the `publish` block to reference a specific `format` block or a formatter short name.
-
 
 ## Configuration
 

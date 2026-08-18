@@ -34,7 +34,6 @@ import (
 	"github.com/blackstork-io/blackstork-cli/plugin"
 	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
-	"github.com/blackstork-io/blackstork-cli/specs/dataspec/constraint"
 )
 
 const (
@@ -56,10 +55,9 @@ func makeMarkdownFormatter(log *slog.Logger, tracer trace.Tracer) *plugin.Format
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{
-					Name:        "frontmatter",
-					Type:        plugindata.Encapsulated.CtyType(),
-					Doc:         `Arbitrary key-value map to be put in the frontmatter`,
-					Constraints: constraint.RequiredMeaningful,
+					Name: "frontmatter",
+					Type: plugindata.Encapsulated.CtyType(),
+					Doc:  `Arbitrary key-value map to be put in the frontmatter`,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
 						"key": cty.StringVal("arbitrary value"),
 						"key2": cty.MapVal(map[string]cty.Value{

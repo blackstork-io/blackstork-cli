@@ -77,7 +77,14 @@ func (r *Resolver) Install(
 	chain := makeSourceChain(r.sources...)
 	// resolve the plugins by the latest version that matches the constraints
 	for name, constraint := range lookupMap {
-		log.InfoContext(ctx, "Looking for a plugin", "name", name.String(), "constraints", constraint.String())
+		log.InfoContext(
+			ctx,
+			"Looking for a plugin",
+			"name",
+			name.String(),
+			"constraints",
+			constraint.String(),
+		)
 		list, err := chain.Lookup(ctx, name)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -98,16 +105,29 @@ func (r *Resolver) Install(
 			return !constraint.Check(v.Version)
 		})
 		if len(matches) == 0 {
-			return nil, diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Plugin '%s' not found", name),
-				Detail:   fmt.Sprintf("No version of '%s' matches the constraint '%s'", name, constraint),
-			}}
+			return nil, diagnostics.Diag{
+				{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Plugin '%s' not found", name),
+					Detail: fmt.Sprintf(
+						"No version of '%s' matches the constraint '%s'",
+						name,
+						constraint,
+					),
+				},
+			}
 		}
 		max := slices.MaxFunc(matches, func(a, b Version) int {
 			return a.Compare(b)
 		})
-		log.InfoContext(ctx, "Installing the plugin", "name", name.String(), "version", max.String())
+		log.InfoContext(
+			ctx,
+			"Installing the plugin",
+			"name",
+			name.String(),
+			"version",
+			max.String(),
+		)
 		var checksums []Checksum
 		// check if the plugin with the same version is already in the lock file
 		lockIdx := slices.IndexFunc(lockFile.Plugins, func(lock PluginLock) bool {
@@ -153,7 +173,14 @@ func (r *Resolver) Install(
 		if _, ok := check.Removed[lock.Name]; ok {
 			continue
 		}
-		log.InfoContext(ctx, "Installing the plugin", "name", lock.Name.String(), "version", lock.Version.String())
+		log.InfoContext(
+			ctx,
+			"Installing the plugin",
+			"name",
+			lock.Name.String(),
+			"version",
+			lock.Version.String(),
+		)
 		_, err := chain.Resolve(ctx, lock.Name, lock.Version, lock.Checksums)
 		if err != nil {
 			return nil, diagnostics.Diag{{
@@ -183,7 +210,10 @@ func (r *Resolver) Install(
 
 // Resolve all plugins based on the constraints and returns a map of plugin names to binary paths.
 // If the lock file is not satisfied, an error is returned.
-func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[string]string, diags diagnostics.Diag) {
+func (r *Resolver) Resolve(
+	ctx context.Context,
+	lockFile *LockFile,
+) (_ map[string]string, diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
 
@@ -203,7 +233,10 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  fmt.Sprintf("Plugin `%s` is not used", name),
-			Detail:   fmt.Sprintf("Version `%s` is not in use. To update the lock file, run `install` command", lock),
+			Detail: fmt.Sprintf(
+				"Version `%s` is not in use. To update the lock file, run `install` command",
+				lock,
+			),
 		})
 	}
 	if check.IsInstallRequired() {
@@ -226,7 +259,11 @@ func (r *Resolver) Resolve(ctx context.Context, lockFile *LockFile) (_ map[strin
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Plugin `%s` version mismatch", name),
-				Detail:   fmt.Sprintf(detailFormat, lockFile.Plugins[pluginIdx].Version, constraint),
+				Detail: fmt.Sprintf(
+					detailFormat,
+					lockFile.Plugins[pluginIdx].Version,
+					constraint,
+				),
 			})
 		}
 		return nil, diags

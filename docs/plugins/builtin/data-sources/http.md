@@ -19,12 +19,12 @@ type: docs
 
 Loads data from a URL.
 
-At the moment, the data source accepts only responses with UTF-8 charset and parses only responses
-with MIME types `text/csv` or `application/json`.
+Accepts only responses with UTF-8 charset with MIME types `text/csv`, `application/json` or `application/yaml` are parsed.
+A correct supported MIME type must be either set explicitly in `response_mime_type` or provided in the HTTP response header.
+If received MIME type is not supported, the response content will be returned as plain text.
 
-If MIME type of the response is `text/csv` or `application/json`, the response
-content will be parsed and returned as a JSON structure (similar to the behaviour of CSV and JSON data
-sources). Otherwise, the response content will be returned as text
+Response content is parsed and returned as a JSON object (similar to `csv`, `json` and `yaml`
+data sources).
 
 
 The `http` data source is built into the BlackStork engine. It is available out-of-the-box
@@ -96,5 +96,11 @@ data http {
   # Optional string.
   # Default value:
   body = null
+
+  # Value to override response MIME type with. Supported values: `application/json`, `text/csv` and `application/yaml`. If not provided, an original MIME type from the response will be used.
+  #
+  # Optional string.
+  # Default value:
+  response_mime_type = null
 }
 ```

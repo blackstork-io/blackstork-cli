@@ -11,8 +11,6 @@ package builtin
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -77,7 +75,10 @@ func makeJSONDataSource() *plugin.DataSource {
 	}
 }
 
-func fetchJSONData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchJSONData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	glob := params.Args.GetAttrVal("glob")
 	path := params.Args.GetAttrVal("path")
 
@@ -155,23 +156,23 @@ func readJSONFiles(ctx context.Context, pattern string) (plugindata.List, error)
 	return result, nil
 }
 
-type jsonData struct {
-	data plugindata.Data
-}
-
-func (d jsonData) toData(v any) (res plugindata.Data, err error) {
-	return plugindata.ParseAny(v)
-}
-
-func (d *jsonData) UnmarshalJSON(b []byte) error {
-	if !json.Valid(b) {
-		return fmt.Errorf("invalid JSON data")
-	}
-	var result any
-	err := json.Unmarshal(b, &result)
-	if err != nil {
-		return err
-	}
-	d.data, err = d.toData(result)
-	return err
-}
+// type jsonData struct {
+// 	data plugindata.Data
+// }
+//
+// func (d jsonData) toData(v any) (res plugindata.Data, err error) {
+// 	return plugindata.ParseAny(v)
+// }
+//
+// func (d *jsonData) UnmarshalJSON(b []byte) error {
+// 	if !json.Valid(b) {
+// 		return fmt.Errorf("invalid JSON data")
+// 	}
+// 	var result any
+// 	err := json.Unmarshal(b, &result)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	d.data, err = d.toData(result)
+// 	return err
+// }

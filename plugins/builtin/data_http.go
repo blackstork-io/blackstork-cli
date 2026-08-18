@@ -110,17 +110,23 @@ func makeHTTPDataSource(version string) *plugin.DataSource {
 					DefaultVal: cty.NullVal(cty.String),
 					Doc:        `Request body`,
 				},
+				{
+					Name:       "response_mime_type",
+					Type:       cty.String,
+					DefaultVal: cty.NullVal(cty.String),
+					Doc:        `Value to override response MIME type with. Supported values: ` + "`application/json`, `text/csv` and `application/yaml`. If not provided, an original MIME type from the response will be used.",
+				},
 			},
 		},
 		Doc: u.Dedent(`
 			Loads data from a URL.
 
-			At the moment, the data source accepts only responses with UTF-8 charset and parses only responses
-			with MIME types ` + "`text/csv`" + ` or ` + "`application/json`" + `.
+			Accepts only responses with UTF-8 charset with MIME types ` + "`text/csv`, `application/json` or `application/yaml`" + ` are parsed.
+			A correct supported MIME type must be either set explicitly in ` + "`response_mime_type`" + ` or provided in the HTTP response header.
+			If received MIME type is not supported, the response content will be returned as plain text.
 
-			If MIME type of the response is ` + "`text/csv`" + ` or ` + "`application/json`" + `, the response
-			content will be parsed and returned as a JSON structure (similar to the behaviour of CSV and JSON data
-			sources). Otherwise, the response content will be returned as text
+			Response content is parsed and returned as a JSON object (similar to ` + "`csv`, `json` and `yaml`" + `
+			data sources).
 		`),
 	}
 }
@@ -235,6 +241,13 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 	method := params.Args.GetAttrVal("method").AsString()
 	insecure := params.Args.GetAttrVal("insecure").True()
 
+	mimeTypeVal := params.Args.GetAttrVal("response_mime_type")
+
+	var mimeType string
+	if !mimeTypeVal.IsNull() {
+		mimeType = mimeTypeVal.AsString()
+	}
+
 	log = log.With("url", url)
 
 	timeout, err := time.ParseDuration(params.Args.GetAttrVal("timeout").AsString())
@@ -291,11 +304,16 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 
 	var result plugindata.Data
 
-	if response.MimeType == "text/csv" {
+	if mimeType == "" {
+		mimeType = response.MimeType
+	}
+
+	switch mimeType {
+	case "text/csv":
 		reader := csv.NewReader(bytes.NewBuffer(response.Body))
 		reader.Comma = ',' // Use `,` as a CSV delimiter by default
 
-		log.DebugContext(ctx, "Parsing fetched data as CSV", "mime-type", response.MimeType)
+		log.DebugContext(ctx, "Parsing fetched data as CSV", "mime-type", mimeType)
 		result, err = utils.ParseCSVContent(ctx, reader)
 		if err != nil {
 			return nil, diagnostics.Diag{
@@ -306,10 +324,8 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 				},
 			}
 		}
-	} else if response.MimeType == "application/json" {
-
-		log.DebugContext(ctx, "Parsing fetched data as JSON", "mime-type", response.MimeType)
-
+	case "application/json":
+		log.DebugContext(ctx, "Parsing fetched data as JSON", "mime-type", mimeType)
 		result, err = plugindata.UnmarshalJSON(response.Body)
 		if err != nil {
 			return nil, diagnostics.Diag{
@@ -320,8 +336,20 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 				},
 			}
 		}
-	} else {
-		log.DebugContext(ctx, "Returning fetched data as text", "mime-type", response.MimeType)
+	case "application/yaml":
+		log.DebugContext(ctx, "Parsing fetched data as YAML", "mime-type", mimeType)
+		result, err = plugindata.UnmarshalYAML(response.Body)
+		if err != nil {
+			return nil, diagnostics.Diag{
+				{
+					Severity: hcl.DiagError,
+					Summary:  "Failed to parse YAML content",
+					Detail:   err.Error(),
+				},
+			}
+		}
+	default:
+		log.DebugContext(ctx, "Returning fetched data as text", "mime-type", mimeType)
 		result = plugindata.String(response.Body)
 	}
 	return result, nil

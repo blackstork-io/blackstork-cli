@@ -93,7 +93,14 @@ func parseContentBlock(
 	case !isRef && !refBaseFound: // happy path, no ref
 		// do nothing
 	case isRef && refBaseFound: // happy path, a correct ref block
-		baseEval, diag := parseRefBase(ctx, blocksRegistry, execBlockDef, refBase.Expr, refHist)
+		baseEval, diag := parseRefBase(
+			ctx,
+			blocksRegistry,
+			execBlockDef.Kind(),
+			execBlockDef.Block.Body,
+			refBase.Expr,
+			refHist,
+		)
 		if diags.Extend(diag) {
 			return res, diags
 		}
@@ -229,7 +236,12 @@ func parseContentBlock(
 	}
 
 	if configBlock != nil || configAttr != nil {
-		config, diag := parseExecBlockDefConfig(blocksRegistry, execBlockDef, configAttr, configBlock)
+		config, diag := parseExecBlockDefConfig(
+			blocksRegistry,
+			execBlockDef,
+			configAttr,
+			configBlock,
+		)
 		if diags.Extend(diag) {
 			return res, diags
 		}

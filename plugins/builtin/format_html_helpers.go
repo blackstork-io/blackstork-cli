@@ -132,13 +132,13 @@ func getBlockIdentity(c plugin.Content) (TypedBlock, NamedBlock) {
 		runner = execDetails.Runner
 	}
 	return TypedBlock{
-			kind:   blockDetails.Kind,
-			runner: runner,
-		}, NamedBlock{
-			kind:   blockDetails.Kind,
-			runner: runner,
-			name:   blockDetails.Name,
-		}
+		kind:   blockDetails.Kind,
+		runner: runner,
+	}, NamedBlock{
+		kind:   blockDetails.Kind,
+		runner: runner,
+		name:   blockDetails.Name,
+	}
 }
 
 func getOverrideTemplateForBlock(

@@ -2,7 +2,7 @@
 title: "`http` data source"
 plugin:
   name: blackstork/builtin
-  description: "Loads data from a URL"
+  description: "Fetches HTTP response from URL, parses its body and loads it"
   tags: []
   version: "v0.4.2"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
@@ -17,14 +17,10 @@ type: docs
 
 ## Description
 
-Loads data from a URL.
+Fetches HTTP response from URL, parses its body and loads it.
 
-Accepts only responses with UTF-8 charset with MIME types `text/csv`, `application/json` or `application/yaml` are parsed.
-A correct supported MIME type must be either set explicitly in `response_mime_type` or provided in the HTTP response header.
-If received MIME type is not supported, the response content will be returned as plain text.
-
-Response content is parsed and returned as a JSON object (similar to `csv`, `json` and `yaml`
-data sources).
+If the format of the response is not supported, data source will return response body as plain text.
+If format is supported, response body will be parsed and returned as a JSON object (fimilar to `file` data source).
 
 
 The `http` data source is built into the BlackStork engine. It is available out-of-the-box
@@ -97,10 +93,11 @@ data http {
   # Default value:
   body = null
 
-  # Value to override response MIME type with. Supported values: `application/json`, `text/csv` and `application/yaml`. If not provided, an original MIME type from the response will be used.
+  # If provided, overrides response MIME type. If not provided, the format is deduced from response MIME type.
   #
   # Optional string.
+  # Must be one of: "json", "yaml", "csv", "text", null
   # Default value:
-  response_mime_type = null
+  format = null
 }
 ```

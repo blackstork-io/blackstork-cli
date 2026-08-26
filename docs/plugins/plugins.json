@@ -43,12 +43,11 @@
         ]
       },
       {
-        "name": "csv",
+        "name": "file",
         "type": "data-source",
-        "config_params": [
-          "delimiter"
-        ],
         "arguments": [
+          "csv_delimiter",
+          "format",
           "glob",
           "path"
         ]
@@ -74,10 +73,10 @@
         "type": "data-source",
         "arguments": [
           "body",
+          "format",
           "headers",
           "insecure",
           "method",
-          "response_mime_type",
           "timeout",
           "url"
         ]
@@ -96,14 +95,6 @@
         "arguments": [
           "alt",
           "src"
-        ]
-      },
-      {
-        "name": "json",
-        "type": "data-source",
-        "arguments": [
-          "glob",
-          "path"
         ]
       },
       {
@@ -206,22 +197,6 @@
           "end_level",
           "scope",
           "start_level"
-        ]
-      },
-      {
-        "name": "txt",
-        "type": "data-source",
-        "arguments": [
-          "glob",
-          "path"
-        ]
-      },
-      {
-        "name": "yaml",
-        "type": "data-source",
-        "arguments": [
-          "glob",
-          "path"
         ]
       }
     ]

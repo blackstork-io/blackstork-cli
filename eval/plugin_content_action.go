@@ -136,6 +136,13 @@ func (a *PluginContentAction) GetDef() definitions.BlockDef {
 	return a.Source.GetSource()
 }
 
+func (a *PluginContentAction) GetSrcRange() *hcl.Range {
+	if a.Source != nil && a.Source.GetSource() != nil {
+		return &a.Source.GetSource().Block.Body.SrcRange
+	}
+	return nil
+}
+
 func (a *PluginContentAction) isContentTreeEvalBlock() {}
 
 var (

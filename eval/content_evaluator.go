@@ -473,6 +473,7 @@ func renderContentAsync(ctx context.Context, nodes []*ExecNode) (map[string]plug
 				"node_id", node.id,
 				"block_id", node.blockID,
 				"block_name", node.block.EvalKey().AsName(),
+				"src", node.block.GetSrcRange(),
 			)
 			_log.DebugContext(ctx, "Rendering eval node")
 

@@ -74,6 +74,7 @@ type RenderableContent interface {
 	Meta() plugindata.Map
 
 	GetDataCtx() *plugindata.Map
+	GetSrcRange() *hcl.Range
 }
 
 func LoadContent(

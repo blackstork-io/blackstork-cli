@@ -135,7 +135,7 @@ func ParseDocument(
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Input blocks must be named",
-					Detail:   `Anonymous input blocks are not supported. Each input block must have a name to be used as a reference to its value.`,
+					Detail:   `Anonymous input blocks are not supported. Each input block must have a name to be used as its ID.`,
 					Subject:  block.DefRange().Ptr(),
 					Context:  body.Range().Ptr(),
 				})

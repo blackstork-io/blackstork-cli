@@ -15,6 +15,7 @@ import (
 	"reflect"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/zclconf/go-cty/cty"
 
@@ -147,6 +148,13 @@ func (s *Section) GetDef() definitions.BlockDef {
 }
 
 func (s *Section) isContentTreeEvalBlock() {}
+
+func (s *Section) GetSrcRange() *hcl.Range {
+	if s.source != nil && s.source.Source != nil {
+		return &s.source.Source.Block.Body.SrcRange
+	}
+	return nil
+}
 
 var (
 	_ ContentTreeEvalBlock = (*Section)(nil)

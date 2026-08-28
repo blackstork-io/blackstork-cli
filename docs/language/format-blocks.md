@@ -44,9 +44,9 @@ See [Formatters]({{< ref "formatters.md" >}}) for the list of supported formatte
 
 ## Execution context
 
-Format blocks operate on the *evaluated* document tree. When the formatter runs, the engine has already executed all `query_jq()` functions and resolved all Go templates inside your `content` blocks. 
+Format blocks operate on the *evaluated* document tree. When the formatter runs, the engine has already executed all `query_jq()` functions and resolved all Go templates inside your `content` blocks.
 
-Because of this separation of concerns, format blocks **do not** have access to `.vars` or `.inputs` in the evaluation context. They only receive the final, rendered output of the content blocks.
+Templates inside the format blocks receive full data context with extras. The extras depend on the formatter and might include rendered output from content blocks as Markdown or HTML.
 
 ## Supported arguments
 

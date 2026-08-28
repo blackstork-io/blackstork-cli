@@ -17,8 +17,9 @@ type DataBlock struct {
 	Source     *ExecBlockDef
 	RunnerName string
 	BlockName  string
-	Meta       *MetaBlock
-	Config     evaluation.Configuration
+
+	Meta   *MetaBlock
+	Config evaluation.Configuration
 }
 
 func (b *DataBlock) isContentTreeBlock() {}

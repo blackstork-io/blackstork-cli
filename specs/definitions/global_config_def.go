@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
 	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
 	"github.com/blackstork-io/blackstork-cli/pkg/utils"
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
@@ -38,11 +37,12 @@ func (g *GlobalConfigDef) GetHCLBlock() *hclsyntax.Block {
 	return g.block
 }
 
-func (g *GlobalConfigDef) Parse(ctx context.Context) (cfg *GlobalConfig, diags diagnostics.Diag) {
+func (g *GlobalConfigDef) Parse(
+	ctx context.Context,
+	evalCtx *hcl.EvalContext,
+) (cfg *GlobalConfig, diags diagnostics.Diag) {
 	var globalCfg GlobalConfig
 	var diag diagnostics.Diag
-
-	evalCtx := appctx.GetEvalContext(ctx)
 
 	globalCfg.EnvVarsPattern, diag = g.parseEnvVarPattern(ctx)
 	diags.Extend(diag)
@@ -54,7 +54,9 @@ func (g *GlobalConfigDef) Parse(ctx context.Context) (cfg *GlobalConfig, diags d
 	return &globalCfg, diags
 }
 
-func (g *GlobalConfigDef) parseEnvVarPattern(ctx context.Context) (pat glob.Glob, diags diagnostics.Diag) {
+func (g *GlobalConfigDef) parseEnvVarPattern(
+	ctx context.Context,
+) (pat glob.Glob, diags diagnostics.Diag) {
 	attr, found := utils.Pop(g.block.Body.Attributes, patternName)
 	if !found {
 		return DefaultEnvVarsPattern, nil

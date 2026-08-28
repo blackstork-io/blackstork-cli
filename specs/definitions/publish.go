@@ -21,6 +21,8 @@ type PublishBlock struct {
 
 	Meta   *MetaBlock
 	Config evaluation.Configuration
+
+	Format *FormatBlock
 }
 
 func (b *PublishBlock) isExecBlock()       {}

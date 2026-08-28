@@ -105,7 +105,7 @@ func ParseStandaloneExecBlock(
 		return data, diags
 
 	case definitions.BlockKindPublish:
-		publish, diags := parsePublishBlock(ctx, blocksRegistry, blockDef, nil)
+		publish, diags := parsePublishBlock(ctx, blocksRegistry, nil, blockDef, nil)
 		return publish, diags
 
 	case definitions.BlockKindFormat:

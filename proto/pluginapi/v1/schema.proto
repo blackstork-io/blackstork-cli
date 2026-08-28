@@ -40,11 +40,11 @@ message ContentProviderSchema {
 }
 
 message PublisherSchema {
-    BlockSpec             args    = 1;
-    BlockSpec             config  = 2;
-    string                doc     = 3;
-    repeated string       tags    = 4;
-    repeated string       formats = 5;
+    BlockSpec             args               = 1;
+    BlockSpec             config             = 2;
+    string                doc                = 3;
+    repeated string       tags               = 4;
+    repeated string       acceptedFormatters = 5;
 }
 
 message FormatterSchema {

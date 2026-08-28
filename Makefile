@@ -1,6 +1,6 @@
-golangci_version = v2.12.2
+golangci_version = v2.13.1
 templ_version = v0.3.1020
-goreleaser_version = v2.16.0
+goreleaser_version = v2.18.0
 
 .PHONY: build
 build:

@@ -35,8 +35,13 @@ const (
 	TableKind      ContentKind = "table"
 	TOCKind        ContentKind = "toc"
 
-	ContentIDDataKey   = "id"
-	ContentKindDataKey = "kind"
+	DataDataKey     = "data"
+	DocumentDataKey = "document"
+
+	ContentIDDataKey       = "id"
+	ContentKindDataKey     = "kind"
+	ContentChildrenDataKey = "children"
+	ContentTitleDataKey    = "title"
 
 	BlockDetailsDataKey = "block_details"
 	ExecDetailsDataKey  = "exec_details"
@@ -170,12 +175,12 @@ func (c *ContentSection) AsData() plugindata.Map {
 	}
 
 	return plugindata.Map{
-		ContentIDDataKey:    plugindata.String(c.id.String()),
-		ContentKindDataKey:  plugindata.String(SectionKind),
-		MetaDataKey:         c.meta,
-		BlockDetailsDataKey: c.blockDetails.AsData(),
-		"children":          children,
-		"title":             title,
+		ContentIDDataKey:       plugindata.String(c.id.String()),
+		ContentKindDataKey:     plugindata.String(SectionKind),
+		ContentChildrenDataKey: children,
+		ContentTitleDataKey:    title,
+		MetaDataKey:            c.meta,
+		BlockDetailsDataKey:    c.blockDetails.AsData(),
 	}
 }
 

@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	BlockKindDocument        = "document"
-	BlockKindConfig          = "config"
-	BlockKindContent         = "content"
-	BlockKindPublish         = "publish"
-	BlockKindData            = "data"
-	BlockKindMeta            = "meta"
-	BlockKindInput           = "input"
-	BlockKindVars            = "vars"
-	BlockKindSection         = "section"
+	BlockKindDocument = "document"
+	BlockKindConfig   = "config"
+	BlockKindContent  = "content"
+	BlockKindPublish  = "publish"
+	BlockKindData     = "data"
+	BlockKindMeta     = "meta"
+	BlockKindInput    = "input"
+	BlockKindVars     = "vars"
+	BlockKindSection  = "section"
 
-	BlockKindDynamic         = "dynamic"
-	BlockKindFormat          = "format"
+	BlockKindDynamic = "dynamic"
+	BlockKindFormat  = "format"
 
 	BlockKindGlobalConfig    = "blackstork"
 	BlockKindGlobalConfigOld = "fabric"
@@ -44,6 +44,7 @@ const (
 	AttrRequiredVars = "required_vars"
 	AttrIsIncluded   = "is_included"
 	AttrDynamicItems = "items"
+	AttrFormatRef    = "format_ref"
 )
 
 type BlockDef interface {
@@ -52,7 +53,7 @@ type BlockDef interface {
 	Kind() string
 }
 
-func ToCtyValue(b BlockDef) cty.Value {
+func BlockDefToCtyValue(b BlockDef) cty.Value {
 	return cty.CapsuleVal(b.CtyType(), b)
 }
 

@@ -22,7 +22,10 @@ import (
 )
 
 type Evaluable interface {
-	DeferredEval(ctx context.Context, dataCtx plugindata.Map) (result cty.Value, diags diagnostics.Diag)
+	DeferredEval(
+		ctx context.Context,
+		dataCtx plugindata.Map,
+	) (result cty.Value, diags diagnostics.Diag)
 }
 
 var deferredEvalReflectType = reflect.TypeFor[Evaluable]()

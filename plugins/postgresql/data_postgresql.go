@@ -85,7 +85,10 @@ func parseSqliteArgs(args *dataspec.Block) (string, []any, error) {
 	return sqlQuery.AsString(), argsResult, nil
 }
 
-func fetchSqliteData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchSqliteData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	dbURL := params.Config.GetAttrVal("database_url").AsString()
 	sqlQuery, sqlArgs, err := parseSqliteArgs(params.Args)
 	if err != nil {

@@ -29,16 +29,17 @@ import (
 )
 
 var (
-	publish bool
-	// format  string
-	tags     string
-	dataFile string
+	publish         bool
+	requestedFormat string
+	tags            string
+	dataFile        string
 )
 
 func init() {
 	rootCmd.AddCommand(renderCmd)
 	renderCmd.Flags().BoolVar(&publish, "publish", false, "publish the rendered document")
-	// renderCmd.Flags().StringVar(&format, "format", "md", "default output format of the document (md, html or pdf)")
+	renderCmd.Flags().
+		StringVar(&requestedFormat, "format", "", "formatter to use for the document. Supported formats are `format.<formatter>` (for example, `format.html`) for a default instance of the formatter, `format.<formatter>.<name>` for a specific formatter config, or `document.format.<formatter>.<name>` for a formatter defined in the document.")
 	renderCmd.Flags().
 		StringVar(&tags, "only-with-tags", "", "comma separated list of meta tags. Only content blocks matching these tags will be rendered")
 	renderCmd.Flags().
@@ -61,7 +62,7 @@ var renderCmd = &cobra.Command{
 		case strings.HasPrefix(target, docPrefix):
 			target = target[len(docPrefix):]
 		default:
-			return fmt.Errorf("target should have the format '%s<name_of_the_document>'", docPrefix)
+			return fmt.Errorf("target should be '%s<document-name>'", docPrefix)
 		}
 		requiredTags := slices.DeleteFunc(
 			utils.FnMap(
@@ -72,6 +73,7 @@ var renderCmd = &cobra.Command{
 		)
 
 		log := slog.Default()
+		log = log.With("document", target)
 
 		ctx := cmd.Context()
 		ctx = appctx.WithLog(ctx, log)
@@ -79,17 +81,28 @@ var renderCmd = &cobra.Command{
 		if dataFile != "" {
 			jsonData, err := os.ReadFile(dataFile)
 			if err != nil {
-				log.ErrorContext(ctx, "Error while reading data from file", "file", dataFile, "err", err)
+				log.ErrorContext(
+					ctx, "Error while reading data from file",
+					"file", dataFile,
+					"err", err,
+				)
 				return err
 			}
 			subData, err := plugindata.UnmarshalJSON(jsonData)
 			if err != nil {
-				log.ErrorContext(ctx, "Error unmarshaling data from file", "file", dataFile, "err", err)
+				log.ErrorContext(
+					ctx, "Error unmarshaling data from file",
+					"file", dataFile,
+					"err", err,
+				)
 				return err
 			}
 			subDataMap, ok := subData.(plugindata.Map)
 			if !ok {
-				log.ErrorContext(ctx, "Provided substitute data is not a map", "data_type", fmt.Sprintf("%T", subData))
+				log.ErrorContext(
+					ctx, "Provided substitute data is not a map",
+					"data_type", fmt.Sprintf("%T", subData),
+				)
 				return errors.New("invalid substitute data type")
 			}
 			ctx = appctx.WithSubstituteData(ctx, subDataMap)
@@ -115,7 +128,7 @@ var renderCmd = &cobra.Command{
 			return err
 		}
 
-		doc, content, data, diag := eng.RenderContent(ctx, target, requiredTags)
+		doc, content, data, diag := eng.RenderContent(ctx, target, requiredTags, requestedFormat)
 		if diags.Extend(diag) {
 			return err
 		}
@@ -123,21 +136,33 @@ var renderCmd = &cobra.Command{
 			log.WarnContext(
 				ctx,
 				"No content produced: either no template blocks were defined or nothing was not selected for rendering",
-				"doc_inputs", len(doc.Inputs),
-				"doc_data_blocks", len(doc.DataBlocks),
-				"doc_root_content_branches", len(doc.ContentTreeBlocks),
+				"doc_inputs",
+				len(doc.Inputs),
+				"doc_data_blocks",
+				len(doc.DataBlocks),
+				"doc_root_content_branches",
+				len(doc.ContentTreeBlocks),
 			)
 			return nil
 		}
 
-		diag = eng.PublishContent(ctx, doc, content, data, publish)
+		// format - requested or all formats for publish blocks
+		// publish - if no, default stdout publisher; if yes, publish blocks
+
+		formattedContents, diag := eng.FormatContent(ctx, doc, content, data, !publish)
 		if diags.Extend(diag) {
 			return err
 		}
-
-		if len(diags) > 0 {
-			eng.PrintDiagnostics(os.Stderr, diags, !cliArgs.noColor)
+		// If publishing is not requested, execute the default publisher / formatter
+		if publish {
+			diag = eng.PublishContent(ctx, doc, content, data, formattedContents)
+		} else {
+			diag = eng.PublishContentToStdout(ctx, doc, content, data, formattedContents)
 		}
+		if diags.Extend(diag) {
+			return diags
+		}
+
 		// Do not print to stdout if publishing is requested
 
 		// logger.InfoContext(ctx, "Printing to stdout", "format", format)

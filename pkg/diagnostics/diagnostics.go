@@ -118,9 +118,8 @@ func FromErr(err error, refiners ...Refiner) (diags Diag) {
 			Detail:   err.Error(),
 		}}
 	}
-	var pathErr cty.PathError
-	if errors.As(err, &pathErr) {
-		refiners = append(refiners, AddPath(pathErr.Path))
+	if e, ok := errors.AsType[cty.PathError](err); ok {
+		refiners = append(refiners, AddPath(e.Path))
 	}
 	refiners = append(refiners, DefaultSummary("Error"))
 	diags.Refine(refiners...)

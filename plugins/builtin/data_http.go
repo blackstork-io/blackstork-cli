@@ -36,6 +36,8 @@ import (
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec/constraint"
 )
 
+var supportedResponseFormats = append(supportedFileFormats, cty.NullVal(cty.String))
+
 func makeHTTPDataSource(version string) *plugin.DataSource {
 	return &plugin.DataSource{
 		DataFunc: fetchHTTPDataWrapper(version),
@@ -110,17 +112,20 @@ func makeHTTPDataSource(version string) *plugin.DataSource {
 					DefaultVal: cty.NullVal(cty.String),
 					Doc:        `Request body`,
 				},
+				{
+					Name:       "format",
+					Type:       cty.String,
+					OneOf:      constraint.OneOf(supportedResponseFormats),
+					DefaultVal: cty.NullVal(cty.String),
+					Doc:        `If provided, overrides response MIME type. If not provided, the format is deduced from response MIME type.`,
+				},
 			},
 		},
 		Doc: u.Dedent(`
-			Loads data from a URL.
+			Fetches HTTP response from URL, parses its body and loads it.
 
-			At the moment, the data source accepts only responses with UTF-8 charset and parses only responses
-			with MIME types ` + "`text/csv`" + ` or ` + "`application/json`" + `.
-
-			If MIME type of the response is ` + "`text/csv`" + ` or ` + "`application/json`" + `, the response
-			content will be parsed and returned as a JSON structure (similar to the behaviour of CSV and JSON data
-			sources). Otherwise, the response content will be returned as text
+			If the format of the response is not supported, data source will return response body as plain text.
+			If format is supported, response body will be parsed and returned as a JSON object (fimilar to ` + "`file`" + ` data source).
 		`),
 	}
 }
@@ -227,13 +232,23 @@ func fetchHTTPDataWrapper(version string) plugin.RetrieveDataFunc {
 	}
 }
 
-func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, version string) (plugindata.Data, diagnostics.Diag) {
+func fetchHTTPData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+	version string,
+) (plugindata.Data, diagnostics.Diag) {
 	log := slog.Default()
 	log = log.With("data_source", "http")
 
 	url := params.Args.GetAttrVal("url").AsString()
 	method := params.Args.GetAttrVal("method").AsString()
 	insecure := params.Args.GetAttrVal("insecure").True()
+
+	var format string
+	formatVal := params.Args.GetAttrVal("format")
+	if !formatVal.IsNull() {
+		format = formatVal.AsString()
+	}
 
 	log = log.With("url", url)
 
@@ -287,15 +302,38 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 			},
 		}
 	}
-	log.DebugContext(ctx, "Response received", "mime_type", response.MimeType, "body_bytes_count", len(response.Body))
+	log.DebugContext(
+		ctx,
+		"Response received",
+		"mime_type",
+		response.MimeType,
+		"body_bytes_count",
+		len(response.Body),
+	)
 
 	var result plugindata.Data
 
-	if response.MimeType == "text/csv" {
+	if format == "" {
+		switch response.MimeType {
+		case "text/csv":
+			format = "csv"
+		case "application/json":
+			format = "json"
+		case "application/yaml":
+			format = "yaml"
+		default:
+			format = "text"
+		}
+	}
+
+	log = log.With("format", format)
+	log.DebugContext(ctx, "Parsing fetched data")
+
+	switch format {
+	case "csv":
 		reader := csv.NewReader(bytes.NewBuffer(response.Body))
 		reader.Comma = ',' // Use `,` as a CSV delimiter by default
 
-		log.DebugContext(ctx, "Parsing fetched data as CSV", "mime-type", response.MimeType)
 		result, err = utils.ParseCSVContent(ctx, reader)
 		if err != nil {
 			return nil, diagnostics.Diag{
@@ -306,10 +344,7 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 				},
 			}
 		}
-	} else if response.MimeType == "application/json" {
-
-		log.DebugContext(ctx, "Parsing fetched data as JSON", "mime-type", response.MimeType)
-
+	case "json":
 		result, err = plugindata.UnmarshalJSON(response.Body)
 		if err != nil {
 			return nil, diagnostics.Diag{
@@ -320,8 +355,18 @@ func fetchHTTPData(ctx context.Context, params *plugin.RetrieveDataParams, versi
 				},
 			}
 		}
-	} else {
-		log.DebugContext(ctx, "Returning fetched data as text", "mime-type", response.MimeType)
+	case "yaml":
+		result, err = plugindata.UnmarshalYAML(response.Body)
+		if err != nil {
+			return nil, diagnostics.Diag{
+				{
+					Severity: hcl.DiagError,
+					Summary:  "Failed to parse YAML content",
+					Detail:   err.Error(),
+				},
+			}
+		}
+	default:
 		result = plugindata.String(response.Body)
 	}
 	return result, nil

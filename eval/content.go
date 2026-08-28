@@ -74,6 +74,7 @@ type RenderableContent interface {
 	Meta() plugindata.Map
 
 	GetDataCtx() *plugindata.Map
+	GetSrcRange() *hcl.Range
 }
 
 func LoadContent(
@@ -92,8 +93,11 @@ func LoadContent(
 	default:
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Error while loading content: unsupported content tree block type: %T", block),
-			Detail:   "Content tree block must be either `content`, `section` or `dynamic`",
+			Summary: fmt.Sprintf(
+				"Error while loading content: unsupported content tree block type: %T",
+				block,
+			),
+			Detail: "Content tree block must be either `content`, `section` or `dynamic`",
 		})
 	}
 	if diags.HasErrors() {

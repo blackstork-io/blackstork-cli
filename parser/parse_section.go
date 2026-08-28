@@ -91,7 +91,14 @@ func ParseSection(
 			definitions.BlockKindVars,
 			definitions.BlockKindDynamic,
 		}
-		targetBlock, diag := parseRefBase(ctx, blocksRegistry, sectionDef, refBase.Expr, refHist)
+		targetBlock, diag := parseRefBase(
+			ctx,
+			blocksRegistry,
+			sectionDef.Kind(),
+			sectionDef.Block.Body,
+			refBase.Expr,
+			refHist,
+		)
 		if diags.Extend(diag) {
 			break
 		}
@@ -103,7 +110,7 @@ func ParseSection(
 		}
 	}
 
-	if diags.Extend(diag) {
+	if diags.HasErrors() {
 		return nil, diags
 	}
 

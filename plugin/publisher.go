@@ -11,6 +11,7 @@ package plugin
 
 import (
 	"context"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -32,12 +33,19 @@ type PublishParams struct {
 }
 
 type Publisher struct {
-	Doc         string
-	Tags        []string
-	PublishFunc PublishFunc
-	Args        *dataspec.RootSpec
-	Config      *dataspec.RootSpec
-	Formats     []string
+	Doc                string
+	Tags               []string
+	PublishFunc        PublishFunc
+	Args               *dataspec.RootSpec
+	Config             *dataspec.RootSpec
+	AcceptedFormatters []string
+}
+
+func (pub *Publisher) Accepts(formatter string) bool {
+	if len(pub.AcceptedFormatters) == 0 {
+		return true
+	}
+	return slices.Contains(pub.AcceptedFormatters, formatter)
 }
 
 func (pub *Publisher) Validate() diagnostics.Diag {

@@ -144,14 +144,16 @@ func (co *CapsuleOps[T]) asCtyCapsuleOps(encoder *encoderCore) (res *cty.Capsule
 				if co.CustomExpressionDecoder == nil {
 					break
 				}
-				return customdecode.CustomExpressionDecoderFunc(func(expr hcl.Expression, ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
-					data, diags := co.CustomExpressionDecoder(expr, ctx)
-					diag := hcl.Diagnostics(diags)
-					if data == nil && diag.HasErrors() {
-						return cty.NilVal, diag
-					}
-					return encoder.toCty(data), diag
-				})
+				return customdecode.CustomExpressionDecoderFunc(
+					func(expr hcl.Expression, ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+						data, diags := co.CustomExpressionDecoder(expr, ctx)
+						diag := hcl.Diagnostics(diags)
+						if data == nil && diag.HasErrors() {
+							return cty.NilVal, diag
+						}
+						return encoder.toCty(data), diag
+					},
+				)
 			}
 			if co.ExtensionData != nil {
 				return co.ExtensionData(key)

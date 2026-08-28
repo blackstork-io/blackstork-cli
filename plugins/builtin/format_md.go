@@ -34,7 +34,6 @@ import (
 	"github.com/blackstork-io/blackstork-cli/plugin"
 	"github.com/blackstork-io/blackstork-cli/plugin/plugindata"
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
-	"github.com/blackstork-io/blackstork-cli/specs/dataspec/constraint"
 )
 
 const (
@@ -56,10 +55,9 @@ func makeMarkdownFormatter(log *slog.Logger, tracer trace.Tracer) *plugin.Format
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{
-					Name:        "frontmatter",
-					Type:        plugindata.Encapsulated.CtyType(),
-					Doc:         `Arbitrary key-value map to be put in the frontmatter`,
-					Constraints: constraint.RequiredMeaningful,
+					Name: "frontmatter",
+					Type: plugindata.Encapsulated.CtyType(),
+					Doc:  `Arbitrary key-value map to be put in the frontmatter`,
 					ExampleVal: cty.ObjectVal(map[string]cty.Value{
 						"key": cty.StringVal("arbitrary value"),
 						"key2": cty.MapVal(map[string]cty.Value{
@@ -175,11 +173,15 @@ func renderListEl(attrs plugindata.Map) string {
 	itemsRendered := attrs["items_rendered"].(plugindata.List)
 	format := string(attrs["format"].(plugindata.String))
 
-	prefix := "-"
-	if format == "ordered" {
+	var prefix string
+
+	switch format {
+	case "ordered":
 		prefix = "1."
-	} else if format == "tasklist" {
+	case "tasklist":
 		prefix = "- [ ]"
+	default:
+		prefix = "-"
 	}
 
 	listValues := []string{}
@@ -300,7 +302,7 @@ func makeMarkdownFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.For
 		dataCtx := params.DataContext
 		dataCtx["format"] = plugindata.String(params.Format)
 
-		section, err := parseContentSection(params.Content)
+		section, err := ParseContentSection(params.Content)
 		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,

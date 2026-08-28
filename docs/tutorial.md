@@ -7,7 +7,7 @@ weight: 10
 
 # Tutorial
 
-This tutorial covers the core mechanics of the BlackStork configuration language. We will create a basic template, define variables, install plugins, and generate text using an external content provider (OpenAI). 
+This tutorial covers the core mechanics of the BlackStork configuration language. We will create a basic template, define variables, install plugins, and generate text using an external content provider (OpenAI).
 
 While these templates can be evaluated collaboratively within the BlackStork SaaS platform, this tutorial uses `blackstork-cli` to evaluate the templates and render the documents locally.
 
@@ -75,7 +75,6 @@ See the [`content.title`]({{< ref "plugins/builtin/content-providers/title" >}})
 {{< /hint >}}
 
 The rendered Markdown output now includes the header:
-
 
 ```markdown
 $ blackstork-cli render document.greeting
@@ -211,7 +210,6 @@ argument to `api_key` attribute of the `config` block.
 
 Define a `content` block that calls the `openai_text` content provider:
 
-
 ```hcl
 # ...
 
@@ -232,7 +230,6 @@ document "greeting" {
 ```
 
 This block also uses a `jq` query to extract the last item from the `.vars.solar_system.planets` array (Neptune) and passes it to the LLM prompt as a JSON object.
-
 
 {{< hint note >}}
 You can define a system prompt for the OpenAI API in the provider configuration. See the `openai_text` content provider [documentation]({{< ref "plugins/openai/content-providers/openai_text" >}}) for all available options.
@@ -289,7 +286,6 @@ document "greeting" {
 ```
 
 Pass the `OPENAI_API_KEY` environment variable to the CLI to render the document:
-
 
 ```shell
 $ OPENAI_API_KEY="<key>" blackstork-cli render document.greeting

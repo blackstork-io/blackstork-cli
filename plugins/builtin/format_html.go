@@ -142,7 +142,7 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 		}
 		dataCtx["format"] = plugindata.String(params.Format)
 
-		section, err := parseContentSection(params.Content)
+		section, err := ParseContentSection(params.Content)
 		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,
@@ -176,7 +176,7 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 		// collect templates per typed block, for example for:
 		// `content.text`
 		// `content.list`
-		templatePerTypedBlock, diag := parseTmplPerTypeMap(params.Args.GetAttrVal("template_per_type"))
+		templatePerTypedBlock, diag := ParseTmplPerTypeMap(params.Args.GetAttrVal("template_per_type"))
 		if diag.HasErrors() {
 			log.ErrorContext(
 				ctx, "Error while parsing `template_per_type` value",
@@ -189,7 +189,7 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 
 		// collect templates per named block, for example for:
 		// `content.text.foo`
-		templatePerNamedBlock, diag := parseTmplPerBlockMap(params.Args.GetAttrVal("template_per_block"))
+		templatePerNamedBlock, diag := ParseTmplPerBlockMap(params.Args.GetAttrVal("template_per_block"))
 		if diag.HasErrors() {
 			return nil, diag
 		}
@@ -200,25 +200,13 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 			"per_name_count", len(templatePerNamedBlock),
 		)
 
-		output, err := renderRecursively(ctx, log, section, templatePerTypedBlock, templatePerNamedBlock)
-		if err != nil {
-			return nil, diagnostics.Diag{{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to render the document",
-				Detail:   fmt.Sprintf("Error while rendering a document: %s", err),
-			}}
-		}
-
 		// HTML page details
 
 		// Deduce page title
 		pageTitle := "Untitled"
 
-		if foundTitle := firstTitle(section); foundTitle != nil {
-			val := extractTitlePlainValue(foundTitle)
-			if val != nil {
-				pageTitle = *val
-			}
+		if foundTitle := FirstTitleValue(section); foundTitle != nil {
+			pageTitle = *foundTitle
 		}
 
 		log.DebugContext(ctx, "Document title figured out", "title", pageTitle)
@@ -255,6 +243,28 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 		if cssSourcesVal != cty.NilVal {
 			cssSources = cssSourcesVal.AsValueSlice()
 		}
+
+		// Rendering page content
+		component := ContentHTML(
+			ctx,
+			log,
+			templatePerTypedBlock,
+			templatePerNamedBlock,
+			section,
+			DocumentRootLevel,
+			nil,
+		)
+
+		buf := new(bytes.Buffer)
+		if err = component.Render(ctx, buf); err != nil {
+			return nil, diagnostics.Diag{{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to render document content",
+				Detail:   fmt.Sprintf("Error while rendering document content: %s", err),
+			}}
+		}
+
+		output := buf.String()
 
 		data := HTMLData{
 			Title:       pageTitle,
@@ -295,7 +305,7 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 	}
 }
 
-func parseTmplPerTypeMap(attrVal cty.Value) (result map[TypedBlock]string, diags diagnostics.Diag) {
+func ParseTmplPerTypeMap(attrVal cty.Value) (result map[TypedBlock]string, diags diagnostics.Diag) {
 	result = map[TypedBlock]string{}
 
 	if attrVal.IsNull() {
@@ -324,7 +334,7 @@ func parseTmplPerTypeMap(attrVal cty.Value) (result map[TypedBlock]string, diags
 	return result, diags
 }
 
-func parseTmplPerBlockMap(attrVal cty.Value) (result map[NamedBlock]string, diags diagnostics.Diag) {
+func ParseTmplPerBlockMap(attrVal cty.Value) (result map[NamedBlock]string, diags diagnostics.Diag) {
 	result = map[NamedBlock]string{}
 
 	if attrVal.IsNull() {
@@ -411,29 +421,4 @@ func parseBlockName(val string) (*NamedBlock, error) {
 	}
 
 	return &NamedBlock{kind, runner, name}, nil
-}
-
-func renderRecursively(
-	ctx context.Context,
-	log *slog.Logger,
-	el plugin.Content,
-	templatePerType map[TypedBlock]string,
-	templatePerName map[NamedBlock]string,
-) (string, error) {
-	comp := ContentHTML(
-		ctx,
-		log,
-		templatePerType,
-		templatePerName,
-		el,
-		documentRootLevel,
-		nil,
-	)
-
-	buf := new(bytes.Buffer)
-	err := comp.Render(ctx, buf)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }

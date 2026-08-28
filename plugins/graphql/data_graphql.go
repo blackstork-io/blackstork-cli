@@ -54,7 +54,10 @@ func makeGraphQLDataSource() *plugin.DataSource {
 	}
 }
 
-func fetchGraphQLData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchGraphQLData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	url := params.Config.GetAttrVal("url")
 	if url.IsNull() || url.AsString() == "" {
 		return nil, diagnostics.Diag{{

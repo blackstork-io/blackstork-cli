@@ -18,7 +18,6 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
 
-	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
 	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
 	"github.com/blackstork-io/blackstork-cli/pkg/utils"
 	"github.com/blackstork-io/blackstork-cli/pkg/utils/encapsulator"
@@ -61,12 +60,10 @@ var JqQueryType = encapsulator.NewCodec("jq query", &encapsulator.CapsuleOps[JqQ
 const funcName = "query_jq"
 
 // WithQueryFuncs adds "query_jq" function to the eval context
-func WithQueryFuncs(ctx context.Context) context.Context {
-	evalCtx := appctx.GetEvalContext(ctx)
-
+func WithQueryFuncs(evalCtx *hcl.EvalContext) *hcl.EvalContext {
 	// try finding existing jq eval context
 	if jqEvalCtx := utils.EvalContextByFunc(evalCtx, funcName); jqEvalCtx != nil {
-		return ctx
+		return evalCtx
 	}
 
 	evalCtx = evalCtx.NewChild()
@@ -85,7 +82,7 @@ func WithQueryFuncs(ctx context.Context) context.Context {
 			},
 		}),
 	}
-	return appctx.WithEvalContext(ctx, evalCtx)
+	return evalCtx
 }
 
 func (q *JqQuery) parse() (code *gojq.Code, diags diagnostics.Diag) {
@@ -128,7 +125,10 @@ func (q *JqQuery) parse() (code *gojq.Code, diags diagnostics.Diag) {
 	return code, diags
 }
 
-func (q *JqQuery) DeferredEval(ctx context.Context, dataCtx plugindata.Map) (_ cty.Value, diags diagnostics.Diag) {
+func (q *JqQuery) DeferredEval(
+	ctx context.Context,
+	dataCtx plugindata.Map,
+) (_ cty.Value, diags diagnostics.Diag) {
 	if q == nil {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

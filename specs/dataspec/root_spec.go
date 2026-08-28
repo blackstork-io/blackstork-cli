@@ -71,7 +71,7 @@ func (r *RootSpec) makeBlockSpec() {
 	}
 	if !isRequired {
 		for _, a := range r.Attrs {
-			if a.Constraints.Is(constraint.Required) {
+			if a.Constraints.Is(constraint.Required) && a.DefaultVal.IsNull() {
 				isRequired = true
 				break
 			}

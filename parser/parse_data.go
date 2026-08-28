@@ -83,7 +83,14 @@ func ParseDataBlock(
 		})
 	case !isRef && !refBaseFound: // happy path, no ref
 	case isRef && refBaseFound: // happy path, ref present
-		baseEval, diag := parseRefBase(ctx, blocksRegistry, execBlockDef, refBase.Expr, refHist)
+		baseEval, diag := parseRefBase(
+			ctx,
+			blocksRegistry,
+			execBlockDef.Kind(),
+			execBlockDef.Block.Body,
+			refBase.Expr,
+			refHist,
+		)
 		if diags.Extend(diag) {
 			return parsed, diags
 		}

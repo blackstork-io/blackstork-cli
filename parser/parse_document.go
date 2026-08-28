@@ -19,8 +19,6 @@ import (
 
 	"github.com/blackstork-io/blackstork-cli/pkg/appctx"
 	"github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
-	"github.com/blackstork-io/blackstork-cli/pkg/utils"
-	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
@@ -81,18 +79,6 @@ func ParseDocument(
 			}
 			doc.DataBlocks = append(doc.DataBlocks, data)
 
-		case definitions.BlockKindPublish:
-			blockDef, diag := definitions.DefineExecBlockDef(block, false)
-			if diags.Extend(diag) {
-				continue
-			}
-			var publish *definitions.PublishBlock
-			publish, diag = parsePublishBlock(ctx, blocksRegistry, blockDef, nil)
-			if diags.Extend(diag) {
-				continue
-			}
-			doc.PublishBlocks = append(doc.PublishBlocks, publish)
-
 		case definitions.BlockKindFormat:
 			blockDef, diag := definitions.DefineExecBlockDef(block, false)
 			if diags.Extend(diag) {
@@ -112,7 +98,9 @@ func ParseDocument(
 					Summary:  "Vars block redefinition",
 					Detail: fmt.Sprintf(
 						"Only one `vars` block allowed in `%s` and one is already defined at %s:%d",
-						hclBlock.Type, varsBlock.DefRange().Filename, varsBlock.DefRange().Start.Line,
+						hclBlock.Type,
+						varsBlock.DefRange().Filename,
+						varsBlock.DefRange().Start.Line,
 					),
 					Subject: block.DefRange().Ptr(),
 					Context: body.Range().Ptr(),
@@ -147,7 +135,7 @@ func ParseDocument(
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Input blocks must be named",
-					Detail:   `Anonymous input blocks are not supported. Each input block must have a name to be used as a reference to its value.`,
+					Detail:   `Anonymous input blocks are not supported. Each input block must have a name to be used as its ID.`,
 					Subject:  block.DefRange().Ptr(),
 					Context:  body.Range().Ptr(),
 				})
@@ -182,6 +170,9 @@ func ParseDocument(
 				continue
 			}
 			doc.ContentTreeBlocks = append(doc.ContentTreeBlocks, dynamic)
+		case definitions.BlockKindPublish:
+			// parse `publish` blocks after all other were parsed,
+			// as `format_ref` attr might reference in-document `format` blocks
 		default:
 			diags.Append(definitions.NewNestingDiag(
 				hclBlock.Type,
@@ -202,18 +193,26 @@ func ParseDocument(
 		}
 	}
 
+	for _, block := range body.Blocks {
+		if block.Type != definitions.BlockKindPublish {
+			continue
+		}
+		blockDef, diag := definitions.DefineExecBlockDef(block, false)
+		if diags.Extend(diag) {
+			continue
+		}
+		var publish *definitions.PublishBlock
+		publish, diag = parsePublishBlock(ctx, blocksRegistry, doc, blockDef, nil)
+		if diags.Extend(diag) {
+			continue
+		}
+		doc.PublishBlocks = append(doc.PublishBlocks, publish)
+	}
+
 	// Extract `vars` block
 	var diag diagnostics.Diag
 	doc.Vars, diag = ParseVars(ctx, varsBlock, body.Attributes[definitions.AttrLocalVar])
 	diags.Extend(diag)
-
-	if doc.Vars != nil {
-		vars := doc.Vars.GetAttrs()
-		varNames := utils.FnMap(vars, func(a *dataspec.Attr) string {
-			return a.Name
-		})
-		log.DebugContext(ctx, "Variables found in doc root", "vars_count", len(varNames), "vars", varNames)
-	}
 
 	// Extract `required_vars` block
 	if requiredVarsAttr := body.Attributes[definitions.AttrRequiredVars]; requiredVarsAttr != nil {

@@ -73,7 +73,7 @@ func decodeBlockSpec(src *BlockSpec) (*dataspec.BlockSpec, error) {
 		case *BlockSpec_NameMatcher_Exact_:
 			header = append(header, dataspec.ExactMatcher(matcher.Exact.Matches))
 		default:
-			return nil, fmt.Errorf("Unexpected matcher type: %T", matcher)
+			return nil, fmt.Errorf("unexpected matcher type: %T", matcher)
 		}
 	}
 

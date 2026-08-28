@@ -54,7 +54,6 @@ func makeLocalFilePublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publi
 				},
 			},
 		},
-		Formats:     []string{"md", "pdf", "html"},
 		PublishFunc: publishLocalFile(log, tracer),
 	}
 }

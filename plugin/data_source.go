@@ -47,6 +47,9 @@ type DataSource struct {
 	DataFunc RetrieveDataFunc
 	Args     *dataspec.RootSpec
 	Config   *dataspec.RootSpec
+
+	AcceptsInject bool
+	InjectArgs    *dataspec.RootSpec
 }
 
 func (ds *DataSource) Validate() diagnostics.Diag {
@@ -61,7 +64,10 @@ func (ds *DataSource) Validate() diagnostics.Diag {
 	return diags
 }
 
-func (ds *DataSource) Execute(ctx context.Context, params *RetrieveDataParams) (_ plugindata.Data, diags diagnostics.Diag) {
+func (ds *DataSource) Execute(
+	ctx context.Context,
+	params *RetrieveDataParams,
+) (_ plugindata.Data, diags diagnostics.Diag) {
 	if ds == nil {
 		return nil, diagnostics.Diag{{
 			Severity: hcl.DiagError,

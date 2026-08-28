@@ -10,7 +10,6 @@
 package misp
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -63,8 +62,8 @@ func makeMispEventReportsPublisher(loader ClientLoaderFn) *plugin.Publisher {
 				},
 			},
 		},
-		Formats:     []string{"md"},
-		PublishFunc: publishEventReport(loader),
+		AcceptedFormatters: []string{"md"},
+		PublishFunc:        publishEventReport(loader),
 	}
 }
 
@@ -86,8 +85,6 @@ func parseContent(data plugindata.Map) (document *plugin.ContentSection) {
 }
 
 func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
-	// logger := slog.Default()
-	// tracer := nooptrace.Tracer{}
 	return func(ctx context.Context, params *plugin.PublishParams) diagnostics.Diag {
 		document := parseContent(params.DataContext)
 		if document == nil {
@@ -106,32 +103,6 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 			}}
 		}
 
-		//datactx := params.DataContext
-		//datactx["format"] = plugindata.String(format)
-		// var printer print.Printer
-		// switch format {
-		// case "md":
-		// 	printer = mdprint.New()
-		// default:
-		// 	return diagnostics.Diag{{
-		// 		Severity: hcl.DiagError,
-		// 		Summary:  "Unsupported format",
-		// 		Detail:   "Only md format is supported",
-		// 	}}
-		// }
-		// printer = print.WithLogging(printer, logger, slog.String("format", format))
-		// printer = print.WithTracing(printer, tracer, attribute.String("format", format))
-		//
-		buff := bytes.NewBuffer(nil)
-		// err := printer.Print(ctx, buff, document)
-		// if err != nil {
-		// 	return diagnostics.Diag{{
-		// 		Severity: hcl.DiagError,
-		// 		Summary:  "Failed to render the report",
-		// 		Detail:   err.Error(),
-		// 	}}
-		// }
-
 		cli := loader(params.Config)
 
 		timestamp := fmt.Sprintf("%d", time.Now().Unix())
@@ -139,7 +110,7 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 			Uuid:      uuid.New().String(),
 			EventId:   params.Args.GetAttrVal("event_id").AsString(),
 			Name:      params.Args.GetAttrVal("name").AsString(),
-			Content:   buff.String(),
+			Content:   string(params.FormattedContent.Content),
 			Timestamp: &timestamp,
 			Deleted:   false,
 		}
@@ -166,16 +137,11 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 		}
 
 		slog.InfoContext(
-			ctx,
-			"Successfully added report",
-			"id",
-			resp.EventReport.Id,
-			"uuid",
-			resp.EventReport.Uuid,
-			"event_id",
-			resp.EventReport.EventId,
-			"name",
-			resp.EventReport.Name,
+			ctx, "Successfully added report",
+			"id", resp.EventReport.Id,
+			"uuid", resp.EventReport.Uuid,
+			"event_id", resp.EventReport.EventId,
+			"name", resp.EventReport.Name,
 		)
 		return nil
 	}

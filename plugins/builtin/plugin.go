@@ -24,11 +24,8 @@ func Plugin(version string, log *slog.Logger, tracer trace.Tracer) *plugin.Schem
 		Name:    Name,
 		Version: version,
 		DataSources: plugin.DataSources{
-			"csv":   makeCSVDataSource(),
-			"txt":   makeTXTDataSource(),
+			"file":  makeFileDataSource(log.With("data_source", "file")),
 			"rss":   makeRSSDataSource(),
-			"json":  makeJSONDataSource(),
-			"yaml":  makeYAMLDataSource(),
 			"http":  makeHTTPDataSource(version),
 			"sleep": makeSleepDataSource(log.With("data_source", "sleep")),
 		},
@@ -47,7 +44,12 @@ func Plugin(version string, log *slog.Logger, tracer trace.Tracer) *plugin.Schem
 		Publishers: plugin.Publishers{
 			"stdout":     makeStdoutPublisher(log.With("publisher", "stdout"), tracer),
 			"local_file": makeLocalFilePublisher(log.With("publisher", "local_file"), tracer),
-			"hub":        makeHubPublisher(version, defaultHubClientLoader, log.With("publisher", "hub"), tracer),
+			"hub": makeHubPublisher(
+				version,
+				defaultHubClientLoader,
+				log.With("publisher", "hub"),
+				tracer,
+			),
 		},
 		Formatters: plugin.Formatters{
 			"md":   makeMarkdownFormatter(log.With("formatter", "md"), tracer),

@@ -57,7 +57,6 @@ func makeGithubGistPublisher(loader ClientLoaderFn) *plugin.Publisher {
 				},
 			},
 		},
-		Formats:     []string{"md", "html"},
 		PublishFunc: publishGithubGist(loader),
 	}
 }
@@ -142,11 +141,11 @@ func publishGithubGist(loader ClientLoaderFn) plugin.PublishFunc {
 
 		client := loader(params.Config.GetAttrVal("github_token").AsString())
 		payload := &gh.Gist{
-			Public: gh.Bool(params.Args.GetAttrVal("make_public").True()),
+			Public: new(params.Args.GetAttrVal("make_public").True()),
 			Files: map[gh.GistFilename]gh.GistFile{
 				gh.GistFilename(fileName): {
-					Content:  gh.String(content),
-					Filename: gh.String(fileName),
+					Content:  new(content),
+					Filename: new(fileName),
 				},
 			},
 		}

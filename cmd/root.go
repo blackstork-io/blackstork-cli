@@ -65,7 +65,7 @@ func init() {
 		StringVar(&rawArgs.sourceDir, "source-dir", ".", "a path to a directory with *.blackstork.hcl files")
 	rootCmd.PersistentFlags().StringVar(&rawArgs.logOutput, "log-format", "plain", "format of the logs (plain or json)")
 	rootCmd.PersistentFlags().StringVar(
-		&rawArgs.logLevel, "log-level", "info",
+		&rawArgs.logLevel, "log-level", "warn",
 		fmt.Sprintf("logging level (%s)", utils.GetLogLevelsString()),
 	)
 	rootCmd.PersistentFlags().BoolVarP(&rawArgs.verbose, "verbose", "v", false, "a shortcut to --log-level debug")

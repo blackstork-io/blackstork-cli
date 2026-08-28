@@ -31,7 +31,7 @@ func ParseFormatBlock(
 ) (parsed *definitions.FormatBlock, diags diagnostics.Diag) {
 	log := appctx.Log(ctx)
 	log.DebugContext(
-		ctx, "Parsing a format block",
+		ctx, "Parsing format block",
 		"name", execBlockDef.Name(),
 		"formatter", execBlockDef.RunnerName(),
 		"is_ref", execBlockDef.IsRef(),
@@ -78,7 +78,14 @@ func ParseFormatBlock(
 	case !isRef && !refBaseFound: // happy path, no ref
 		// do nothing
 	case isRef && refBaseFound: // happy path, a correct ref block
-		baseEval, diag := parseRefBase(ctx, blocksRegistry, execBlockDef, refBase.Expr, refHist)
+		baseEval, diag := parseRefBase(
+			ctx,
+			blocksRegistry,
+			execBlockDef.Kind(),
+			execBlockDef.Block.Body,
+			refBase.Expr,
+			refHist,
+		)
 		if diags.Extend(diag) {
 			return parsed, diags
 		}
@@ -100,7 +107,7 @@ func ParseFormatBlock(
 		default:
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid block reference - mismatched type of a reference block",
+				Summary:  "Invalid block reference - mismatched type of reference block",
 				Detail: fmt.Sprintf(
 					"`%s ref` block references a block of a mismatched type `%s` in `base` argument",
 					execBlockDef.Kind(),
@@ -113,6 +120,9 @@ func ParseFormatBlock(
 	}
 
 	var configBlock *hclsyntax.Block
+
+	// Remove common blocks and keep only blocks that the runner attr schema will recognize
+	var blocksToKeep hclsyntax.Blocks
 
 	for _, block := range body.Blocks {
 
@@ -128,7 +138,6 @@ func ParseFormatBlock(
 
 		switch block.Type {
 		case definitions.BlockKindConfig:
-			log.DebugContext(ctx, "Config sub-block found")
 			if configBlock != nil {
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
@@ -159,12 +168,17 @@ func ParseFormatBlock(
 				break
 			}
 			res.Meta = &meta
+
+		default:
+			blocksToKeep = append(blocksToKeep, block)
 		}
 	}
 
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	body.Blocks = blocksToKeep
 
 	if targetBlock != nil && targetBlock.Config != nil {
 		res.Config = targetBlock.Config
@@ -199,4 +213,37 @@ func ParseFormatBlock(
 	}
 
 	return &res, diags
+}
+
+func ParseFormatAttr(
+	ctx context.Context,
+	blocksRegistry BlocksRegistry,
+	doc *definitions.Document,
+	sourceBlockDefBody *hclsyntax.Body,
+	formatAttr *hclsyntax.Attribute,
+) (*definitions.FormatBlock, error) {
+	formatBlock, _ := parseRefBase(
+		ctx,
+		blocksRegistry,
+		definitions.BlockKindFormat, // because we expect format
+		sourceBlockDefBody,
+		formatAttr.Expr,
+		nil,
+	)
+
+	if formatBlock != nil {
+		return formatBlock.(*definitions.FormatBlock), nil
+	}
+
+	if doc == nil {
+		return nil, fmt.Errorf("can't resolve format reference with standalone blocks")
+	}
+
+	docFormatBlock, _ := resolveFormatBlockInDoc(doc, formatAttr.Expr)
+
+	if docFormatBlock != nil {
+		return docFormatBlock, nil
+	}
+
+	return nil, fmt.Errorf("can't resolve format reference with standalone blocks or in document")
 }

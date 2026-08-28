@@ -45,7 +45,14 @@ config publish hub {
 
 ## Usage
 
+This publisher accepts the following arguments within a `publish hub` block:
 
-This publisher does not accept any execution arguments.
+```hcl
+# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+
+publish hub {
+}
+
+```
 
 

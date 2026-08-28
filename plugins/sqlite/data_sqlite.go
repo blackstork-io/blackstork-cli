@@ -74,7 +74,10 @@ func parseSqliteArgs(args *dataspec.Block) (string, []any, error) {
 	}
 	argsTy := sqlArgs.Type()
 	if !argsTy.IsTupleType() && !argsTy.IsListType() {
-		return "", nil, fmt.Errorf("sql_args must be a tuple (or a list) of strings, numbers, or booleans, got %s", argsTy.FriendlyName())
+		return "", nil, fmt.Errorf(
+			"sql_args must be a tuple (or a list) of strings, numbers, or booleans, got %s",
+			argsTy.FriendlyName(),
+		)
 	}
 	if sqlArgs.LengthInt() == 0 {
 		return sqlQuery.AsString(), nil, nil
@@ -100,7 +103,10 @@ func parseSqliteArgs(args *dataspec.Block) (string, []any, error) {
 	return sqlQuery.AsString(), argsResult, nil
 }
 
-func fetchSqliteData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchSqliteData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	dbURI := params.Config.GetAttrVal("database_uri").AsString()
 	sqlQuery, sqlArgs, err := parseSqliteArgs(params.Args)
 	if err != nil {

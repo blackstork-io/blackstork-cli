@@ -13,8 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -226,7 +224,10 @@ func ParseAny(v any) (Data, error) {
 		case reflect.Map:
 			// Handling any map with string keys, for example, `map[string]int` or `map[string]string`.
 			if val.Type().Key().Kind() != reflect.String {
-				return nil, fmt.Errorf("unsupported map key type: `%s` (only string keys are supported)", val.Type().Key())
+				return nil, fmt.Errorf(
+					"unsupported map key type: `%s` (only string keys are supported)",
+					val.Type().Key(),
+				)
 			}
 
 			dst := make(Map, val.Len())
@@ -282,43 +283,5 @@ func IsTruthy(d Data) (bool, error) {
 		return false, nil
 	default:
 		return false, fmt.Errorf("unsupported data type: `%T`", d)
-	}
-}
-
-func ParseString(input, typeName string) (Data, error) {
-	// Trim whitespace to avoid common parsing errors
-	input = strings.TrimSpace(input)
-
-	switch strings.ToLower(typeName) {
-
-	case "string", "secret":
-		return String(input), nil
-
-	case "bool":
-		// Standard lib: accepts 1, t, T, TRUE, true, 0, f, F, FALSE, false
-		boolV, err := strconv.ParseBool(input)
-		if err != nil {
-			return nil, err
-		}
-		return Bool(boolV), nil
-
-	case "datetime":
-		// RFC3339 is the standard implementation for ISO8601
-		val, err := time.Parse(time.RFC3339, input)
-		if err != nil {
-			return nil, err
-		}
-		return Time(val), nil
-
-	case "number":
-		// Standard 64-bit precision float
-		val, err := strconv.ParseFloat(input, 64)
-		if err != nil {
-			return nil, err
-		}
-		return Number(val), nil
-
-	default:
-		return nil, fmt.Errorf("unsupported type: %s", typeName)
 	}
 }

@@ -30,7 +30,11 @@ import (
 )
 
 // EvaluateDeferred evaluates deferred values in the given attribute.
-func EvaluateDeferred(ctx context.Context, dataCtx plugindata.Map, val *Attr) (res cty.Value, diags diagnostics.Diag) {
+func EvaluateDeferred(
+	ctx context.Context,
+	dataCtx plugindata.Map,
+	val *Attr,
+) (res cty.Value, diags diagnostics.Diag) {
 	if val == nil {
 		return res, diags
 	}
@@ -182,8 +186,12 @@ func (t *transformer) transform(val cty.Value) (_ cty.Value, diags diagnostics.D
 // Basic validation is performed on the keys, values of attributes are not fully defined until deferred evaluation,
 // so they are not type-checked in the resulting block.
 // This function's result is expected to be processed later with EvalBlock to resolve the deferred values and validate everything.
-func DecodeBlock(ctx context.Context, block *hclsyntax.Block, rootSpec *RootSpec) (res *Block, diags diagnostics.Diag) {
-	return decodeBlock(block, rootSpec.BlockSpec(), appctx.GetEvalContext(ctx))
+func DecodeBlock(
+	evalCtx *hcl.EvalContext,
+	block *hclsyntax.Block,
+	rootSpec *RootSpec,
+) (res *Block, diags diagnostics.Diag) {
+	return decodeBlock(block, rootSpec.BlockSpec(), evalCtx)
 }
 
 // DecodeAndEvalBlock decodes hclsyntax.Block into a Block according to the given RootSpec.
@@ -194,7 +202,7 @@ func DecodeAndEvalBlock(
 	rootSpec *RootSpec,
 	dataCtx plugindata.Map,
 ) (res *Block, diags diagnostics.Diag) {
-	evalCtx := appctx.GetEvalContext(deferred.WithQueryFuncs(ctx))
+	evalCtx := deferred.WithQueryFuncs(appctx.GetEvalContext(ctx))
 
 	res, diags = decodeBlock(block, rootSpec.BlockSpec(), evalCtx)
 	if diags.HasErrors() {
@@ -222,15 +230,23 @@ func EvalBlockCopy(
 	blockC := *block
 	evaluatedBlock = &blockC
 
-	evaluatedBlock.Blocks = utils.FnMapDiags(&diags, block.Blocks, func(block *Block) (*Block, diagnostics.Diag) {
-		return EvalBlockCopy(ctx, block, dataCtx)
-	})
-	evaluatedBlock.Attrs = utils.MapMapDiags(&diags, block.Attrs, func(attr *Attr) (*Attr, diagnostics.Diag) {
-		attrC := *attr
-		var diag diagnostics.Diag
-		attrC.Value, diag = EvalAttr(ctx, attr, dataCtx)
-		return &attrC, diag
-	})
+	evaluatedBlock.Blocks = utils.FnMapDiags(
+		&diags,
+		block.Blocks,
+		func(block *Block) (*Block, diagnostics.Diag) {
+			return EvalBlockCopy(ctx, block, dataCtx)
+		},
+	)
+	evaluatedBlock.Attrs = utils.MapMapDiags(
+		&diags,
+		block.Attrs,
+		func(attr *Attr) (*Attr, diagnostics.Diag) {
+			attrC := *attr
+			var diag diagnostics.Diag
+			attrC.Value, diag = EvalAttr(ctx, attr, dataCtx)
+			return &attrC, diag
+		},
+	)
 	return evaluatedBlock, diags
 }
 
@@ -252,6 +268,26 @@ func EvalBlock(ctx context.Context, block *Block, dataCtx plugindata.Map) (diags
 	return diags
 }
 
+func FillInDefaults(blockSpec *RootSpec, block *Block) *Block {
+	if block == nil {
+		block = &Block{
+			Attrs: make(Attributes, 0),
+		}
+	}
+
+	for _, attr := range blockSpec.Attrs {
+		existingVal := block.GetAttrVal(attr.Name)
+		// If the value is not set but the default exists, set the default
+		if attr.DefaultVal != cty.NilVal && existingVal == cty.NilVal {
+			block.Attrs[attr.Name] = &Attr{
+				Name:  attr.Name,
+				Value: attr.DefaultVal,
+			}
+		}
+	}
+	return block
+}
+
 func decodeBlock(
 	block *hclsyntax.Block,
 	blockSpec *BlockSpec,
@@ -262,7 +298,7 @@ func decodeBlock(
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing a block and a block spec",
-				Detail:   "A block and a blockspec are both missing, can't decode",
+				Detail:   "A block and a block spec are required for block decoding",
 			})
 			return res, diags
 		}
@@ -270,7 +306,10 @@ func decodeBlock(
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing a block",
-				Detail:   fmt.Sprintf("Block of type %s is required", formatHeader(blockSpec.Header.AsDocLabels())),
+				Detail: fmt.Sprintf(
+					"Block of type %s is required",
+					formatHeader(blockSpec.Header.AsDocLabels()),
+				),
 			})
 			return res, diags
 		}
@@ -337,8 +376,8 @@ nextBlock:
 		if !blockSpec.AllowUnspecifiedBlocks {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unexpected block found",
-				Detail:   fmt.Sprintf("%s can not contain this block", formatHeader(block.Type, block.Labels)),
+				Summary:  "Unexpected sub-block found",
+				Detail:   fmt.Sprintf("%s can not contain block %s", formatHeader(block.Type, block.Labels), formatHeader(subBlock.Type, subBlock.Labels)),
 				Subject:  &subBlock.TypeRange,
 				Context:  &block.Body.SrcRange,
 			})
@@ -354,7 +393,7 @@ nextBlock:
 		if subSpec.Required && !specWasUsed[i] {
 			diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing a block",
+				Summary:  "Missing a sub-block",
 				Detail: fmt.Sprintf(
 					"%s requires a block of type %s to be defined",
 					formatHeader(block.Type, block.Labels),
@@ -370,12 +409,15 @@ nextBlock:
 		attr, found := utils.Pop(attrs, spec.Name)
 
 		if !found {
-			if spec.Constraints.Is(constraint.Required) {
+			if spec.Constraints.Is(constraint.Required) && spec.DefaultVal == cty.NilVal {
 				diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing required attribute",
-					Detail:   fmt.Sprintf("The attribute %q is required, but no definition was found.", spec.Name),
-					Subject:  block.Body.MissingItemRange().Ptr(),
+					Detail: fmt.Sprintf(
+						"The attribute %q is required, but no definition was found.",
+						spec.Name,
+					),
+					Subject: block.Body.MissingItemRange().Ptr(),
 				})
 			} else if spec.DefaultVal != cty.NilVal {
 				rng := block.DefRange()
@@ -396,9 +438,13 @@ nextBlock:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Deprecated attribute",
-				Detail:   fmt.Sprintf("The attribute %q is deprecated: %s", spec.Name, spec.Deprecated),
-				Subject:  &attr.NameRange,
-				Context:  &attr.SrcRange,
+				Detail: fmt.Sprintf(
+					"The attribute %q is deprecated: %s",
+					spec.Name,
+					spec.Deprecated,
+				),
+				Subject: &attr.NameRange,
+				Context: &attr.SrcRange,
 			})
 		}
 
@@ -431,7 +477,11 @@ nextBlock:
 
 // DecodeAttr decodes hclsyntax.Attribute into a cty.Value according to the given AttrSpec.
 // No validation is performed on the value.
-func DecodeAttr(ctx *hcl.EvalContext, attr *hclsyntax.Attribute, spec *AttrSpec) (val *Attr, diags diagnostics.Diag) {
+func DecodeAttr(
+	ctx *hcl.EvalContext,
+	attr *hclsyntax.Attribute,
+	spec *AttrSpec,
+) (val *Attr, diags diagnostics.Diag) {
 	var (
 		decodeFn customdecode.CustomExpressionDecoderFunc
 		value    cty.Value
@@ -464,7 +514,11 @@ func DecodeAttr(ctx *hcl.EvalContext, attr *hclsyntax.Attribute, spec *AttrSpec)
 }
 
 // EvalAttr evaluates deferred values in the given attribute and validates it.
-func EvalAttr(ctx context.Context, attr *Attr, dataCtx plugindata.Map) (val cty.Value, diags diagnostics.Diag) {
+func EvalAttr(
+	ctx context.Context,
+	attr *Attr,
+	dataCtx plugindata.Map,
+) (val cty.Value, diags diagnostics.Diag) {
 	val, diag := EvaluateDeferred(ctx, dataCtx, attr)
 	if diags.Extend(diag) {
 		return val, diags

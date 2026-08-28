@@ -10,6 +10,7 @@
 package utils
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -157,4 +158,12 @@ func (hist *RefHistory) Size() int {
 		return 0
 	}
 	return len(hist.refs)
+}
+
+func ParseStringIntoTraversalExpression(input string) (hclsyntax.Expression, error) {
+	expr, diags := hclsyntax.ParseExpression([]byte(input), "<inline>", hcl.InitialPos)
+	if diags.HasErrors() {
+		return nil, errors.New(diags.Error())
+	}
+	return expr, nil
 }

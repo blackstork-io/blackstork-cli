@@ -28,7 +28,7 @@ type PluginFormatAction struct {
 	Formatter *plugin.Formatter
 }
 
-func (block *PluginFormatAction) Execute(
+func (a *PluginFormatAction) Execute(
 	ctx context.Context,
 	dataCtx plugindata.Map,
 	content plugindata.Map,
@@ -36,15 +36,19 @@ func (block *PluginFormatAction) Execute(
 	log := appctx.Log(ctx)
 	log.InfoContext(
 		ctx, "Formatting content",
-		"format", block.Formatter.Format,
+		"format", a.Formatter.Format,
 	)
-	return block.Formatter.Execute(ctx, &plugin.FormatParams{
-		Config:      block.Config,
-		Args:        block.Args,
+	return a.Formatter.Execute(ctx, &plugin.FormatParams{
+		Config:      a.Config,
+		Args:        a.Args,
 		Content:     content,
 		DataContext: dataCtx,
-		Format:      block.Formatter.Format,
+		Format:      a.Formatter.Format,
 	})
+}
+
+func (a *PluginFormatAction) Meta() *definitions.MetaBlock {
+	return a.meta
 }
 
 func LoadPluginFormatAction(
@@ -67,12 +71,12 @@ func LoadPluginFormatAction(
 		if diags.HasErrors() {
 			return nil, diags
 		}
-	} else if formatter.Config != nil && blockDef.Config == nil {
+	} else if formatter.Config != nil && blockDef.Config == nil && formatter.Config.IsRequired() {
 		diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No configuration provided for format block",
 			Detail: fmt.Sprintf(
-				"Format block for formatter `%s` requires configuration but none was found.",
+				"Format block for formatter `%s` requires configuration but none was found",
 				blockDef.RunnerName,
 			),
 			Context: blockDef.Source.Block.Range().Ptr(),
@@ -89,9 +93,17 @@ func LoadPluginFormatAction(
 		})
 	}
 
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	args, diag := dataspec.DecodeAndEvalBlock(ctx, blockDef.Source.Block, formatter.Args, dataCtx)
 	if diags.Extend(diag) {
 		return nil, diags
+	}
+
+	if formatter.Config != nil {
+		cfg = dataspec.FillInDefaults(formatter.Config, cfg)
 	}
 
 	return &PluginFormatAction{
@@ -103,30 +115,5 @@ func LoadPluginFormatAction(
 			Args:       args,
 		},
 		Formatter: formatter,
-	}, diags
-}
-
-func LoadMarkdownPluginFormatAction(
-	ctx context.Context,
-	formatters Formatters,
-) (_ *PluginFormatAction, diags diagnostics.Diag) {
-	formatterName := "md"
-	blockName := "default-md"
-
-	p, ok := formatters.Formatter(formatterName)
-	if !ok {
-		return nil, diagnostics.Diag{{
-			Severity: hcl.DiagError,
-			Summary:  "Missing formatter",
-			Detail:   fmt.Sprintf("'%s' formatter not found in any plugin", formatterName),
-		}}
-	}
-
-	return &PluginFormatAction{
-		PluginAction: &PluginAction{
-			RunnerName: formatterName,
-			BlockName:  blockName,
-		},
-		Formatter: p,
 	}, diags
 }

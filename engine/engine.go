@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -36,6 +37,11 @@ import (
 	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
 
+const (
+	defaultPublishRunner = "stdout"
+	defaultFormatRunner  = "md"
+)
+
 // Engine is the main entry point for the main workflow. It is responsible for installing plugins,
 // parsing, loading and evaluating the template files, and fetching data.
 type Engine struct {
@@ -50,6 +56,9 @@ type Engine struct {
 	fileMap   map[string]*hcl.File
 	env       plugindata.Map
 	sourceDir string
+
+	defaultFormatAction  *eval.PluginFormatAction
+	defaultPublishAction *eval.PluginPublishAction
 }
 
 // New creates a new Engine instance with the provided options.
@@ -156,7 +165,9 @@ func (e *Engine) ParseDirFS(ctx context.Context, sourceDir fs.FS) (diags diagnos
 	}
 	if e.blocks != nil && e.blocks.GetGlobalConfig() != nil {
 		globalConfig := e.blocks.GetGlobalConfig()
-		cfg, diag := globalConfig.Parse(ctx)
+
+		evalCtx := appctx.GetEvalContext(ctx)
+		cfg, diag := globalConfig.Parse(ctx, evalCtx)
 		if !diags.Extend(diag) {
 			e.config.Merge(cfg)
 		}
@@ -204,7 +215,10 @@ func (e *Engine) Lint(ctx context.Context, fullLint bool) (diags diagnostics.Dia
 	return diags
 }
 
-func (e *Engine) LoadPluginResolver(ctx context.Context, includeRemote bool) (diags diagnostics.Diag) {
+func (e *Engine) LoadPluginResolver(
+	ctx context.Context,
+	includeRemote bool,
+) (diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
 
@@ -298,6 +312,43 @@ func (e *Engine) LoadPluginRunner(ctx context.Context) (diags diagnostics.Diag) 
 		})
 		return diags
 	}
+
+	defaultFormatter, ok := e.runners.Formatter(defaultFormatRunner)
+	if !ok {
+		diags.Extend(diagnostics.Diag{
+			{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Default formatter `%s` not found", defaultFormatRunner),
+			},
+		})
+		return diags
+	}
+	defaultPublisher, ok := e.runners.Publisher(defaultPublishRunner)
+	if !ok {
+		diags.Extend(diagnostics.Diag{
+			{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Default publisher `%s` not found", defaultPublishRunner),
+			},
+		})
+		return diags
+	}
+
+	e.defaultFormatAction = &eval.PluginFormatAction{
+		PluginAction: &eval.PluginAction{
+			RunnerName: defaultFormatRunner,
+		},
+		Formatter: defaultFormatter,
+	}
+
+	e.defaultPublishAction = &eval.PluginPublishAction{
+		PluginAction: &eval.PluginAction{
+			RunnerName: defaultPublishRunner,
+		},
+		Publisher: defaultPublisher,
+		Format:    e.defaultFormatAction,
+	}
+
 	return diags
 }
 
@@ -435,13 +486,18 @@ func (e *Engine) loadDocumentData(
 	return data, diags
 }
 
-var ErrInvalidDataTarget = diagnostics.Diag{{
-	Severity: hcl.DiagError,
-	Summary:  "Invalid data target",
-	Detail:   "Target must be in the format 'document.<doc-name>.data.<plugin-name>.<block-name>' or 'data.<plugin-name>.<block-name>'",
-}}
+var ErrInvalidDataTarget = diagnostics.Diag{
+	{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid data target",
+		Detail:   "Target must be in the format 'document.<doc-name>.data.<plugin-name>.<block-name>' or 'data.<plugin-name>.<block-name>'",
+	},
+}
 
-func (e *Engine) FetchData(ctx context.Context, target string) (result plugindata.Data, diags diagnostics.Diag) {
+func (e *Engine) FetchData(
+	ctx context.Context,
+	target string,
+) (result plugindata.Data, diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
 
@@ -540,11 +596,10 @@ func (e *Engine) RenderContent(
 	ctx context.Context,
 	target string,
 	requiredTags []string,
+	requestedFormat string,
 ) (doc *eval.Document, content *plugin.ContentSection, data plugindata.Map, diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
-	log = log.With("document", target)
-	ctx = appctx.WithLog(ctx, log)
 
 	ctx, span := tracer.Start(ctx, "Engine.RenderContent", trace.WithAttributes(
 		attribute.String("target", target),
@@ -562,6 +617,50 @@ func (e *Engine) RenderContent(
 	docParsed, diag := e.parseDocument(ctx, target)
 	if diags.Extend(diag) {
 		return nil, nil, nil, diags
+	}
+
+	var requestedFormatBlock *definitions.FormatBlock
+	if requestedFormat != "" {
+
+		expr, err := utils.ParseStringIntoTraversalExpression(requestedFormat)
+		if err != nil {
+			log.ErrorContext(
+				ctx, "Error while parsing requested format value",
+				"requested_format", requestedFormat,
+				"err", err,
+			)
+			diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Error while parsing requested format value",
+				Detail:   fmt.Sprintf("%s", err),
+			})
+			return nil, nil, nil, diags
+		}
+
+		requestedFormatBlock, err = parser.ParseFormatAttr(
+			ctx,
+			e.blocks,
+			docParsed,
+			&hclsyntax.Body{},
+			&hclsyntax.Attribute{
+				Name: "requested_format",
+				Expr: expr,
+			},
+		)
+		if err != nil {
+			log.ErrorContext(
+				ctx, "Error while resolving requested format value",
+				"requested_format", requestedFormat,
+				"err", err,
+			)
+			diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Error while resolving requested format value",
+				Detail:   fmt.Sprintf("%s", err),
+			})
+			return nil, nil, nil, diags
+		}
+		log.DebugContext(ctx, "Requested format parsed", "requested_format", requestedFormat)
 	}
 
 	dataCtx, diag := e.initialDataCtx(ctx)
@@ -589,6 +688,25 @@ func (e *Engine) RenderContent(
 		return nil, nil, nil, diags
 	}
 
+	if requestedFormatBlock != nil {
+		requestedFormatAction, diag := eval.LoadPluginFormatAction(
+			ctx,
+			e.runners,
+			requestedFormatBlock,
+			dataCtx,
+		)
+		if diags.Extend(diag) {
+			log.ErrorContext(
+				ctx, "Error while evaluating requested format block",
+				"requested_format", requestedFormat,
+				"err", diag,
+			)
+			return nil, nil, nil, diags
+		}
+		log.DebugContext(ctx, "Requested format loaeded", "requested_format", requestedFormat)
+		doc.RequestedFormat = requestedFormatAction
+	}
+
 	subData := appctx.SubstituteData(ctx)
 	if subData == nil {
 		log.InfoContext(ctx, "Fetching data")
@@ -602,7 +720,7 @@ func (e *Engine) RenderContent(
 		data = subData
 	}
 
-	dataCtx[definitions.BlockKindData] = data
+	dataCtx[plugin.DataDataKey] = data
 
 	log.InfoContext(ctx, "Rendering content")
 
@@ -611,7 +729,117 @@ func (e *Engine) RenderContent(
 		return nil, nil, nil, diags
 	}
 
+	data[plugin.DocumentDataKey] = content.AsData()
+
 	return doc, content, data, diags
+}
+
+func (e *Engine) FormatContent(
+	ctx context.Context,
+	doc *eval.Document,
+	content *plugin.ContentSection,
+	data plugindata.Map,
+	onlyDefaultPublisher bool,
+) (formattedContents map[*eval.PluginFormatAction]*plugin.FormattedContent, diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	documentTemplateName := doc.GetTemplateName()
+
+	ctx, span := tracer.Start(ctx, "Engine.Format", trace.WithAttributes(
+		attribute.String("document", documentTemplateName),
+	))
+	defer func() {
+		if diags.HasErrors() {
+			span.RecordError(diags)
+			span.SetStatus(codes.Error, diags.Error())
+		}
+		span.End()
+	}()
+	log = log.With("document", documentTemplateName)
+
+	formattedContents = map[*eval.PluginFormatAction]*plugin.FormattedContent{}
+
+	if doc.RequestedFormat != nil {
+
+		formattedContent, diag := doc.FormatContent(ctx, content, data, doc.RequestedFormat)
+		if formattedContent != nil {
+			formattedContents[doc.RequestedFormat] = formattedContent
+			return formattedContents, diags
+		}
+		return nil, diag
+	}
+
+	if onlyDefaultPublisher {
+		formattedContent, diag := doc.FormatContent(ctx, content, data, e.defaultFormatAction)
+		if formattedContent != nil {
+			formattedContents[e.defaultFormatAction] = formattedContent
+			return formattedContents, diags
+		}
+		return nil, diag
+	}
+
+	for _, pb := range doc.PublishBlocks {
+		if pb.Format != nil {
+			formattedContent, diag := doc.FormatContent(ctx, content, data, pb.Format)
+			if diag.HasErrors() {
+				log.ErrorContext(
+					ctx, "Error while formatting content for `publish block`",
+					"publisher", pb.RunnerName,
+					"publish_block_name", pb.BlockName,
+					"err", diag,
+				)
+				return nil, diags
+			}
+			formattedContents[pb.Format] = formattedContent
+		}
+	}
+
+	log.InfoContext(ctx, "Content formatted", "formats_count", len(formattedContents))
+
+	return formattedContents, diags
+}
+
+func (e *Engine) PublishContentToStdout(
+	ctx context.Context,
+	doc *eval.Document,
+	content *plugin.ContentSection,
+	data plugindata.Map,
+	formattedContents map[*eval.PluginFormatAction]*plugin.FormattedContent,
+) (diags diagnostics.Diag) {
+	tracer := appctx.Tracer(ctx)
+	log := appctx.Log(ctx)
+
+	documentTemplateName := doc.GetTemplateName()
+
+	ctx, span := tracer.Start(ctx, "Engine.PublishToStdout", trace.WithAttributes(
+		attribute.String("document", documentTemplateName),
+	))
+	defer func() {
+		if diags.HasErrors() {
+			span.RecordError(diags)
+			span.SetStatus(codes.Error, diags.Error())
+		}
+		span.End()
+	}()
+	log = log.With("document", documentTemplateName)
+
+	log.DebugContext(
+		ctx, "Executing default publisher",
+		"publish_runner", e.defaultPublishAction.RunnerName,
+	)
+
+	log.InfoContext(ctx, "Publishing document to stdout with default publisher")
+	diag := doc.PublishAction(
+		ctx,
+		content,
+		formattedContents,
+		data,
+		e.defaultPublishAction,
+		doc.RequestedFormat,
+	)
+	diags.Extend(diag)
+	return diags
 }
 
 func (e *Engine) PublishContent(
@@ -619,7 +847,7 @@ func (e *Engine) PublishContent(
 	doc *eval.Document,
 	content *plugin.ContentSection,
 	data plugindata.Map,
-	executePublishBlocks bool,
+	formattedContents map[*eval.PluginFormatAction]*plugin.FormattedContent,
 ) (diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
@@ -638,44 +866,16 @@ func (e *Engine) PublishContent(
 	}()
 	log = log.With("document", documentTemplateName)
 
-	// If publishing is not requested, execute the default publisher / formatter
-	if !executePublishBlocks {
-		log.DebugContext(
-			ctx, "Executing a default publisher",
-			"publisher", doc.DefaultPublish.RunnerName,
-		)
-		var publisher *eval.PluginPublishAction
-		for _, p := range doc.PublishBlocks {
-			if p.RunnerName == doc.DefaultPublish.RunnerName {
-				publisher = p
-				break
-			}
-		}
-		if publisher == nil {
-			// No registered publisher of a default expected runner found,
-			// so we're registering the new one
-			doc.PublishBlocks = []*eval.PluginPublishAction{doc.DefaultPublish}
-		}
-	}
-
-	formattedContentMap, diag := doc.FormatContent(ctx, content, data)
-	if diags.Extend(diag) {
-		return diags
-	}
-
-	log.DebugContext(
-		ctx, "Formatted content map prepared for publishing",
-		"formatted_content_count", len(formattedContentMap),
-		"content_formats", maps.Keys(formattedContentMap),
-	)
-
 	log.InfoContext(ctx, "Publishing the document")
-	diag = doc.Publish(ctx, content, formattedContentMap, data)
+	diag := doc.Publish(ctx, content, formattedContents, data)
 	diags.Extend(diag)
 	return diags
 }
 
-func (e *Engine) parseDocument(ctx context.Context, name string) (_ *definitions.Document, diags diagnostics.Diag) {
+func (e *Engine) parseDocument(
+	ctx context.Context,
+	name string,
+) (_ *definitions.Document, diags diagnostics.Diag) {
 	tracer := appctx.Tracer(ctx)
 	log := appctx.Log(ctx)
 
@@ -710,18 +910,32 @@ func (e *Engine) parseDocument(ctx context.Context, name string) (_ *definitions
 	log.InfoContext(ctx, "Parsing document template")
 	docParsed, diag := parser.ParseDocument(ctx, e.blocks, doc)
 	if diags.Extend(diag) {
-		log.ErrorContext(ctx, "Error while parsing template", "err", diagnostics.GetDiagsDetails(diags))
+		log.ErrorContext(
+			ctx,
+			"Error while parsing template",
+			"err",
+			diagnostics.GetDiagsDetails(diags),
+		)
 		return nil, diags
 	}
 	return docParsed, diags
 }
 
-func (e *Engine) loadDocument(ctx context.Context, doc *definitions.Document, dataCtx plugindata.Map) (_ *eval.Document, diags diagnostics.Diag) {
+func (e *Engine) loadDocument(
+	ctx context.Context,
+	doc *definitions.Document,
+	dataCtx plugindata.Map,
+) (_ *eval.Document, diags diagnostics.Diag) {
 	log := appctx.Log(ctx)
 	log.InfoContext(ctx, "Loading document template")
 	docLoaded, diag := eval.LoadDocument(ctx, e.runners, doc, dataCtx)
 	if diags.Extend(diag) {
-		log.ErrorContext(ctx, "Error while loading template", "err", diagnostics.GetDiagsDetails(diags))
+		log.ErrorContext(
+			ctx,
+			"Error while loading template",
+			"err",
+			diagnostics.GetDiagsDetails(diags),
+		)
 		return nil, diags
 	}
 	return docLoaded, diags

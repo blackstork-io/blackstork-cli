@@ -47,10 +47,12 @@ func LoadInputs(ctx context.Context, doc *definitions.Document) (plugindata.Map,
 		for _, kv := range cliInputs {
 			if kv.Key == input.Name {
 				inputKV = kv
+				break
 			}
 		}
 		if inputKV != nil {
-			val, err := plugindata.ParseString(inputKV.Value, input.Type)
+
+			data, err := input.ParseValue(inputKV.Value)
 			if err != nil {
 				_log.ErrorContext(ctx, "Error while parsing input value", "err", err)
 				return nil, diagnostics.Diag{
@@ -62,7 +64,7 @@ func LoadInputs(ctx context.Context, doc *definitions.Document) (plugindata.Map,
 				}
 			}
 			_log.InfoContext(ctx, "Using input value from CLI arguments")
-			inputsData[input.Name] = val
+			inputsData[input.Name] = data
 			continue
 		}
 
@@ -120,7 +122,7 @@ func LoadInputs(ctx context.Context, doc *definitions.Document) (plugindata.Map,
 			continue
 		}
 
-		val, err := plugindata.ParseString(valueStr, input.Type)
+		val, err := input.ParseValue(valueStr)
 		if err != nil {
 			_log.ErrorContext(ctx, "Error while parsing input value", "err", err)
 			return nil, diagnostics.Diag{

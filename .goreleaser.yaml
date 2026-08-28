@@ -47,7 +47,7 @@ builds:
   # TODO: generate this list with custom script or use Premium goreleaser to template it
 
   - id: plugin_elastic
-    main: ./internal/elastic/cmd
+    main: ./plugins/elastic/cmd
     binary: "elastic@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -61,7 +61,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_eclecticiq
-    main: ./internal/eclecticiq/cmd
+    main: ./plugins/eclecticiq/cmd
     binary: "eclecticiq@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -75,7 +75,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_github
-    main: ./internal/github/cmd
+    main: ./plugins/github/cmd
     binary: "github@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -89,7 +89,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_graphql
-    main: ./internal/graphql/cmd
+    main: ./plugins/graphql/cmd
     binary: "graphql@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -103,7 +103,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_openai
-    main: ./internal/openai/cmd
+    main: ./plugins/openai/cmd
     binary: "openai@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -117,7 +117,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_nist_nvd
-    main: ./internal/nistnvd/cmd
+    main: ./plugins/nistnvd/cmd
     binary: "nist_nvd@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -131,7 +131,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_opencti
-    main: ./internal/opencti/cmd
+    main: ./plugins/opencti/cmd
     binary: "opencti@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -145,7 +145,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_postgresql
-    main: ./internal/postgresql/cmd
+    main: ./plugins/postgresql/cmd
     binary: "postgresql@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -159,7 +159,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_sqlite
-    main: ./internal/sqlite/cmd
+    main: ./plugins/sqlite/cmd
     binary: "sqlite@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -173,7 +173,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_terraform
-    main: ./internal/terraform/cmd
+    main: ./plugins/terraform/cmd
     binary: "terraform@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -187,7 +187,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_hackerone
-    main: ./internal/hackerone/cmd
+    main: ./plugins/hackerone/cmd
     binary: "hackerone@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -201,7 +201,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_virustotal
-    main: ./internal/virustotal/cmd
+    main: ./plugins/virustotal/cmd
     binary: "virustotal@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -215,7 +215,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_splunk
-    main: ./internal/splunk/cmd
+    main: ./plugins/splunk/cmd
     binary: "splunk@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -229,7 +229,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_stixview
-    main: ./internal/stixview/cmd
+    main: ./plugins/stixview/cmd
     binary: "stixview@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -243,7 +243,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_snyk
-    main: ./internal/snyk/cmd
+    main: ./plugins/snyk/cmd
     binary: "snyk@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -257,7 +257,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_microsoft
-    main: ./internal/microsoft/cmd
+    main: ./plugins/microsoft/cmd
     binary: "microsoft@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -271,7 +271,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_iris
-    main: ./internal/iris/cmd
+    main: ./plugins/iris/cmd
     binary: "iris@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -285,7 +285,7 @@ builds:
       - blackstorkplugin
 
   - id: plugin_atlassian
-    main: ./internal/atlassian/cmd
+    main: ./plugins/atlassian/cmd
     binary: "atlassian@{{ .Version }}"
     flags: "-trimpath"
     hooks:

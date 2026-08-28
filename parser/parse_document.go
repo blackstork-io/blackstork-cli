@@ -194,19 +194,19 @@ func ParseDocument(
 	}
 
 	for _, block := range body.Blocks {
-		switch block.Type {
-		case definitions.BlockKindPublish:
-			blockDef, diag := definitions.DefineExecBlockDef(block, false)
-			if diags.Extend(diag) {
-				continue
-			}
-			var publish *definitions.PublishBlock
-			publish, diag = parsePublishBlock(ctx, blocksRegistry, doc, blockDef, nil)
-			if diags.Extend(diag) {
-				continue
-			}
-			doc.PublishBlocks = append(doc.PublishBlocks, publish)
+		if block.Type != definitions.BlockKindPublish {
+			continue
 		}
+		blockDef, diag := definitions.DefineExecBlockDef(block, false)
+		if diags.Extend(diag) {
+			continue
+		}
+		var publish *definitions.PublishBlock
+		publish, diag = parsePublishBlock(ctx, blocksRegistry, doc, blockDef, nil)
+		if diags.Extend(diag) {
+			continue
+		}
+		doc.PublishBlocks = append(doc.PublishBlocks, publish)
 	}
 
 	// Extract `vars` block

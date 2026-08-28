@@ -21,7 +21,7 @@ import (
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
-// Empty config, storing the range of the original block
+// ConfigEmpty stores the range of the original block
 type ConfigEmpty struct {
 	ExecBlockDef *ExecBlockDef
 }

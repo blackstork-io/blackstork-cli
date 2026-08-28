@@ -179,19 +179,16 @@ func fetchEIQEntities(log *slog.Logger, loader EIQClientLoaderFn) plugin.Retriev
 
 			// fetch observables if requested
 			if fetchObs {
-				//_log.DebugContext(ctx, "Fetching observables")
 				obs, err := eiqClient.FetchObservables(ctx, entity.StixID)
 				if err != nil {
 					_log.WarnContext(ctx, "Failed to fetch observables", "err", err)
 				} else {
 					ext.Observables = obs
-					//_log.DebugContext(ctx, "Observables retrieved", "obs_count", len(obs))
 				}
 			}
 
 			// fetch related entities + relationship types & directions
 			if len(fetchRelatedTypes) > 0 {
-				//_log.DebugContext(ctx, "Fetching related entities", "related_types", fetchRelatedTypes)
 				relatedEntities, err := eiqClient.FetchRelatedEntities(
 					ctx,
 					entity.InternalID,
@@ -201,17 +198,12 @@ func fetchEIQEntities(log *slog.Logger, loader EIQClientLoaderFn) plugin.Retriev
 				if err != nil {
 					_log.WarnContext(ctx, "Failed to fetch related entities", "err", err)
 				} else {
-					//_log.DebugContext(ctx, "Related entities retrieved", "related_entities_count", len(relatedEntities))
-
 					ext.RelatedEntities = make(map[string][]*client.Entity)
 
 					for _, e := range relatedEntities {
 						ext.RelatedEntities[e.Type] = append(ext.RelatedEntities[e.Type], e)
 					}
 				}
-
-				// rels, err := eiqClient.FetchRelationships(ctx, entity.StixID, 100)
-				// _log.DebugContext(ctx, "JUST A CHECK: relationships found", "rels_count", len(rels), "rels", rels, "err", err)
 			}
 
 			return ext

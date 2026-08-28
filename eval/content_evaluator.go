@@ -140,7 +140,14 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 
 	for _, node := range nodes {
 
-		_log := log.With("node_id", node.id, "block_id", node.blockID, "block_name", node.block.EvalKey().AsName())
+		_log := log.With(
+			"node_id",
+			node.id,
+			"block_id",
+			node.blockID,
+			"block_name",
+			node.block.EvalKey().AsName(),
+		)
 
 		if node.block.Kind() == definitions.BlockKindSection && node.isEnd {
 			// Section end nodes only depend on the children of the section and are wired after all
@@ -177,7 +184,12 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 			}
 
 			if depNode == nil {
-				_log.ErrorContext(ctx, "Dependency not found in the template", "dependency", depKey.AsName())
+				_log.ErrorContext(
+					ctx,
+					"Dependency not found in the template",
+					"dependency",
+					depKey.AsName(),
+				)
 				return nil, fmt.Errorf("dependency `%s` not found", depKey.AsName())
 			}
 
@@ -218,7 +230,14 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 			continue
 		}
 
-		_log := log.With("node_id", node.id, "block_id", node.blockID, "block_name", node.block.EvalKey().AsName())
+		_log := log.With(
+			"node_id",
+			node.id,
+			"block_id",
+			node.blockID,
+			"block_name",
+			node.block.EvalKey().AsName(),
+		)
 
 		var twinStartNode *ExecNode
 		for _, n := range nodes {
@@ -229,7 +248,10 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 		}
 		if twinStartNode == nil {
 			_log.ErrorContext(ctx, "Sibling start node not found")
-			return nil, fmt.Errorf("start node for block `%s` not found", node.block.EvalKey().AsName())
+			return nil, fmt.Errorf(
+				"start node for block `%s` not found",
+				node.block.EvalKey().AsName(),
+			)
 		}
 
 		// Depend on all blocks that wait on the start node
@@ -252,7 +274,10 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 						"dependant_block_name", depBlockName,
 						"dependant_block_id", startDependant.blockID,
 					)
-					return nil, fmt.Errorf("start node for dependant block `%s` not found", depBlockName)
+					return nil, fmt.Errorf(
+						"start node for dependant block `%s` not found",
+						depBlockName,
+					)
 				}
 			}
 
@@ -262,8 +287,10 @@ func wireNodeDependencies(ctx context.Context, nodes []*ExecNode) ([]*ExecNode, 
 		log.DebugContext(
 			ctx,
 			"End node wired to wait for children",
-			"dependencies", utils.FnMap(node.dependencies, func(d *ExecNode) string { return d.id }),
-			"start_node_id", twinStartNode.id,
+			"dependencies",
+			utils.FnMap(node.dependencies, func(d *ExecNode) string { return d.id }),
+			"start_node_id",
+			twinStartNode.id,
 		)
 	}
 
@@ -526,7 +553,12 @@ func renderContentAsync(ctx context.Context, nodes []*ExecNode) (map[string]plug
 							!n.isStart { // Section start nodes do not output content
 							output := results[n.id]
 							if output == nil {
-								_log.WarnContext(ctx, "Output of title node not found", "title_node", n.id)
+								_log.WarnContext(
+									ctx,
+									"Output of title node not found",
+									"title_node",
+									n.id,
+								)
 								continue
 							}
 							contentSection.Title = output
@@ -538,10 +570,16 @@ func renderContentAsync(ctx context.Context, nodes []*ExecNode) (map[string]plug
 				// collect content from all children, in order defined in the section
 				for _, child := range section.childrenToRender {
 					for _, n := range runQueue {
-						if n.block.ID() == child.ID() && !n.isStart { // Section start nodes do not output content
+						if n.block.ID() == child.ID() &&
+							!n.isStart { // Section start nodes do not output content
 							output := results[n.id]
 							if output == nil {
-								_log.WarnContext(ctx, "Output of child node not found", "child_node", n.id)
+								_log.WarnContext(
+									ctx,
+									"Output of child node not found",
+									"child_node",
+									n.id,
+								)
 								continue
 							}
 							contentSection.Add(output)
@@ -578,7 +616,10 @@ func renderContentAsync(ctx context.Context, nodes []*ExecNode) (map[string]plug
 					}
 					// Note, that if multiple blocks have the same eval key, as is possible
 					// with dynamic blocks, the output will be overwritten.
-					dependencyOutputs.SetWithPath(parentDep.block.EvalKey().AsPath(), output.AsData())
+					dependencyOutputs.SetWithPath(
+						parentDep.block.EvalKey().AsPath(),
+						output.AsData(),
+					)
 				}
 			}
 			resultsMtx.Unlock()
@@ -701,7 +742,8 @@ func executeContentBlocksAsync(
 
 	if titleBranch != nil {
 		for _, node := range nodes {
-			if node.block == titleBranch && !node.isStart { // Section start nodes do not output content
+			if node.block == titleBranch &&
+				!node.isStart { // Section start nodes do not output content
 				output := outputs[node.id]
 				if output == nil {
 					log.WarnContext(ctx, "Output of the title node not found", "node", node.id)
@@ -819,9 +861,9 @@ func evaluateContentTree(
 	log = log.With("block", block.EvalKey().AsName())
 	// log.DebugContext(ctx, "Evaluating content tree block", "kind", block.Kind())
 
-	switch block.(type) {
+	switch block := block.(type) {
 	case *PluginContentAction:
-		contentBlock := block.(*PluginContentAction)
+		contentBlock := block
 
 		if !contentBlock.meta.MatchesTags(requiredTags) {
 			return nil, nil
@@ -861,7 +903,7 @@ func evaluateContentTree(
 		return contentBlock, diags
 
 	case *Section:
-		section := block.(*Section)
+		section := block
 
 		if !section.meta.MatchesTags(requiredTags) {
 			return nil, nil
@@ -912,7 +954,13 @@ func evaluateContentTree(
 
 		if section.title != nil {
 			// keep the same depth for the section's title
-			titleChild, diag := evaluateContentTree(ctx, requiredTags, section.title, depth+1, &secDataCtx)
+			titleChild, diag := evaluateContentTree(
+				ctx,
+				requiredTags,
+				section.title,
+				depth+1,
+				&secDataCtx,
+			)
 			if !diags.Extend(diag) {
 				section.titleToRender = titleChild
 			}
@@ -922,7 +970,7 @@ func evaluateContentTree(
 		section.childrenToRender = children
 		return section, diags
 	case *Dynamic:
-		dynamic := block.(*Dynamic)
+		dynamic := block
 
 		itemsPtr, diag := evalItemsAttr(ctx, dynamic.items, dataCtx)
 
@@ -934,7 +982,14 @@ func evaluateContentTree(
 		dynDataCtx := dataCtx.Clone()
 		dynDataCtx["items"] = items
 
-		nonDynamicChildren, diag := evaluateDynamicBlock(ctx, requiredTags, dynamic, items, depth, &dynDataCtx)
+		nonDynamicChildren, diag := evaluateDynamicBlock(
+			ctx,
+			requiredTags,
+			dynamic,
+			items,
+			depth,
+			&dynDataCtx,
+		)
 		if diags.Extend(diag) {
 			return nil, diags
 		}
@@ -964,7 +1019,11 @@ func evaluateContentTree(
 	}
 }
 
-func collectBranchDependencies(ctx context.Context, log *slog.Logger, parent *ExecNode) []*ExecNode {
+func collectBranchDependencies(
+	ctx context.Context,
+	log *slog.Logger,
+	parent *ExecNode,
+) []*ExecNode {
 	if parent.block.Kind() != definitions.BlockKindSection && !parent.isStart {
 		// both content blocks and section end nodes output content that can be used
 		results := []*ExecNode{parent}
@@ -981,7 +1040,10 @@ func collectBranchDependencies(ctx context.Context, log *slog.Logger, parent *Ex
 	return parentDeps
 }
 
-func postExecProcessContentBlocks(ctx context.Context, root *plugin.ContentSection) (*plugin.ContentSection, error) {
+func postExecProcessContentBlocks(
+	ctx context.Context,
+	root *plugin.ContentSection,
+) (*plugin.ContentSection, error) {
 	log := appctx.Log(ctx)
 
 	// find and fill in TOC nodes

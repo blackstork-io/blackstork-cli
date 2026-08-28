@@ -173,11 +173,15 @@ func renderListEl(attrs plugindata.Map) string {
 	itemsRendered := attrs["items_rendered"].(plugindata.List)
 	format := string(attrs["format"].(plugindata.String))
 
-	prefix := "-"
-	if format == "ordered" {
+	var prefix string
+
+	switch format {
+	case "ordered":
 		prefix = "1."
-	} else if format == "tasklist" {
+	case "tasklist":
 		prefix = "- [ ]"
+	default:
+		prefix = "-"
 	}
 
 	listValues := []string{}

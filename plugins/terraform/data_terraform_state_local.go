@@ -39,7 +39,10 @@ func makeTerraformStateLocalDataSource() *plugin.DataSource {
 	}
 }
 
-func fetchTerraformStateLocalData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchTerraformStateLocalData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	path := params.Args.GetAttrVal("path")
 	if path.IsNull() || path.AsString() == "" {
 		return nil, diagnostics.Diag{{

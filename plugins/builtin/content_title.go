@@ -122,7 +122,7 @@ func genTitleContent(
 
 	if !relativeSize.IsNull() {
 		relSize, _ := relativeSize.AsBigFloat().Int64()
-		size = size + int(relSize)
+		size += int(relSize)
 	}
 
 	if size < minAbsoluteTitleSize {

@@ -38,9 +38,7 @@ var supportedFileFormats = u.FnMap(
 		"csv",
 		"text",
 	},
-	func(val string) cty.Value {
-		return cty.StringVal(val)
-	},
+	cty.StringVal,
 )
 
 func makeFileDataSource(log *slog.Logger) *plugin.DataSource {
@@ -152,7 +150,7 @@ func fetchFromFile(
 			log.ErrorContext(ctx, "Error while getting a delimiter value", "err", err)
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("%w", err),
+				Summary:  fmt.Sprintf("%s", err),
 			}}
 		}
 	}

@@ -51,7 +51,10 @@ func makeOpenCTIDataSource() *plugin.DataSource {
 	}
 }
 
-func fetchOpenCTIData(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
+func fetchOpenCTIData(
+	ctx context.Context,
+	params *plugin.RetrieveDataParams,
+) (plugindata.Data, diagnostics.Diag) {
 	url := params.Config.GetAttrVal("graphql_url")
 	if url.IsNull() || url.AsString() == "" {
 		return nil, diagnostics.Diag{{

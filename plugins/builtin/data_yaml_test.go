@@ -108,7 +108,9 @@ func Test_fetchYAMLData(t *testing.T) {
 			expectedData: plugindata.List{
 				plugindata.Map{
 					"file_name": plugindata.String("b.yaml"),
-					"file_path": plugindata.String(filepath.Join("testdata", "yaml", "dir", "b.yaml")),
+					"file_path": plugindata.String(
+						filepath.Join("testdata", "yaml", "dir", "b.yaml"),
+					),
 					"content": plugindata.List{
 						plugindata.Map{
 							"id":           plugindata.Number(1),
@@ -122,7 +124,9 @@ func Test_fetchYAMLData(t *testing.T) {
 				},
 				plugindata.Map{
 					"file_name": plugindata.String("c.yaml"),
-					"file_path": plugindata.String(filepath.Join("testdata", "yaml", "dir", "c.yaml")),
+					"file_path": plugindata.String(
+						filepath.Join("testdata", "yaml", "dir", "c.yaml"),
+					),
 					"content": plugindata.List{
 						plugindata.Map{
 							"id":           plugindata.Number(3),
@@ -163,9 +167,6 @@ func Test_fetchYAMLData(t *testing.T) {
 			if !diags.HasErrors() {
 				ctx := context.Background()
 				data, diag = p.RetrieveData(ctx, "yaml", &plugin.RetrieveDataParams{Args: argVal})
-
-				slog.Info("WHAT1", "data", data)
-				slog.Info("WHAT2", "diag", diag)
 
 				diags.Extend(diag)
 			}

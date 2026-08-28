@@ -76,10 +76,8 @@ func LoadPluginFormatAction(
 			Severity: hcl.DiagError,
 			Summary:  "No configuration provided for format block",
 			Detail: fmt.Sprintf(
-				"Format block for formatter `%s` requires configuration but none was found. WHAT? %s or %s",
+				"Format block for formatter `%s` requires configuration but none was found",
 				blockDef.RunnerName,
-				formatter.Config.Required,
-				formatter.Config.IsRequired(),
 			),
 			Context: blockDef.Source.Block.Range().Ptr(),
 		})

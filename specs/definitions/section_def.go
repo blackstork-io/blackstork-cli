@@ -51,8 +51,8 @@ func (s *SectionDef) Kind() string {
 	return BlockKindSection
 }
 
-func (p *SectionDef) DefRange() hcl.Range {
-	return p.Block.DefRange()
+func (s *SectionDef) DefRange() hcl.Range {
+	return s.Block.DefRange()
 }
 
 var (
@@ -70,7 +70,10 @@ func (*SectionDef) CtyType() cty.Type {
 	return ctySectionType.CtyType()
 }
 
-func DefineSectionDef(block *hclsyntax.Block, atTopLevel bool) (section *SectionDef, diags diagnostics.Diag) {
+func DefineSectionDef(
+	block *hclsyntax.Block,
+	atTopLevel bool,
+) (section *SectionDef, diags diagnostics.Diag) {
 	sect := SectionDef{
 		Block: block,
 	}

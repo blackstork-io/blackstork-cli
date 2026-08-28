@@ -30,11 +30,6 @@ type providerArgs struct {
 	scope      string
 }
 
-type heading struct {
-	title string
-	level int
-}
-
 func makeTOCContentProvider(log *slog.Logger) *plugin.ContentProvider {
 	return &plugin.ContentProvider{
 		Args: &dataspec.RootSpec{
@@ -117,7 +112,11 @@ func genTOC(
 	}, nil
 }
 
-func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentSection) (*plugin.ContentSection, error) {
+func FillInTOCNodes(
+	ctx context.Context,
+	log *slog.Logger,
+	root *plugin.ContentSection,
+) (*plugin.ContentSection, error) {
 	tocs, err := findTOCNodes(root)
 	if err != nil {
 		return nil, err
@@ -127,9 +126,14 @@ func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentS
 		return root, nil
 	}
 
-	log.InfoContext(ctx, "TOC blocks found", "toc_blocks", utils.FnMap(tocs, func(toc *tocWithParent) string {
-		return toc.tocElement.BlockDetails().Name
-	}))
+	log.InfoContext(
+		ctx,
+		"TOC blocks found",
+		"toc_blocks",
+		utils.FnMap(tocs, func(toc *tocWithParent) string {
+			return toc.tocElement.BlockDetails().Name
+		}),
+	)
 
 	for _, toc := range tocs {
 
@@ -147,7 +151,12 @@ func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentS
 		}
 		headings, err := findHeadingsInBranch(scopeBranch)
 		if err != nil {
-			_log.ErrorContext(ctx, "Error while finding headings in the branch", "branch", scopeBranch.BlockDetails().Name)
+			_log.ErrorContext(
+				ctx,
+				"Error while finding headings in the branch",
+				"branch",
+				scopeBranch.BlockDetails().Name,
+			)
 			return nil, err
 		}
 
@@ -177,9 +186,12 @@ func FillInTOCNodes(ctx context.Context, log *slog.Logger, root *plugin.ContentS
 			return level < absoluteStartLevel || level > absoluteEndLevel
 		})
 
-		headingsAttrs := utils.FnMap(headingsToKeep, func(el *plugin.ContentElement) plugindata.Map {
-			return el.Attrs()
-		})
+		headingsAttrs := utils.FnMap(
+			headingsToKeep,
+			func(el *plugin.ContentElement) plugindata.Map {
+				return el.Attrs()
+			},
+		)
 		headingsData := make(plugindata.List, len(headingsToKeep))
 		for i, v := range headingsAttrs {
 			headingsData[i] = v

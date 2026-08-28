@@ -60,8 +60,8 @@ builds:
     tags:
       - blackstorkplugin
 
-  - id: plugin_elastic
-    main: ./internal/elastic/cmd
+  - id: plugin_eclecticiq
+    main: ./internal/eclecticiq/cmd
     binary: "eclecticiq@{{ .Version }}"
     flags: "-trimpath"
     hooks:
@@ -323,6 +323,18 @@ archives:
       - plugin_elastic
     name_template: >-
       plugin_elastic_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+  - id: plugin_eclecticiq
+    format: tar.gz
+    builds:
+      - plugin_eclecticiq
+    name_template: >-
+      plugin_eclecticiq_
       {{- .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386

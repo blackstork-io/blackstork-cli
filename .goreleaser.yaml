@@ -529,47 +529,47 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
-dockers:
-  - use: buildx
-    goos: linux
-    goarch: amd64
-    goamd64: v1
-    ids:
-      - blackstork-cli
-    image_templates:
-      - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
-    build_flag_templates:
-      - "--platform=linux/amd64/v1"
-  - use: buildx
-    goos: linux
-    goarch: arm64
-    ids:
-      - blackstork-cli
-    image_templates:
-      - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-  - use: buildx
-    goos: linux
-    goarch: "386"
-    ids:
-      - blackstork-cli
-    image_templates:
-      - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
-    build_flag_templates:
-      - "--platform=linux/386"
+# dockers:
+#   - use: buildx
+#     goos: linux
+#     goarch: amd64
+#     goamd64: v1
+#     ids:
+#       - blackstork-cli
+#     image_templates:
+#       - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
+#     build_flag_templates:
+#       - "--platform=linux/amd64/v1"
+#   - use: buildx
+#     goos: linux
+#     goarch: arm64
+#     ids:
+#       - blackstork-cli
+#     image_templates:
+#       - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
+#     build_flag_templates:
+#       - "--platform=linux/arm64/v8"
+#   - use: buildx
+#     goos: linux
+#     goarch: "386"
+#     ids:
+#       - blackstork-cli
+#     image_templates:
+#       - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
+#     build_flag_templates:
+#       - "--platform=linux/386"
 
-docker_manifests:
-  - name_template: "{{ .Env.CONTAINER_REPO_NAME }}:{{ .Version }}"
-    image_templates:
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
-  - name_template: "{{ .Env.CONTAINER_REPO_NAME }}:latest"
-    image_templates:
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
-    - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
+# docker_manifests:
+#   - name_template: "{{ .Env.CONTAINER_REPO_NAME }}:{{ .Version }}"
+#     image_templates:
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
+#   - name_template: "{{ .Env.CONTAINER_REPO_NAME }}:latest"
+#     image_templates:
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-amd64v1"
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-arm64v8"
+#     - "{{ .Env.CONTAINER_REPO_NAME }}:latest-386"
 
 changelog:
   sort: asc

@@ -51,10 +51,12 @@ func main() {
 		// Patch metadata
 		meta, err := readMeta()
 		if err != nil {
+			fmt.Printf("Error while reading meta: %s\n", err)
 			panic(err)
 		}
 		err = patchMeta(meta, plugin, osName, archName)
 		if err != nil {
+			fmt.Printf("Error while patching meta: %s\n", err)
 			panic(err)
 		}
 		return

@@ -24,7 +24,7 @@ Because the templating language is decoupled from the execution environment, you
 
 ## Plugins & Integrations
 
-- [Plugins]({{< ref "plugins.md" >}}) — Overview of the plugin registry and how to extend the engine's capabilities.
+- [Plugins]({{< ref "plugins/_index.md" >}}) — Overview of the plugin registry and how to extend the engine's capabilities.
 - [Data Sources]({{< ref "plugins/data-sources.md" >}}) — Supported integrations for querying structured data (e.g., SIEMs, TIPs, APIs).
 - [Content Providers]({{< ref "plugins/content-providers.md" >}}) — Supported integrations for content generation.
 - [Formatters]({{< ref "plugins/formatters.md" >}}) — Supported output formats and styling options for rendered documents.
@@ -33,4 +33,4 @@ Because the templating language is decoupled from the execution environment, you
 ## Local Execution with `blackstork-cli`
 
 - [Install]({{< ref "install.md" >}}) — Instructions for downloading and installing `blackstork-cli` binary.
-- [CLI Reference]({{< ref "cli.md" >}}) — Usage details for `blackstork-cli`.
+- [CLI Reference]({{< ref "cli/cli-reference.md" >}}) — Usage details for `blackstork-cli`.

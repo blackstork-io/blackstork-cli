@@ -39,7 +39,7 @@ input "target_ip" {
 }
 
 input "include_history" {
-  type          = "boolean"
+  type          = "bool"
   default_value = true
 }
 ```
@@ -47,6 +47,16 @@ input "include_history" {
 The `input` blocks must be defined on the root level of the `document` block.
 
 Once defined, inputs are injected into the evaluation context under the `.inputs` key. For example, `.inputs.target_ip` returns the value provided by the user at runtime, or `"127.0.0.1"` if none was supplied.
+
+An input requires `type` and supports these attributes:
+
+- `type` — One of `bool`, `datetime`, `json`, `number`, `secret`, or `string`.
+- `label` — Text shown by the interactive CLI prompt.
+- `description` — A description for people and tools that collect the input.
+- `default_value` — The value used when the caller does not supply the input.
+- `schema` — A JSON Schema used to validate a `json` input.
+
+Pass CLI values with the repeatable `--input name=value` flag. Datetimes use RFC 3339. JSON values must be valid JSON. If no CLI value or default exists, the CLI prompts on standard input.
 
 
 ## Variables

@@ -19,7 +19,7 @@ The BlackStork language is built on top of the [HashiCorp Configuration Language
 
 Configurations are built using two fundamental elements:
 
-- **Blocks**: containers that define objects, such as global configurations, data requiremenets, or content structures. Blocks always include a block type and may have zero or one label (name).
+- **Blocks**: containers that define objects, such as global configuration, data requirements, or content structures. Blocks include a block type and can include labels.
 - **Arguments**: key-value pairs defined within blocks that assign specific values to block's attributes.
 
 

@@ -55,35 +55,33 @@ You can reuse a standalone data block defined elsewhere in your configuration by
 ## Example
 
 ```hcl
-# Default configuration for the CSV data source
-config data csv {
-  delimiter = ";"
-}
-
 # Root-level data block
-data csv "events_a" {
+data file "events_a" {
   path = "/tmp/events-a.csv"
+  format = "csv"
+  csv_delimiter = ";"
 }
 
 document "test-document" {
 
   # Reusing the root-level data block inside the document
   data ref {
-    base = data.csv.events_a
+    base = data.file.events_a
   }
 
   # In-document data block with an inline configuration override
-  data csv "events_b" {
+  data file "events_b" {
     config {
       delimiter = ","
     }
 
     path = "/tmp/events-b.csv"
+    format = "csv"
+    csv_delimiter = ","
   }
 }
 ```
 
 ## Next steps
 
-See [Content Blocks]({{< ref "content-blocks.md" >}}) to learn how to process structured data into text, tables, and charts.
-
+See [Content blocks]({{< ref "content-blocks.md" >}}) to learn how to turn structured data into document content.

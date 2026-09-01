@@ -7,9 +7,8 @@ weight: 30
 
 # Formatters
 
-Formatters define the final file format and styling of the rendered document. After the engine evaluates the data and content blocks, formatters compile the result into standard outputs like Markdown, HTML, or PDF.
+Formatters define the final file format and styling of a rendered document. The built-in plugin provides Markdown and HTML. Other environments or plugins can provide additional formats, such as PDF.
 
 ## Available formatters
 
 {{< plugin-resources "" "formatter" >}}
-

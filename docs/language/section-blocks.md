@@ -49,6 +49,9 @@ The engine evaluates and renders `section` blocks in the exact order they are de
 
 - `title`: (optional) Sets a header for the section. This is syntactic sugar for a nested `content.title` block. During rendering, this title is placed at the very beginning of the section's output, preceding all other nested content or subsections.
 - `local_var`: (optional) A shortcut to define a single local variable named `local` within the section's scope. See [Local variable]({{< ref "context.md#local-variable" >}}).
+- `depends_on`: (optional) A list of content block traversals that must be evaluated first.
+- `is_included`: (optional) A Boolean expression that controls whether the section is rendered.
+- `required_vars`: (optional) A list of context paths that must exist before the section is evaluated.
 
 ## Supported nested blocks
 
@@ -56,6 +59,7 @@ The engine evaluates and renders `section` blocks in the exact order they are de
 - `vars`: (optional) Defines variables scoped to this section. Variables defined here are inherited by all nested content and subsections. See [Variables]({{< ref "context.md#variables" >}}).
 - `content`: (optional) Defines the content rendered within this section. See [Content Blocks]({{< ref "content-blocks.md" >}}).
 - `section`: (optional) Defines nested subsections to build deep document hierarchies.
+- `dynamic`: (optional) Repeats nested content or sections for each item in a list.
 
 ## References
 

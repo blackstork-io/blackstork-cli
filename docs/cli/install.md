@@ -51,9 +51,9 @@ tar -xvzf ./blackstork-cli_darwin_arm64.tar.gz -C ./blackstork-bin
 
 ## Installing plugins
 
-The `blackstork-cli` relies on [plugins]({{< ref "plugins.md" >}}) to connect with external data sources, process content via APIs, and format documents. 
+The `blackstork-cli` relies on [plugins]({{< ref "../plugins/_index.md" >}}) to connect with external data sources, process content via APIs, and format documents.
 
-Before evaluating a template that relies on external integrations, you must download the required plugins. The CLI handles this automatically via the `install` command, querying the official BlackStork registry (`https://registry.blackstork.io`).
+Before evaluating a template that relies on external integrations, download its required plugins with the `install` command. The command queries the official BlackStork registry (`https://registry.blackstork.io`).
 
 To resolve and install plugins:
 
@@ -68,7 +68,7 @@ To resolve and install plugins:
   }
   ```
 
-2. **Run the install command:** Execute `blackstork-cli install` in the same directory as your configuration files.
+2. **Run the install command:** Execute `blackstork-cli install` in the same directory as your configuration files. Add `--upgrade` to select newer versions allowed by the configured constraints.
 
   ```text
   $ blackstork-cli install

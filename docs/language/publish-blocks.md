@@ -31,7 +31,7 @@ document "example" {
 
 If you define a `publish` block at the root level of the file (outside of a `document` block), you must provide a block name. The combination of block type (`publish`), publisher name, and block name creates a unique identifier. If defined within a `document`, the block name is optional.
 
-A single `document` block can contain multiple `publish` blocks. During execution, the engine picks and execute all `publish` blocks or a specific `publish` block requested by user.
+A single `document` block can contain multiple `publish` blocks. The `--publish` flag executes all publish blocks in the selected document.
 
 Within a `document`, `publish` blocks can be defined only on the root level.
 
@@ -55,14 +55,12 @@ $ blackstork-cli render document.example --publish
 
 Publishers do not format documents; they only deliver them. A `publish` block must receive a rendered payload from a `format` block. Furthermore, individual publishers only support specific file formats (e.g., a GitHub Gist publisher may only accept `md`).
 
-You control which formatted output is sent to the publisher using the `format` argument within the `publish` block. The engine resolves this argument using the following rules:
+Use `format_ref` to select the formatted output sent to a publisher. Its value is an HCL traversal, not a quoted string:
 
-1. **Full Block Name (Recommended):** `format = "format.html.styled_report"`
-   The publisher explicitly consumes the output of the named `format` block defined in the document. This is the safest and most predictable method.
-2. **Short Name:** `format = "html"`
-   The engine searches the document for the first `format` block of the specified type (e.g., `format html`). If a matching block is found, its output is used. If no matching block exists in the document, the engine executes the default `html` formatter.
-3. **Omitted:** 
-   If the `format` argument is omitted entirely, the engine picks the first `format` block in the document that the publisher supports. If no format blocks are defined, it falls back to the default configuration. **Note:** If a publisher supports multiple formats, this behavior is highly unpredictable. Explicitly defining the `format` argument is strongly recommended.
+- `format_ref = format.html.styled_report` references a named root-level format block.
+- `format_ref = document.format.html.styled_report` references a named format block in the current document.
+
+Specify `format_ref` explicitly. A publish block without a resolved formatter cannot receive formatted content.
 
 ## Supported arguments
 
@@ -70,7 +68,7 @@ A `publish` block accepts both generic arguments and arguments specific to the s
 
 ### Generic arguments
 
-- `format`: (optional) A string indicating the formatter output to consume. Can be a short name (`md`, `html`, `pdf`) or a full block reference (`format.pdf.executive_summary`) resolvable inside the document. 
+- `format_ref`: A traversal that identifies a root-level or in-document `format` block.
 - `config`: (optional) A string referencing a named `config` block. If provided, the engine uses this configuration instead of the default configuration for the publisher. See [Block configuration]({{< ref "configs.md#block-configuration" >}}) for details.
 
 ### Publisher arguments
@@ -107,12 +105,12 @@ document "threat_brief" {
 
   # Define the publishers and link them to the formats:
   publish local_file "pdf_out" {
-    format = "format.pdf.executive_pdf"
+    format_ref = document.format.pdf.executive_pdf
     path   = "docs/threat_brief_{{ now | date \"2006_01_02\" }}.pdf"
   }
 
   publish local_file "html_out" {
-    format = "format.html.web_view"
+    format_ref = document.format.html.web_view
     path   = "html/threat_brief_latest.html"
   }
 }

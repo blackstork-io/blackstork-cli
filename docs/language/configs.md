@@ -85,7 +85,7 @@ If a name is provided, the configuration must be explicitly referenced inside a 
 
 ### Supported arguments
 
-The arguments allowed in a configuration block depend strictly on the block runner being configured. Refer to the documentation for individual [Data Sources]({{< ref "data-sources.md" >}}), [Content Providers]({{< ref "content-providers.md" >}}), [Formatters]({{< ref "formatters.md" >}}).and [Publishers]({{< ref "publishers.md" >}}).
+Configuration arguments depend on the component. See the reference for the relevant [data source]({{< ref "data-sources.md" >}}), [content provider]({{< ref "content-providers.md" >}}), [formatter]({{< ref "formatters.md" >}}), or [publisher]({{< ref "publishers.md" >}}).
 
 
 ### Supported blocks
@@ -96,11 +96,6 @@ The arguments allowed in a configuration block depend strictly on the block runn
 ### Example
 
 ```hcl
-# Default configuration for the CSV data source
-config data csv {
-  delimiter = ";"
-}
-
 # Default configuration for the OpenAI content provider
 config content openai_text {
   api_key       = env.OPENAI_API_KEY
@@ -109,24 +104,23 @@ config content openai_text {
 
 document "test-document" {
 
-  data csv "events_a" {
+  data file "events_a" {
     path = "/tmp/events-a.csv"
+    format = "csv"
+    csv_delimiter = ";"
   }
 
-  data csv "events_b" {
-    # Overriding the default configuration inline for this specific query
-    config {
-      delimiter = ","
-    }
-
+  data file "events_b" {
     path = "/tmp/events-b.csv"
+    format = "csv"
+    csv_delimiter = ","
   }
 
   content openai_text {
     prompt = <<-EOT
       Summarize the findings:
-        {{ .data.csv.events_a | toPrettyJson }}
-        {{ .data.csv.events_b | toPrettyJson }}
+        {{ .data.file.events_a | toPrettyJson }}
+        {{ .data.file.events_b | toPrettyJson }}
     EOT
   }
 }
@@ -144,7 +138,7 @@ Environment variables are not supported within the managed BlackStork SaaS platf
 
 {{< /hint >}}
 
-For local execution, variables can be accessed directly in HCL via the global `env` object, or within Go templates and JQ queries via the `.env` key in a evaluation context.
+For local execution, variables can be accessed directly in HCL through the global `env` object, or within Go templates and jq queries through the `.env` key in the evaluation context. Values in the process environment override values with the same name in `.env`.
 
 
 ```hcl

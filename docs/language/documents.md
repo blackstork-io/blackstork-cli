@@ -24,6 +24,7 @@ A `document` block must be defined at the root level of a configuration file. Th
 ## Supported arguments
 
 - `title`: (optional) The top-level header of the document. This is syntactic sugar for a nested `content.title` block. During rendering, this title is placed at the very beginning of the document, preceding all other content or section blocks.
+- `required_vars`: (optional) A list of context paths that must exist before the document is evaluated.
 
 ## Supported blocks
 
@@ -33,6 +34,7 @@ A `document` block must be defined at the root level of a configuration file. Th
 - [`data`]({{< ref "data-blocks.md" >}}): Specifies the integrations used to fetch structured data from external sources.
 - [`content`]({{< ref "content-blocks.md" >}}): Defines individual blocks of text, tables, or AI-generated narratives.
 - [`section`]({{< ref "section-blocks.md" >}}): Organizes content and data blocks into logical groups or chapters.
+- [`dynamic`]({{< ref "dynamic-blocks.md" >}}): Repeats content or sections for each item in a list.
 - [`format`]({{< ref "format-blocks.md" >}}): Instructions for formatting the document.
 - [`publish`]({{< ref "publish-blocks.md" >}}): Instructions for delivering the rendered document to specific destinations.
 

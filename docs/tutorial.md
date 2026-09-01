@@ -326,11 +326,12 @@ document "greeting" {
   # ...
 
   # HTML format with default settings
-  format html {
+  format html "web" {
   }
 
   # Publishing to a local HTML file
   publish local_file {
+    format_ref = document.format.html.web
     path = "./greeting-{{ now | date \"2006_01_02\" }}.{{.format}}"
   }
 

@@ -60,8 +60,9 @@ to the current iteration.
 
 - `content`: Defines the content components (e.g., `text`, `table`, `image`) to duplicate for each iteration.
 - `section`: Defines structural sections to duplicate for each iteration.
+- `dynamic`: Defines a nested iteration.
 
-**Note:** A `dynamic` block must contain at least one `content` or `section` block.
+**Note:** A `dynamic` block without a `content`, `section`, or nested `dynamic` block produces no content.
 
 ## Example
 
@@ -121,4 +122,3 @@ translating the JSON data into structured document elements.
 ## Next steps
 
 See [Format blocks]({{< ref "format-blocks.md" >}}) to learn how to define document formats.
-

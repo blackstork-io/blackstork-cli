@@ -11,11 +11,11 @@ Plugins extend the core capabilities of the BlackStork engine. They are packaged
 
 A single plugin typically provides a combination of the following components:
 
-Fabric plugins implement various [data sources]({{< ref "data-sources.md" >}}), [content providers]({{< ref "content-providers.md" >}}) and [publishers]({{< ref "publishers.md" >}}):
+BlackStork plugins implement [data sources]({{< ref "data-sources.md" >}}), [content providers]({{< ref "content-providers.md" >}}), [formatters]({{< ref "formatters.md" >}}), and [publishers]({{< ref "publishers.md" >}}):
 
 - **[Data sources]({{< ref "data-sources.md" >}})**: integrations to query structured data from external security tools, databases, or local files.
-- **[Content providers]({{< ref "content-providers.md" >}})**: renderers that generate text, tables, and charts locally, or via external APIs (such as LLMs).
-- **[Formatters]({{< ref "formatters.md" >}})**: specifications that compile the evaluated document into final file formats (Markdown, HTML, PDF).
+- **[Content providers]({{< ref "content-providers.md" >}})**: components that generate text, tables, images, and other document content locally or through external APIs.
+- **[Formatters]({{< ref "formatters.md" >}})**: components that compile the evaluated document into an output format. The built-in plugin provides Markdown and HTML.
 - **[Publishers]({{< ref "publishers.md" >}})**: outgoing integrations that route and save rendered documents to external destinations.
 
 ## Dependencies

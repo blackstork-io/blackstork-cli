@@ -7,7 +7,7 @@ weight: 60
 
 # Content blocks
 
-The `content` block defines the specific segments of your report, such as text paragraphs, tables, charts, or lists. 
+The `content` block defines segments of a report, such as text, tables, images, or lists.
 
 The engine renders `content` blocks in the exact order they are declared within the template, establishing the flow of your final document.
 
@@ -49,6 +49,9 @@ A `content` block accepts both generic arguments and arguments specific to the s
 
 - `config`: (optional) A string referencing a named `config` block. If provided, the engine uses this configuration instead of the default configuration for the provider. See [Block configuration]({{< ref "configs.md#block-configuration" >}}) for details.
 - `local_var`: (optional) A shortcut to define a single local variable named `local` within the block's scope. See [Local variable]({{< ref "context.md#local-variable" >}}).
+- `depends_on`: (optional) A list of content block traversals that must be evaluated first.
+- `is_included`: (optional) A Boolean expression that controls whether the block is rendered.
+- `required_vars`: (optional) A list of context paths that must exist before the block is evaluated.
 
 ### Content provider arguments
 

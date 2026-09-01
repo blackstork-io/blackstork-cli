@@ -9,19 +9,16 @@ weight: 20
 
 The `blackstork-cli` binary is the command-line interface for the BlackStork execution engine. It allows you to parse configurations, resolve plugins, evaluate data queries, and render final documents directly from your terminal.
 
-{{< hint warning >}}
-**License Restrictions**
-
-`blackstork-cli` is licensed under the Business Source License (BUSL) 1.1. It is free for internal, academic, and non-commercial use, but cannot be embedded into competing commercial software or offered as a managed service. See the [License details]({{< ref "license.md" >}}) before integrating the CLI into your infrastructure.
-{{< /hint >}}
+See the [license details]({{< ref "license.md" >}}) before integrating the CLI into a product or service.
 
 ## Core commands
 
-The CLI provides three primary sub-commands for interacting with your templates:
+The CLI provides four subcommands for working with templates:
 
-- `install` - Downloads and caches all plugin dependencies declared in your global `blackstork` configuration block. See [Installing plugins]({{< ref "install.md#installing-plugins" >}}) for details.
-- `data` - Executes a single specified `data` block and outputs the resulting structured JSON to standard output. This is highly useful for testing and debugging API queries before rendering a full document.
-- `render` - Evaluates a specified `document` block, executing all nested data, content, format, and publish blocks. By default, it outputs the rendered Markdown to standard output unless the `--publish` flag is provided.
+- `install` — Downloads and caches plugin dependencies declared in the global `blackstork` block. Use `--upgrade` to upgrade within configured version constraints.
+- `lint` — Checks all templates for syntax and structural errors without executing plugins. Use `--full` to validate plugin bodies; installed plugins are required.
+- `data TARGET` — Executes all data blocks matching `document.<document-name>.data[.<data-source>[.<block-name>]]` and writes formatted JSON to standard output.
+- `render TARGET` — Renders a target in the form `document.<name>`. It writes Markdown to standard output by default or executes the document's publishers when given `--publish`.
 
 To view the full list of available commands and global flags, run `blackstork-cli --help`:
 
@@ -32,16 +29,18 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
-  data        Execute a single data block
+  data        Execute the data blocks that match the path
   help        Help about any command
   install     Install plugins
+  lint        Evaluate *.blackstork.hcl files for syntax mistakes
   render      Render the document
 
 Flags:
-      --color               enables colorizing the logs and diagnostics (if supported by the terminal and log format) (default true)
+      --debug               enables debug mode
   -h, --help                help for blackstork-cli
       --log-format string   format of the logs (plain or json) (default "plain")
-      --log-level string    logging level ('debug', 'info', 'warn', 'error') (default "info")
+  -i, --input stringArray   template inputs in the format <name>=<value>; repeat the flag for multiple inputs
+      --log-level string    logging level (debug, info, warn, error) (default "warn")
       --source-dir string   a path to a directory with *.blackstork.hcl files (default ".")
   -v, --verbose             a shortcut to --log-level debug
       --version             version for blackstork-cli
@@ -51,13 +50,32 @@ Use "blackstork-cli [command] --help" for more information about a command.
 
 ## Source directory
 
-When executed, `blackstork-cli` searches the target directory for all files with the `.blackstork.hcl` extension, merges them into a single evaluation context, and parses the configurations.
+When executed, `blackstork-cli` recursively searches the target directory for `.blackstork.hcl` files and legacy `.fabric` files, merges their definitions, and parses the configuration.
 
 By default, the CLI targets the current working directory (`.`). You can instruct the engine to load files from a different location by using the global `--source-dir` flag:
 
 ```bash
 $ blackstork-cli render document.executive_summary --source-dir /path/to/templates/
 ```
+
+## Pass document inputs
+
+Pass an input as `--input name=value` or `-i name=value`. Repeat the flag to pass multiple values:
+
+```bash
+blackstork-cli render document.executive_summary \
+  --input environment=production \
+  --input 'findings=[{"id":"CVE-2026-1234"}]'
+```
+
+Input definitions support `bool`, `datetime`, `json`, `number`, `secret`, and `string`. If the command does not provide a value, the CLI uses `default_value`; without a default, it prompts on standard input. Supply every required input explicitly in non-interactive environments.
+
+## Render options
+
+- `--format` selects a formatter traversal, such as `format.html`, `format.html.report`, or `document.format.html.report`.
+- `--only-with-tags` renders content whose metadata contains every comma-separated requested tag.
+- `--replace-data-with` loads the document data layer from a JSON object instead of executing data blocks.
+- `--publish` executes every publisher defined in the document instead of the default standard-output publisher.
 
 ## Next steps
 

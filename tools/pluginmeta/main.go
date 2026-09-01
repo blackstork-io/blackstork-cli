@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/gofrs/flock"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v3"
 )
@@ -50,14 +52,7 @@ func main() {
 	}
 	args := flags.Args()
 	if len(args) == 1 && args[0] == "patch" {
-		// Patch metadata
-		meta, err := readMeta()
-		if err != nil {
-			fmt.Printf("Error while reading meta: %s\n", err)
-			panic(err)
-		}
-		err = patchMeta(meta, plugin, osName, archName)
-		if err != nil {
+		if err := patchMetadata(); err != nil {
 			fmt.Printf("Error while patching meta: %s\n", err)
 			panic(err)
 		}
@@ -81,6 +76,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func patchMetadata() (err error) {
+	fileLock := flock.New(output + ".lock")
+	if err := fileLock.Lock(); err != nil {
+		return fmt.Errorf("lock metadata: %w", err)
+	}
+	defer func() {
+		err = errors.Join(err, fileLock.Unlock())
+	}()
+
+	meta, err := readMeta()
+	if err != nil {
+		return fmt.Errorf("read metadata: %w", err)
+	}
+	return patchMeta(meta, plugin, osName, archName)
 }
 
 func patchMeta(meta *Metadata, plugin, osName, archName string) error {
@@ -155,11 +166,11 @@ func parseConfig(cfg *ReleaserConfig) (*Metadata, error) {
 		if !strings.HasPrefix(artifact.ID, "plugin_") {
 			continue
 		}
-		if len(artifact.Builds) != 1 {
+		if len(artifact.IDs) != 1 {
 			return nil, fmt.Errorf("plugin artifacts must have exactly one build")
 		}
 		buildIdx := slices.IndexFunc(cfg.Builds, func(b ReleaserBuild) bool {
-			return b.ID == artifact.Builds[0]
+			return b.ID == artifact.IDs[0]
 		})
 		if buildIdx == -1 {
 			return nil, fmt.Errorf("build not found")
@@ -173,10 +184,13 @@ func parseConfig(cfg *ReleaserConfig) (*Metadata, error) {
 			Version:  version,
 			Archives: make([]*PluginArchiveMetadata, 0),
 		}
+		if len(artifact.Formats) != 1 {
+			return nil, fmt.Errorf("plugin artifacts must have exactly one format")
+		}
+		ext := artifact.Formats[0]
 		tmpl := template.Must(template.New("name").Parse(artifact.NameTemplate))
 		for _, goos := range build.GOOS {
 			archList := osArchList(goos)
-			ext := artifact.Format
 			for _, arch := range archList {
 				args := map[string]any{
 					"Os":   goos,
@@ -215,16 +229,27 @@ func osArchList(goos string) []string {
 }
 
 func writeMetadata(metadata *Metadata) error {
-	f, err := os.Create(output) //nolint:gosec // The path is an explicit CLI input to this build tool.
+	dir := filepath.Dir(output)
+	f, err := os.CreateTemp(dir, ".plugins-*.json") //nolint:gosec // The directory is derived from explicit CLI output.
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmpPath := f.Name()
+	defer func() {
+		_ = os.Remove(tmpPath)
+	}()
+
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
-	err = enc.Encode(metadata)
-	if err != nil {
+	if err := enc.Encode(metadata); err != nil {
+		_ = f.Close()
 		return err
 	}
-	return nil
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmpPath, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, output)
 }

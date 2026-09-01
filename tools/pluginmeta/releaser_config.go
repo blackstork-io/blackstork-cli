@@ -21,12 +21,12 @@ type ReleaserBuild struct {
 
 type ReleaserArchive struct {
 	ID           string   `yaml:"id"`
-	Format       string   `yaml:"format"`
-	Builds       []string `yaml:"builds"`
+	Formats      []string `yaml:"formats"`
+	IDs          []string `yaml:"ids"`
 	NameTemplate string   `yaml:"name_template"`
 }
 
 type ReleaserFormatOverride struct {
-	GOOS   string `yaml:"goos"`
-	Format string `yaml:"format"`
+	GOOS    string   `yaml:"goos"`
+	Formats []string `yaml:"formats"`
 }

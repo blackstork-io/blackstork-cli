@@ -298,8 +298,8 @@ builds:
 
 archives:
   - id: blackstork-cli
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - blackstork-cli
     name_template: >-
       {{ .ProjectName }}_
@@ -310,14 +310,14 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
   # Plugins
   # TODO: generate this list with custom script or use Premium goreleaser to template it
 
   - id: plugin_elastic
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_elastic
     name_template: >-
       plugin_elastic_
@@ -328,8 +328,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_eclecticiq
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_eclecticiq
     name_template: >-
       plugin_eclecticiq_
@@ -340,8 +340,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_github
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_github
     name_template: >-
       plugin_github_
@@ -352,8 +352,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_graphql
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_graphql
     name_template: >-
       plugin_graphql_
@@ -364,8 +364,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_openai
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_openai
     name_template: >-
       plugin_openai_
@@ -376,8 +376,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_opencti
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_opencti
     name_template: >-
       plugin_opencti_
@@ -388,8 +388,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_postgresql
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_postgresql
     name_template: >-
       plugin_postgresql_
@@ -400,8 +400,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_sqlite
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_sqlite
     name_template: >-
       plugin_sqlite_
@@ -412,8 +412,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_terraform
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_terraform
     name_template: >-
       plugin_terraform_
@@ -424,8 +424,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_hackerone
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_hackerone
     name_template: >-
       plugin_hackerone_
@@ -436,8 +436,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_virustotal
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_virustotal
     name_template: >-
       plugin_virustotal_
@@ -448,8 +448,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_splunk
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_splunk
     name_template: >-
       plugin_splunk_
@@ -460,8 +460,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_stixview
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_stixview
     name_template: >-
       plugin_stixview_
@@ -472,8 +472,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_nist_nvd
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_nist_nvd
     name_template: >-
       plugin_nist_nvd_
@@ -483,8 +483,8 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
   - id: plugin_snyk
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_snyk
     name_template: >-
       plugin_snyk_
@@ -494,8 +494,8 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
   - id: plugin_microsoft
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_microsoft
     name_template: >-
       plugin_microsoft_
@@ -506,8 +506,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_iris
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_iris
     name_template: >-
       plugin_iris_
@@ -518,8 +518,8 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: plugin_atlassian
-    format: tar.gz
-    builds:
+    formats: [tar.gz]
+    ids:
       - plugin_atlassian
     name_template: >-
       plugin_atlassian_
@@ -578,7 +578,7 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
+homebrew_casks:
   - name: blackstork-cli
     ids:
       - blackstork-cli

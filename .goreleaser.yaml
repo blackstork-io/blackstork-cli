@@ -582,7 +582,7 @@ brews:
   - name: blackstork-cli
     ids:
       - blackstork-cli
-    description: "A source-available, headless execution engine for BlackStork templates. It automates cybersecurity and compliance reporting by extracting structured data from external tools, evaluating template logic, and rendering formatted documents."
+    description: "A source-available, headless execution engine for BlackStork templates. It automates cybersecurity and compliance reporting by generating Markdown, HTML and PDF reports from structured data using modular declarative templates."
     homepage: "https://blackstork.io/cli/"
     license: BUSL-1.1
     repository:

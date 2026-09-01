@@ -125,7 +125,7 @@ func makeHTTPDataSource(version string) *plugin.DataSource {
 			Fetches HTTP response from URL, parses its body and loads it.
 
 			If the format of the response is not supported, data source will return response body as plain text.
-			If format is supported, response body will be parsed and returned as a JSON object (fimilar to ` + "`file`" + ` data source).
+			If the format is supported, the response body is parsed and returned as a JSON object, like the ` + "`file`" + ` data source.
 		`),
 	}
 }

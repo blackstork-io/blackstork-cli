@@ -27,7 +27,7 @@ import (
 
 const patternName = "expose_env_vars_with_pattern"
 
-var DefaultEnvVarsPattern = glob.MustCompile("FABRIC_*")
+var DefaultEnvVarsPattern = glob.MustCompile("BLACKSTORK_*")
 
 type GlobalConfigDef struct {
 	block *hclsyntax.Block

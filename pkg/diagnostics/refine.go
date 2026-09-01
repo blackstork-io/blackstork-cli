@@ -18,7 +18,7 @@ type Refiner interface {
 	Refine(diags Diag)
 }
 
-// Set Summary field if empty
+// DefaultSummary sets an empty diagnostic Summary field.
 type DefaultSummary string
 
 func (ds DefaultSummary) Refine(diags Diag) {
@@ -29,7 +29,7 @@ func (ds DefaultSummary) Refine(diags Diag) {
 	}
 }
 
-// Set Subject field if empty
+// DefaultSubject sets an empty diagnostic Subject field.
 type DefaultSubject hcl.Range
 
 func (ds DefaultSubject) Refine(diags Diag) {
@@ -40,7 +40,7 @@ func (ds DefaultSubject) Refine(diags Diag) {
 	}
 }
 
-// Adds an extra without replacing existing extras.
+// AddExtra adds an extra without replacing existing extras.
 func AddExtra(extra any) Refiner {
 	switch eT := extra.(type) {
 	case *PathExtra:

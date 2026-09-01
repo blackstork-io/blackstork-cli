@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package hubapi implements the BlackStork Hub API client.
 package hubapi
 
 import (
@@ -185,7 +186,7 @@ func (cli *client) uploadPB(ctx context.Context, url string, data proto.Message)
 	}
 
 	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("Error status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("error status code received: %d", res.StatusCode)
 	}
 
 	resContentType, _, err := mime.ParseMediaType(res.Header.Get(headerContentType))

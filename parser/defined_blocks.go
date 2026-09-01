@@ -337,7 +337,7 @@ func resolveFormatBlockInDoc(
 
 	if diag.HasErrors() {
 		return nil, fmt.Errorf(
-			"Error while resolving in-document block reference: %s",
+			"error while resolving in-document block reference: %s",
 			diag.Error(),
 		)
 	}

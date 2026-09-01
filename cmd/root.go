@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package cmd implements the blackstork-cli commands.
 package cmd
 
 import (
@@ -175,7 +176,10 @@ func Execute() {
 		rootSpan.End()
 	}
 	if rootCleanup != nil {
-		rootCleanup(rootCtx)
+		if cleanupErr := rootCleanup(rootCtx); cleanupErr != nil {
+			slog.ErrorContext(rootCtx, "Failed to clean up telemetry", "err", cleanupErr)
+			exitCode = 1
+		}
 	}
 	os.Exit(exitCode)
 }

@@ -229,8 +229,8 @@ func renderTableEl(attrs plugindata.Map) string {
 
 	headerValues := headers.Any().([]any)
 	table.Header(headerValues...)
-	table.Bulk(cellRows)
-	table.Render()
+	_ = table.Bulk(cellRows) // bytes.Buffer writes do not fail.
+	_ = table.Render()       // bytes.Buffer writes do not fail.
 
 	return buf.String()
 }

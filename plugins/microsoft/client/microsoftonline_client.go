@@ -23,10 +23,10 @@ const (
 	authURL = "https://login.microsoftonline.com"
 )
 
-type AcquireTokenFn func(ctx context.Context, tenantId, clientId string, cred confidential.Credential, scopes []string) (string, error)
+type AcquireTokenFn func(ctx context.Context, tenantID, clientID string, cred confidential.Credential, scopes []string) (string, error)
 
-var AcquireAzureToken AcquireTokenFn = func(ctx context.Context, tenantId, clientId string, cred confidential.Credential, scopes []string) (accessToken string, err error) {
-	confidentialClient, err := confidential.New(authURL+"/"+tenantId, clientId, cred)
+var AcquireAzureToken AcquireTokenFn = func(ctx context.Context, tenantID, clientID string, cred confidential.Credential, scopes []string) (accessToken string, err error) {
+	confidentialClient, err := confidential.New(authURL+"/"+tenantID, clientID, cred)
 	if err != nil {
 		return accessToken, err
 	}
@@ -48,8 +48,8 @@ func AcquireTokenWithCreds(ctx context.Context, tokenFn AcquireTokenFn, cfg *dat
 		return "", fmt.Errorf("no configuration provided")
 	}
 
-	tenantId := cfg.GetAttrVal("tenant_id").AsString()
-	clientId := cfg.GetAttrVal("client_id").AsString()
+	tenantID := cfg.GetAttrVal("tenant_id").AsString()
+	clientID := cfg.GetAttrVal("client_id").AsString()
 	clientSecretAttr := cfg.GetAttrVal("client_secret")
 
 	if !clientSecretAttr.IsNull() {
@@ -57,7 +57,7 @@ func AcquireTokenWithCreds(ctx context.Context, tokenFn AcquireTokenFn, cfg *dat
 		if err != nil {
 			return "", err
 		}
-		accessToken, err := tokenFn(ctx, tenantId, clientId, cred, scopes)
+		accessToken, err := tokenFn(ctx, tenantID, clientID, cred, scopes)
 		if err != nil {
 			return "", err
 		}
@@ -69,7 +69,7 @@ func AcquireTokenWithCreds(ctx context.Context, tokenFn AcquireTokenFn, cfg *dat
 	privateKeyAttr := cfg.GetAttrVal("private_key")
 
 	if privateKeyFileAttr.IsNull() && privateKeyAttr.IsNull() {
-		return "", fmt.Errorf("Either `client_secret` or `private_key` / `private_key_file` arguments must be provided")
+		return "", fmt.Errorf("either `client_secret` or `private_key` / `private_key_file` arguments must be provided")
 	}
 
 	var pemData []byte
@@ -97,7 +97,7 @@ func AcquireTokenWithCreds(ctx context.Context, tokenFn AcquireTokenFn, cfg *dat
 	if err != nil {
 		return "", fmt.Errorf("failed to create credentials from cert: %w", err)
 	}
-	accessToken, err := tokenFn(ctx, tenantId, clientId, cred, scopes)
+	accessToken, err := tokenFn(ctx, tenantID, clientID, cred, scopes)
 	if err != nil {
 		return "", err
 	}

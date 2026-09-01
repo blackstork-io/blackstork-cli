@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package crowdstrike implements the BlackStork CrowdStrike plugin.
 package crowdstrike
 
 import (
@@ -150,11 +151,11 @@ func makeDataSourceConfig() *dataspec.RootSpec {
 	}
 }
 
-func makeApiConfig(ctx context.Context, cfg *dataspec.Block) *falcon.ApiConfig {
-	clientId := cfg.GetAttrVal("client_id").AsString()
+func makeAPIConfig(ctx context.Context, cfg *dataspec.Block) *falcon.ApiConfig {
+	clientID := cfg.GetAttrVal("client_id").AsString()
 	clientSecret := cfg.GetAttrVal("client_secret").AsString()
 	apiCfg := &falcon.ApiConfig{
-		ClientId:     clientId,
+		ClientId:     clientID,
 		ClientSecret: clientSecret,
 	}
 	memberCID := cfg.GetAttrVal("member_cid")

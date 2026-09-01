@@ -121,23 +121,23 @@ func OnceVal[V any](fn func() (V, diagnostics.Diag)) func() (V, diagnostics.Diag
 	return (&onceVal[V]{fn: fn}).do
 }
 
-// Using pointers as unique ids, not accessing the data.
-type RefId unsafe.Pointer
+// RefID uses a pointer value as a unique identifier without accessing its data.
+type RefID unsafe.Pointer
 
 type RefHistory struct {
 	mu   sync.Mutex
-	refs []RefId
+	refs []RefID
 }
 
 func NewRefHistory() *RefHistory {
 	return &RefHistory{
-		refs: make([]RefId, 0),
+		refs: make([]RefID, 0),
 	}
 }
 
 func (hist *RefHistory) Add(refRange *hcl.Range) {
 	hist.mu.Lock()
-	hist.refs = append(hist.refs, RefId(refRange))
+	hist.refs = append(hist.refs, RefID(refRange))
 	hist.mu.Unlock()
 }
 

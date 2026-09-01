@@ -149,7 +149,7 @@ func (source LocalSource) Resolve(
 	}
 	// calculate the checksum of the plugin binary
 	h := sha256.New()
-	file, err := os.Open(pluginPath)
+	file, err := os.Open(pluginPath) //nolint:gosec // Plugin paths come from the configured local mirror.
 	if err != nil {
 		return nil, fmt.Errorf("failed to open plugin file: %w", err)
 	}
@@ -168,7 +168,7 @@ func (source LocalSource) Resolve(
 		// If the checksums metadata file exists then we use the checksums from the file.
 		// This file is created by RemoteSource when downloading plugins.
 		// This is useful when the checksums are different for different platforms.
-		if f, err := os.Open(checksumpath); err == nil {
+		if f, err := os.Open(checksumpath); err == nil { //nolint:gosec // Checksum paths are derived from configured plugin paths.
 			defer f.Close()
 			checksums, err = decodeChecksums(f)
 			if err != nil {

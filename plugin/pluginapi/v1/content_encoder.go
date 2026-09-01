@@ -12,6 +12,7 @@ package pluginapiv1
 import (
 	"fmt"
 	"log/slog"
+	"math"
 
 	"github.com/blackstork-io/blackstork-cli/pkg/utils"
 	"github.com/blackstork-io/blackstork-cli/plugin"
@@ -88,12 +89,16 @@ func EncodeContent(src plugin.Content) *Content {
 }
 
 func encodeBlockDetails(src *plugin.BlockDetails) BlockDetails {
+	depth := max(src.Depth, 0)
+	if uint64(depth) > uint64(math.MaxUint32) {
+		depth = math.MaxUint32
+	}
 	return BlockDetails{
 		Kind:   src.Kind,
 		Runner: src.Runner,
 		Name:   src.Name,
 		Id:     src.ID,
-		Depth:  uint32(src.Depth),
+		Depth:  uint32(depth),
 	}
 }
 

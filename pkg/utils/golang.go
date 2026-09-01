@@ -7,13 +7,14 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package utils provides shared utility functions for the BlackStork engine.
 package utils
 
 import (
 	"reflect"
 )
 
-// Correct version of nil check, works on nil interfaces as well as any other value.
+// IsNil checks both nil interfaces and values containing nil pointers.
 func IsNil(val any) bool {
 	// Checking for nil on interface objects is terrible
 	// Thanks to: https://stackoverflow.com/a/76595928/4632951
@@ -31,7 +32,7 @@ func IsNil(val any) bool {
 	return false
 }
 
-// Unwraps the value, panics if err is not nil.
+// Must unwraps a value and panics if err is non-nil.
 func Must[T any](val T, err error) T {
 	if err != nil {
 		panic(err)

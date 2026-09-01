@@ -214,21 +214,21 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 		var css *template.CSS
 		cssInlineVal := params.Args.GetAttrVal("css_inline")
 		if cssInlineVal != cty.NilVal {
-			cssObj := template.CSS(cssInlineVal.AsString())
+			cssObj := template.CSS(cssInlineVal.AsString()) //nolint:gosec // Explicit raw CSS is the purpose of this trusted template option.
 			css = &cssObj
 		}
 
 		var tailwindCSS *template.CSS
 		cssInlineTailwindVal := params.Args.GetAttrVal("css_inline_tailwind")
 		if cssInlineTailwindVal != cty.NilVal {
-			cssObj := template.CSS(cssInlineTailwindVal.AsString())
+			cssObj := template.CSS(cssInlineTailwindVal.AsString()) //nolint:gosec // Explicit raw CSS is the purpose of this trusted template option.
 			tailwindCSS = &cssObj
 		}
 
 		var js *template.JS
 		jsInlineVal := params.Args.GetAttrVal("js_inline")
 		if jsInlineVal != cty.NilVal {
-			jsObj := template.JS(jsInlineVal.AsString())
+			jsObj := template.JS(jsInlineVal.AsString()) //nolint:gosec // Explicit raw JavaScript is the purpose of this trusted template option.
 			js = &jsObj
 		}
 
@@ -268,7 +268,7 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 
 		data := HTMLData{
 			Title:       pageTitle,
-			Content:     template.HTML(output),
+			Content:     template.HTML(output), //nolint:gosec // output is rendered document HTML and must remain markup.
 			Description: "",
 			CSS:         css,
 			TailwindCSS: tailwindCSS,
@@ -276,13 +276,13 @@ func makeHTMLFormatterFunc(log *slog.Logger, tracer trace.Tracer) plugin.FormatF
 			JSSources: utils.FnMap(
 				jsSources,
 				func(v cty.Value) template.URL {
-					return template.URL(v.AsString())
+					return template.URL(v.AsString()) //nolint:gosec // Explicit stylesheet URLs are trusted template configuration.
 				},
 			),
 			CSSSources: utils.FnMap(
 				cssSources,
 				func(v cty.Value) template.URL {
-					return template.URL(v.AsString())
+					return template.URL(v.AsString()) //nolint:gosec // Explicit script URLs are trusted template configuration.
 				},
 			),
 		}

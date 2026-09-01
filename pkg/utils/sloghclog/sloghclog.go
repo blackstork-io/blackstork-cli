@@ -7,7 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
-// Transform slog.Logger into hclog.Logger instance
+// Package sloghclog adapts slog.Logger to hclog.Logger.
 package sloghclog
 
 import (
@@ -85,7 +85,9 @@ func levelToSlog(level hclog.Level) slog.Level {
 }
 
 func levelToHclog(level slog.Level) (res hclog.Level) {
-	res = hclog.Level(level/4 + 3)
+	value := int64(level/4) + 3
+	value = min(max(value, math.MinInt32), math.MaxInt32)
+	res = hclog.Level(value)
 	if res == hclog.NoLevel {
 		res--
 	}

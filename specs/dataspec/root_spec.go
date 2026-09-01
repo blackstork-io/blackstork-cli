@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package dataspec defines schemas and decoded values for plugin blocks.
 package dataspec
 
 import (
@@ -29,7 +30,7 @@ func RootSpecFromBlock(b *BlockSpec) *RootSpec {
 	}
 }
 
-// A subset of BlockSpec that represents the root block.
+// RootSpec is the subset of BlockSpec that represents a root block.
 type RootSpec struct {
 	Doc string
 

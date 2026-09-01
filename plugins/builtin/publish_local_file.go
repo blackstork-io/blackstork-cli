@@ -123,7 +123,7 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 		}
 		log.InfoContext(ctx, "Writing to a file", "path", path)
 		dir := filepath.Dir(path)
-		err = os.MkdirAll(dir, 0o755)
+		err = os.MkdirAll(dir, 0o750)
 		if err != nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,
@@ -131,7 +131,7 @@ func publishLocalFile(log *slog.Logger, tracer trace.Tracer) plugin.PublishFunc 
 				Detail:   err.Error(),
 			}}
 		}
-		fs, err := os.Create(path)
+		fs, err := os.Create(path) //nolint:gosec // Writing to a user-configured path is the purpose of this publisher.
 		if err != nil {
 			return diagnostics.Diag{{
 				Severity: hcl.DiagError,

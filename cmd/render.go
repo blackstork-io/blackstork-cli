@@ -79,7 +79,7 @@ var renderCmd = &cobra.Command{
 		ctx = appctx.WithLog(ctx, log)
 
 		if dataFile != "" {
-			jsonData, err := os.ReadFile(dataFile)
+			jsonData, err := os.ReadFile(dataFile) //nolint:gosec // The path is explicitly supplied through --replace-data-with.
 			if err != nil {
 				log.ErrorContext(
 					ctx, "Error while reading data from file",

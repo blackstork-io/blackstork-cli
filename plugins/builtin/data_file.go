@@ -215,7 +215,7 @@ func readAndDecodeFile(
 		}
 		return readAndDecodeCSVFile(ctx, path, *csvDelim)
 	case "text":
-		txtData, err := os.ReadFile(path)
+		txtData, err := os.ReadFile(path) //nolint:gosec // Reading user-configured paths is the purpose of this data source.
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +230,7 @@ func readAndDecodeCSVFile(
 	path string,
 	delimiter rune,
 ) (plugindata.List, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // Reading user-configured paths is the purpose of this data source.
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func readAndDecodeCSVFile(
 }
 
 func readAndDecodeJSONFile(path string) (plugindata.Data, error) {
-	jsonData, err := os.ReadFile(path)
+	jsonData, err := os.ReadFile(path) //nolint:gosec // Reading user-configured paths is the purpose of this data source.
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func readAndDecodeJSONFile(path string) (plugindata.Data, error) {
 }
 
 func readAndDecodeYAMLFile(path string) (plugindata.Data, error) {
-	yamlData, err := os.ReadFile(path)
+	yamlData, err := os.ReadFile(path) //nolint:gosec // Reading user-configured paths is the purpose of this data source.
 	if err != nil {
 		return nil, err
 	}

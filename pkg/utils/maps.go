@@ -24,7 +24,7 @@ func SliceToSet[K comparable](slice []K) map[K]struct{} {
 	return res
 }
 
-// If key in map - return corresponding value and delete it from map
+// Pop returns and deletes the value for a key.
 func Pop[K comparable, V any](m map[K]V, key K) (val V, found bool) {
 	if m == nil {
 		return val, found
@@ -36,7 +36,7 @@ func Pop[K comparable, V any](m map[K]V, key K) (val V, found bool) {
 	return val, found
 }
 
-// Produce a new map by applying function fn to the values of the map m.
+// MapMap returns a map produced by applying fn to each value in m.
 func MapMap[K comparable, VIn, VOut any](m map[K]VIn, fn func(VIn) VOut) map[K]VOut {
 	if m == nil {
 		return nil
@@ -48,7 +48,7 @@ func MapMap[K comparable, VIn, VOut any](m map[K]VIn, fn func(VIn) VOut) map[K]V
 	return out
 }
 
-// Produce a new map by applying (possibly erroring) function fn to the values of the map m.
+// MapMapErr returns a map produced by applying a possibly failing function to each value.
 // Returns on the first error with nil map.
 func MapMapErr[K comparable, VIn, VOut any](m map[K]VIn, fn func(VIn) (VOut, error)) (map[K]VOut, error) {
 	var err error
@@ -65,7 +65,7 @@ func MapMapErr[K comparable, VIn, VOut any](m map[K]VIn, fn func(VIn) (VOut, err
 	return out, nil
 }
 
-// Produce a new map by applying function fn to items of the map m.
+// MapMapDiags returns a map produced by applying a diagnostic-producing function to each item.
 // Collects returned diagnostics
 func MapMapDiags[K comparable, VIn, VOut any](diags *diagnostics.Diag, m map[K]VIn, fn func(VIn) (VOut, diagnostics.Diag)) map[K]VOut {
 	if m == nil {

@@ -34,7 +34,7 @@ type ClientLoaderFn func(cfg *dataspec.Block) Client
 
 func DefaultClientLoader(cfg *dataspec.Block) Client {
 	apiKey := cfg.GetAttrVal("api_key").AsString()
-	baseUrl := cfg.GetAttrVal("base_url").AsString()
+	baseURL := cfg.GetAttrVal("base_url").AsString()
 	skipSsl := cfg.GetAttrVal("skip_ssl").True()
 	opts := []client.ClientOption{}
 	if skipSsl {
@@ -46,7 +46,7 @@ func DefaultClientLoader(cfg *dataspec.Block) Client {
 		}
 		opts = append(opts, client.WithHTTPClient(cli))
 	}
-	return client.NewClient(baseUrl, apiKey, opts...)
+	return client.NewClient(baseURL, apiKey, opts...)
 }
 
 func Plugin(version string, loader ClientLoaderFn) *plugin.Schema {

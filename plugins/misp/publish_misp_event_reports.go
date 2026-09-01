@@ -107,8 +107,8 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 
 		timestamp := fmt.Sprintf("%d", time.Now().Unix())
 		report := client.AddEventReportRequest{
-			Uuid:      uuid.New().String(),
-			EventId:   params.Args.GetAttrVal("event_id").AsString(),
+			UUID:      uuid.New().String(),
+			EventID:   params.Args.GetAttrVal("event_id").AsString(),
 			Name:      params.Args.GetAttrVal("name").AsString(),
 			Content:   string(params.FormattedContent.Content),
 			Timestamp: &timestamp,
@@ -119,10 +119,10 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 			distributionStr := distribution.AsString()
 			report.Distribution = &distributionStr
 		}
-		sharingGroupId := params.Args.GetAttrVal("sharing_group_id")
-		if !sharingGroupId.IsNull() {
-			sharingGroupIdStr := sharingGroupId.AsString()
-			report.SharingGroupId = &sharingGroupIdStr
+		sharingGroupID := params.Args.GetAttrVal("sharing_group_id")
+		if !sharingGroupID.IsNull() {
+			sharingGroupIDStr := sharingGroupID.AsString()
+			report.SharingGroupID = &sharingGroupIDStr
 		}
 
 		slog.InfoContext(ctx, "Publish to misp event reports", "filename", report.Name)
@@ -138,9 +138,9 @@ func publishEventReport(loader ClientLoaderFn) plugin.PublishFunc {
 
 		slog.InfoContext(
 			ctx, "Successfully added report",
-			"id", resp.EventReport.Id,
-			"uuid", resp.EventReport.Uuid,
-			"event_id", resp.EventReport.EventId,
+			"id", resp.EventReport.ID,
+			"uuid", resp.EventReport.UUID,
+			"event_id", resp.EventReport.EventID,
 			"name", resp.EventReport.Name,
 		)
 		return nil

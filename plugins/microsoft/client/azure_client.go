@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package client implements clients for Microsoft APIs.
 package client
 
 import (
@@ -48,13 +49,13 @@ func (client *azureClient) prepare(r *http.Request) {
 	r.URL.RawQuery = q.Encode()
 }
 
-func (client *azureClient) fetchURL(ctx context.Context, requestUrl *url.URL) (result plugindata.Data, err error) {
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestUrl.String(), nil)
+func (client *azureClient) fetchURL(ctx context.Context, requestURL *url.URL) (result plugindata.Data, err error) {
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
 	if err != nil {
 		return result, err
 	}
 	client.prepare(r)
-	slog.DebugContext(ctx, "Fetching an URL from API", "url", requestUrl.String())
+	slog.DebugContext(ctx, "Fetching an URL from API", "url", requestURL.String())
 	res, err := client.client.Do(r)
 	if err != nil {
 		return result, err
@@ -66,7 +67,7 @@ func (client *azureClient) fetchURL(ctx context.Context, requestUrl *url.URL) (r
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		slog.ErrorContext(ctx, "Error received from Azure API", "status_code", res.StatusCode, "body", string(raw))
-		err = fmt.Errorf("Microsoft Azure API returned status code: %d", res.StatusCode)
+		err = fmt.Errorf("microsoft Azure API returned status code: %d", res.StatusCode)
 		return result, err
 	}
 	result, err = plugindata.UnmarshalJSON(raw)
@@ -83,7 +84,7 @@ func (client *azureClient) QueryObjects(
 	size int,
 ) (result plugindata.List, err error) {
 	urlStr := client.baseURL + endpoint
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -95,18 +96,18 @@ func (client *azureClient) QueryObjects(
 	limit := min(size, defaultPageSizeAzure)
 	queryParams.Set("$top", strconv.Itoa(limit))
 
-	requestUrl.RawQuery = queryParams.Encode()
+	requestURL.RawQuery = queryParams.Encode()
 
-	var totalCount int = -1
+	totalCount := -1
 	var response plugindata.Data
 
 	objects := make(plugindata.List, 0)
 
 	for {
-		slog.DebugContext(ctx, "Fetching a page from Azure API", "url", requestUrl.String())
-		response, err = client.fetchURL(ctx, requestUrl)
+		slog.DebugContext(ctx, "Fetching a page from Azure API", "url", requestURL.String())
+		response, err = client.fetchURL(ctx, requestURL)
 		if err != nil {
-			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestUrl.String(), "error", err)
+			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestURL.String(), "error", err)
 			return nil, err
 		}
 
@@ -146,13 +147,13 @@ func (client *azureClient) QueryObjects(
 		if !ok && nextLink == nil {
 			break
 		}
-		requestUrlRaw, ok := nextLink.(plugindata.String)
+		requestURLRaw, ok := nextLink.(plugindata.String)
 		if !ok {
-			return nil, fmt.Errorf("unexpected value type for `nextLink`: %T", requestUrlRaw)
+			return nil, fmt.Errorf("unexpected value type for `nextLink`: %T", requestURLRaw)
 		}
-		requestUrl, err = url.Parse(string(requestUrlRaw))
+		requestURL, err = url.Parse(string(requestURLRaw))
 		if err != nil {
-			slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestUrlRaw)
+			slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestURLRaw)
 			return nil, err
 		}
 	}

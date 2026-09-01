@@ -73,9 +73,9 @@ func (s *MispPublishEventReportsTestSuite) TestBasic() {
 	uuid := uuid.New().String()
 	s.cli.On("AddEventReport", mock.Anything, mock.Anything).Return(client.AddEventReportResponse{
 		EventReport: client.EventReport{
-			Id:      "id",
-			Uuid:    uuid,
-			EventId: "event_id",
+			ID:      "id",
+			UUID:    uuid,
+			EventID: "event_id",
 			Name:    "name",
 		},
 	}, nil)

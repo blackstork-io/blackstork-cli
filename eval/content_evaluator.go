@@ -308,16 +308,10 @@ func fillInDependsOnRefs(ctx context.Context, blocks []RenderableContent) ([]*Ex
 		nodes = append(nodes, subnodes...)
 	}
 
-	nodeNames := []string{}
-	for _, n := range nodes {
-		nodeNames = append(nodeNames, n.id)
-	}
-
 	log.DebugContext(
 		ctx, "Catalog all block eval nodes",
 		"blocks_count", len(blocks),
 		"nodes_count", len(nodes),
-		// "node_names", strings.Join(nodeNames, ", "),
 	)
 
 	nodes, err := wireNodeDependencies(ctx, nodes)

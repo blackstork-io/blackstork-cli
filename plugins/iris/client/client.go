@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package client implements the Iris API client.
 package client
 
 import (
@@ -44,7 +45,7 @@ func (c *client) makeHTTPClient() *http.Client {
 	if c.insecure {
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec,G402
+				InsecureSkipVerify: true, //nolint:gosec // The client explicitly supports an insecure mode.
 			},
 		}
 	}

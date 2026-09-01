@@ -43,7 +43,7 @@ func JoinSurround(sep, surround string, elems ...string) string {
 	return b.String()
 }
 
-// Proper unicode aware capitalization function. If something is wrong – just returns string as is.
+// CapitalizeFirstLetter capitalizes the first Unicode letter and otherwise returns the string unchanged.
 func CapitalizeFirstLetter(s string) string {
 	r, offset := utf8.DecodeRuneInString(s)
 	if r == utf8.RuneError {
@@ -76,7 +76,7 @@ func MemoizedKeys[M ~map[string]V, V any](m *M) func() string {
 	})
 }
 
-// Strip common margin from the beginnings of the lines
+// Dedent strips the common margin from lines.
 func Dedent(text string) string {
 	lines := strings.Split(text, "\n")
 	commonIndent := findCommonIndent(lines)

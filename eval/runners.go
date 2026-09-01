@@ -175,7 +175,7 @@ func newRegistry(
 	return reg, nil
 }
 
-func (r *runnersRegistry) registerPlugin(
+func (reg *runnersRegistry) registerPlugin(
 	ctx context.Context,
 	schema *plugin.Schema,
 	closefn func() error,
@@ -199,7 +199,7 @@ func (r *runnersRegistry) registerPlugin(
 	schema = plugin.WithLogging(schema, log)
 	schema = plugin.WithTracing(schema, tracer)
 
-	if found, ok := r.pluginMap[schema.Name]; ok {
+	if found, ok := reg.pluginMap[schema.Name]; ok {
 		log.ErrorContext(
 			ctx, "Duplicate plugin schema name",
 			"new_name", schema.Name,
@@ -229,27 +229,27 @@ func (r *runnersRegistry) registerPlugin(
 		closefn: closefn,
 		Schema:  schema,
 	}
-	r.pluginMap[schema.Name] = plugin
+	reg.pluginMap[schema.Name] = plugin
 	for name, source := range schema.DataSources {
-		err := r.registerDataSource(ctx, name, schema, source)
+		err := reg.registerDataSource(ctx, name, schema, source)
 		if err != nil {
 			return err
 		}
 	}
 	for name, provider := range schema.ContentProviders {
-		err := r.registerContentProvider(ctx, name, schema, provider)
+		err := reg.registerContentProvider(ctx, name, schema, provider)
 		if err != nil {
 			return err
 		}
 	}
 	for name, publisher := range schema.Publishers {
-		err := r.registerPublisher(ctx, name, schema, publisher)
+		err := reg.registerPublisher(ctx, name, schema, publisher)
 		if err != nil {
 			return err
 		}
 	}
 	for name, formatter := range schema.Formatters {
-		err := r.registerFormatter(ctx, name, schema, formatter)
+		err := reg.registerFormatter(ctx, name, schema, formatter)
 		if err != nil {
 			return err
 		}

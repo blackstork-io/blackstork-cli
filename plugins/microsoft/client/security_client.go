@@ -44,9 +44,9 @@ func (client *securityClient) prepare(r *http.Request) {
 	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.accessToken))
 }
 
-func (client *securityClient) getURL(ctx context.Context, requestUrl *url.URL) (result plugindata.Data, err error) {
-	slog.DebugContext(ctx, "Sending GET request to an API endpoint", "url", requestUrl.String())
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestUrl.String(), nil)
+func (client *securityClient) getURL(ctx context.Context, requestURL *url.URL) (result plugindata.Data, err error) {
+	slog.DebugContext(ctx, "Sending GET request to an API endpoint", "url", requestURL.String())
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
 	if err != nil {
 		return result, err
 	}
@@ -69,7 +69,7 @@ func (client *securityClient) getURL(ctx context.Context, requestUrl *url.URL) (
 			"body",
 			string(raw),
 		)
-		err = fmt.Errorf("Microsoft Graph client returned status code: %d", res.StatusCode)
+		err = fmt.Errorf("microsoft Graph client returned status code: %d", res.StatusCode)
 		return result, err
 	}
 	result, err = plugindata.UnmarshalJSON(raw)
@@ -81,7 +81,7 @@ func (client *securityClient) getURL(ctx context.Context, requestUrl *url.URL) (
 
 func (client *securityClient) postURL(
 	ctx context.Context,
-	requestUrl *url.URL,
+	requestURL *url.URL,
 	data plugindata.Data,
 ) (result plugindata.Data, err error) {
 	buff := new(bytes.Buffer)
@@ -89,9 +89,9 @@ func (client *securityClient) postURL(
 	if err != nil {
 		return result, err
 	}
-	slog.DebugContext(ctx, "Sending POST request to an API endpoint", "url", requestUrl.String())
+	slog.DebugContext(ctx, "Sending POST request to an API endpoint", "url", requestURL.String())
 
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, requestUrl.String(), buff)
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL.String(), buff)
 	r.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		return result, err
@@ -131,7 +131,7 @@ func (client *securityClient) QueryObjects(
 	objects := make(plugindata.List, 0)
 
 	urlStr := baseURLSecurity + endpoint
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -143,16 +143,16 @@ func (client *securityClient) QueryObjects(
 	limit := min(size, defaultPageSizeSecurity)
 	queryParams.Set("$top", strconv.Itoa(limit))
 
-	requestUrl.RawQuery = queryParams.Encode()
+	requestURL.RawQuery = queryParams.Encode()
 
-	var totalCount int = -1
+	totalCount := -1
 	var response plugindata.Data
 
 	for {
-		slog.DebugContext(ctx, "Fetching a page from Microsoft Graph API", "url", requestUrl.String())
-		response, err = client.getURL(ctx, requestUrl)
+		slog.DebugContext(ctx, "Fetching a page from Microsoft Graph API", "url", requestURL.String())
+		response, err = client.getURL(ctx, requestURL)
 		if err != nil {
-			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestUrl.String(), "error", err)
+			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestURL.String(), "error", err)
 			return nil, err
 		}
 
@@ -197,13 +197,13 @@ func (client *securityClient) QueryObjects(
 		if !ok && nextLink == nil {
 			break
 		}
-		requestUrlRaw, ok := nextLink.(plugindata.String)
+		requestURLRaw, ok := nextLink.(plugindata.String)
 		if !ok {
-			return nil, fmt.Errorf("unexpected value type for `@odata.nextLink`: %T", requestUrlRaw)
+			return nil, fmt.Errorf("unexpected value type for `@odata.nextLink`: %T", requestURLRaw)
 		}
-		requestUrl, err = url.Parse(string(requestUrlRaw))
+		requestURL, err = url.Parse(string(requestURLRaw))
 		if err != nil {
-			slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestUrlRaw)
+			slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestURLRaw)
 			return nil, err
 		}
 	}
@@ -218,7 +218,7 @@ func (client *securityClient) QueryObject(
 	queryParams url.Values,
 ) (result plugindata.Data, err error) {
 	urlStr := baseURLSecurity + endpoint
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -226,11 +226,11 @@ func (client *securityClient) QueryObject(
 	if queryParams == nil {
 		queryParams = url.Values{}
 	}
-	requestUrl.RawQuery = queryParams.Encode()
+	requestURL.RawQuery = queryParams.Encode()
 
-	response, err := client.getURL(ctx, requestUrl)
+	response, err := client.getURL(ctx, requestURL)
 	if err != nil {
-		slog.ErrorContext(ctx, "Error while fetching an object", "url", requestUrl.String(), "error", err)
+		slog.ErrorContext(ctx, "Error while fetching an object", "url", requestURL.String(), "error", err)
 		return nil, err
 	}
 
@@ -239,7 +239,7 @@ func (client *securityClient) QueryObject(
 
 func (client *securityClient) RunAdvancedQuery(ctx context.Context, query string) (result plugindata.Data, err error) {
 	urlStr := baseURLSecurity + "/advancedqueries/run"
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -248,9 +248,9 @@ func (client *securityClient) RunAdvancedQuery(ctx context.Context, query string
 		"Query": plugindata.String(query),
 	}
 
-	response, err := client.postURL(ctx, requestUrl, body)
+	response, err := client.postURL(ctx, requestURL, body)
 	if err != nil {
-		slog.ErrorContext(ctx, "Error while submitting an advanced query", "url", requestUrl.String(), "error", err, "query", query)
+		slog.ErrorContext(ctx, "Error while submitting an advanced query", "url", requestURL.String(), "error", err, "query", query)
 		return nil, err
 	}
 

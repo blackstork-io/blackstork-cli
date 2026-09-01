@@ -63,7 +63,7 @@ func fetchTerraformStateLocalData(
 }
 
 func readTerraformStateFile(fp string) (plugindata.Data, error) {
-	data, err := os.ReadFile(fp)
+	data, err := os.ReadFile(fp) //nolint:gosec // Reading a user-configured state path is the purpose of this data source.
 	if err != nil {
 		return nil, err
 	}

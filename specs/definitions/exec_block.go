@@ -9,7 +9,7 @@
 
 package definitions
 
-// An interface for the blocks that are powered by the plugins (by content providers, data sources, publishers and formatters)
+// ExecBlock is implemented by blocks powered by plugin components.
 type ExecBlock interface {
 	isExecBlock()
 

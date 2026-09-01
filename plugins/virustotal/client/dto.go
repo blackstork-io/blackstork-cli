@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package client implements the VirusTotal API client.
 package client
 
 import (
@@ -53,6 +54,6 @@ type Date struct {
 }
 
 func (d Date) EncodeValues(key string, v *url.Values) error {
-	v.Add(key, d.Time.Format("20060102"))
+	v.Add(key, d.Format("20060102"))
 	return nil
 }

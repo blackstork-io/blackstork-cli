@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package plugintest provides helpers for testing BlackStork plugins.
 package plugintest
 
 import (
@@ -34,7 +35,7 @@ func getFileName() string {
 	return fmt.Sprintf("generated-test-file-%d.fabric", uniqueID.Add(1))
 }
 
-// We have a massive amount of tests that break as soon as we add
+// ReencodeCTY works around tests that break as soon as we add
 // schemas with default values. This function is a workaround.
 // It reencodes provided cty.Value to hcl text and then re-parses that text
 // in accordance to spec. Ugly hack, but there's over a 100 tests in need of
@@ -44,7 +45,7 @@ func getFileName() string {
 func ReencodeCTY(t *testing.T, spec *dataspec.RootSpec, val cty.Value, asserts [][]diagtest.Assert) *dataspec.Block {
 	t.Helper()
 	ty := val.Type()
-	if !(ty.IsMapType() || ty.IsObjectType()) {
+	if !ty.IsMapType() && !ty.IsObjectType() {
 		panic("Can't handle type " + ty.FriendlyName())
 	}
 	f := hclwrite.NewEmptyFile()
@@ -56,7 +57,7 @@ func ReencodeCTY(t *testing.T, spec *dataspec.RootSpec, val cty.Value, asserts [
 	return DecodeAndAssert(t, spec, string(hclwrite.Format(f.Bytes())), nil, asserts)
 }
 
-// Decodes a string (representing content of a config/data/content block)
+// DecodeAndAssert decodes a string representing a config, data, or content block
 // into cty.Value according to given spec (i.e. respecting default values)
 //
 // Deprecated: use plugintest.NewTestDecoder

@@ -55,7 +55,7 @@ var userAgents = []string{
 }
 
 func getRandUserAgent() string {
-	return userAgents[rand.Intn(len(userAgents))]
+	return userAgents[rand.Intn(len(userAgents))] //nolint:gosec // User-agent selection is not security-sensitive.
 }
 
 func makeRSSDataSource() *plugin.DataSource {

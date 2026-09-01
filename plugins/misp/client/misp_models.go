@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package client implements the MISP API client.
 package client
 
 type RestSearchEventsRequest struct {
@@ -41,44 +42,44 @@ type EventResponse struct {
 
 type Event struct {
 	ID                 string `json:"id"`
-	OrgId              string `json:"org_id"`
+	OrgID              string `json:"org_id"`
 	Distribution       string `json:"distribution"`
 	Info               string `json:"info"`
-	OrgcId             string `json:"orgc_id"`
-	Uuid               string `json:"uuid"`
+	OrgcID             string `json:"orgc_id"`
+	UUID               string `json:"uuid"`
 	Date               string `json:"date"`
 	Published          bool   `json:"published"`
 	Analysis           string `json:"analysis"`
 	AttributeCount     string `json:"attribute_count"`
 	Timestamp          string `json:"timestamp"`
-	SharingGroupId     string `json:"sharing_group_id"`
+	SharingGroupID     string `json:"sharing_group_id"`
 	ProposalEmailLock  bool   `json:"proposal_email_lock"`
 	Locked             bool   `json:"locked"`
-	ThreatLevelId      string `json:"threat_level_id"`
+	ThreatLevelID      string `json:"threat_level_id"`
 	PublishTimestamp   string `json:"publish_timestamp"`
 	SightingTimestamp  string `json:"sighting_timestamp"`
 	DisableCorrelation bool   `json:"disable_correlation"`
 }
 
 type AddEventReportRequest struct {
-	Uuid           string  `json:"uuid"`
-	EventId        string  `json:"event_id"`
+	UUID           string  `json:"uuid"`
+	EventID        string  `json:"event_id"`
 	Name           string  `json:"name"`
 	Content        string  `json:"content"`
 	Distribution   *string `json:"distribution"`
-	SharingGroupId *string `json:"sharing_group_id"`
+	SharingGroupID *string `json:"sharing_group_id"`
 	Timestamp      *string `json:"timestamp"`
 	Deleted        bool    `json:"deleted"`
 }
 
 type EventReport struct {
-	Id             string  `json:"id"`
-	Uuid           string  `json:"uuid"`
-	EventId        string  `json:"event_id"`
+	ID             string  `json:"id"`
+	UUID           string  `json:"uuid"`
+	EventID        string  `json:"event_id"`
 	Name           string  `json:"name"`
 	Content        string  `json:"content"`
 	Distribution   string  `json:"distribution"`
-	SharingGroupId *string `json:"sharing_group_id"`
+	SharingGroupID *string `json:"sharing_group_id"`
 	Timestamp      *string `json:"timestamp"`
 	Deleted        bool    `json:"deleted"`
 }

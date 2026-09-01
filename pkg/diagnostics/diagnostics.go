@@ -7,9 +7,8 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package diagnostics provides an ergonomic wrapper around hcl.Diagnostics.
 package diagnostics
-
-// More ergonomic wrapper over hcl.Diagnostics.
 
 import (
 	"errors"
@@ -24,7 +23,7 @@ func (d Diag) Error() string {
 	return hcl.Diagnostics(d).Error()
 }
 
-// Appends diag to diagnostics, returns true if the just-appended diagnostic is an error.
+// Append adds a diagnostic and reports whether it is an error.
 func (d *Diag) Append(diag *hcl.Diagnostic) (addedErrors bool) {
 	if diag != nil {
 		*d = append(*d, diag)
@@ -33,7 +32,7 @@ func (d *Diag) Append(diag *hcl.Diagnostic) (addedErrors bool) {
 	return false
 }
 
-// Add new diagnostic error.
+// Add appends a new error diagnostic.
 func (d *Diag) Add(summary, detail string) {
 	*d = append(*d, &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -42,7 +41,7 @@ func (d *Diag) Add(summary, detail string) {
 	})
 }
 
-// Add new diagnostic warning.
+// AddWarn appends a new warning diagnostic.
 func (d *Diag) AddWarn(summary, detail string) {
 	*d = append(*d, &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
@@ -51,7 +50,7 @@ func (d *Diag) AddWarn(summary, detail string) {
 	})
 }
 
-// Appends all diags to diagnostics, returns true if the just-appended diagnostics contain an error.
+// Extend appends diagnostics and reports whether they contain an error.
 func (d *Diag) Extend(diags []*hcl.Diagnostic) (haveAddedErrors bool) {
 	*d = append(*d, diags...)
 	return hcl.Diagnostics(diags).HasErrors()
@@ -63,7 +62,7 @@ func (d Diag) HasErrors() bool {
 	return hcl.Diagnostics(d).HasErrors()
 }
 
-// Creates diagnostic and appends it if err != nil.
+// AppendErr converts and appends a non-nil error.
 func (d *Diag) AppendErr(err error, summary string) (haveAddedErrors bool) {
 	// The body of the function is moved into `appendErr` to convince golang to inline the
 	// `AppendErr`, making `err != nil` as cheap as usual.
@@ -76,7 +75,7 @@ func (d *Diag) AppendErr(err error, summary string) (haveAddedErrors bool) {
 	return haveAddedErrors
 }
 
-// Applies refiners to diagnostics, returns the input diagnostics for chaining.
+// Refine applies refiners and returns the diagnostics for chaining.
 func (d Diag) Refine(refiners ...Refiner) Diag {
 	for _, option := range refiners {
 		option.Refine(d)
@@ -92,14 +91,15 @@ func appendErr(d *Diag, err error, summary string) {
 	d.Extend(FromErr(err, DefaultSummary(summary)))
 }
 
-func FromHcl(diag *hcl.Diagnostic) Diag {
+// FromHCL converts an HCL diagnostic to Diag.
+func FromHCL(diag *hcl.Diagnostic) Diag {
 	if diag != nil {
 		return Diag{diag}
 	}
 	return nil
 }
 
-// Turns error into Diag.
+// FromErr converts an error to Diag.
 func FromErr(err error, refiners ...Refiner) (diags Diag) {
 	if err == nil {
 		return nil

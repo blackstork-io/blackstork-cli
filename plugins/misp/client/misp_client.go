@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package client implements the MISP API client.
 package client
 
 import (
@@ -19,7 +20,7 @@ import (
 )
 
 type Client struct {
-	baseUrl string
+	baseURL string
 	apiKey  string
 
 	client *http.Client
@@ -33,9 +34,9 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 	}
 }
 
-func NewClient(baseUrl, apiKey string, opts ...ClientOption) *Client {
+func NewClient(baseURL, apiKey string, opts ...ClientOption) *Client {
 	c := &Client{
-		baseUrl: baseUrl,
+		baseURL: baseURL,
 		apiKey:  apiKey,
 	}
 	for _, opt := range opts {
@@ -47,8 +48,8 @@ func NewClient(baseUrl, apiKey string, opts ...ClientOption) *Client {
 	return c
 }
 
-func (c *Client) auth(r *http.Request) {
-	r.Header.Set("Authorization", c.apiKey)
+func (client *Client) auth(r *http.Request) {
+	r.Header.Set("Authorization", client.apiKey)
 }
 
 func (client *Client) Do(ctx context.Context, method, path string, payload interface{}) (resp *http.Response, err error) {
@@ -62,7 +63,7 @@ func (client *Client) Do(ctx context.Context, method, path string, payload inter
 		body = io.NopCloser(reader)
 	}
 
-	req, err := http.NewRequest(method, client.baseUrl+path, body)
+	req, err := http.NewRequest(method, client.baseURL+path, body)
 	if err != nil {
 		return resp, err
 	}
@@ -98,7 +99,7 @@ func (client *Client) RestSearchEvents(ctx context.Context, req RestSearchEvents
 }
 
 func (client *Client) AddEventReport(ctx context.Context, req AddEventReportRequest) (events AddEventReportResponse, err error) {
-	resp, err := client.Do(ctx, http.MethodPost, "/event_reports/add/"+req.EventId, req)
+	resp, err := client.Do(ctx, http.MethodPost, "/event_reports/add/"+req.EventID, req)
 	if err != nil {
 		return events, err
 	}

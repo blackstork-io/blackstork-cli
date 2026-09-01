@@ -152,11 +152,11 @@ func publishGithubGist(loader ClientLoaderFn) plugin.PublishFunc {
 		// overrides params if defined
 		descriptionAttr := params.Args.GetAttrVal("description")
 		if !descriptionAttr.IsNull() && descriptionAttr.AsString() != "" {
-			payload.Description = gh.String(descriptionAttr.AsString())
+			payload.Description = new(descriptionAttr.AsString())
 		}
 		slog.InfoContext(ctx, "Publishing to GitHub gist", "filename", fileName)
-		gistId := params.Args.GetAttrVal("gist_id")
-		if gistId.IsNull() || gistId.AsString() == "" {
+		gistID := params.Args.GetAttrVal("gist_id")
+		if gistID.IsNull() || gistID.AsString() == "" {
 			slog.DebugContext(
 				ctx,
 				"No gist id set, creating a new gist",
@@ -175,8 +175,8 @@ func publishGithubGist(loader ClientLoaderFn) plugin.PublishFunc {
 			}
 			slog.InfoContext(ctx, "Created the gist", "url", *gist.HTMLURL)
 		} else {
-			slog.DebugContext(ctx, "Fetching the gist", "gist_id", gistId.AsString())
-			gist, _, err := client.Gists().Get(ctx, gistId.AsString())
+			slog.DebugContext(ctx, "Fetching the gist", "gist_id", gistID.AsString())
+			gist, _, err := client.Gists().Get(ctx, gistID.AsString())
 			if err != nil {
 				return diagnostics.Diag{{
 					Severity: hcl.DiagError,
@@ -192,8 +192,8 @@ func publishGithubGist(loader ClientLoaderFn) plugin.PublishFunc {
 					payload.Files[gh.GistFilename(*file.Filename)] = gh.GistFile{}
 				}
 			}
-			slog.DebugContext(ctx, "Updating the gist", "gist_id", gistId.AsString())
-			gist, _, err = client.Gists().Edit(ctx, gistId.AsString(), payload)
+			slog.DebugContext(ctx, "Updating the gist", "gist_id", gistID.AsString())
+			gist, _, err = client.Gists().Edit(ctx, gistID.AsString(), payload)
 			if err != nil {
 				return diagnostics.Diag{{
 					Severity: hcl.DiagError,

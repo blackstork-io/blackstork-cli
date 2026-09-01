@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package evaluation defines deferred parser evaluation contracts.
 package evaluation
 
 import (
@@ -18,7 +19,7 @@ import (
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 )
 
-// To act as a runner configuration struct must implement this interface.
+// Configuration is implemented by runner configuration structs.
 type Configuration interface {
 	ParseConfig(ctx context.Context, spec *dataspec.RootSpec) (*dataspec.Block, diagnostics.Diag)
 	Range() hcl.Range

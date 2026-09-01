@@ -11,7 +11,7 @@ package utils
 
 import "github.com/blackstork-io/blackstork-cli/pkg/diagnostics"
 
-// Sets slice[idx] = val, growing the slice if needed, and returns the updated slice.
+// SetAt sets slice[idx] to val, growing the slice when needed.
 func SetAt[T any](slice []T, idx int, val T) []T {
 	needToAlloc := idx - len(slice)
 	switch {
@@ -27,7 +27,7 @@ func SetAt[T any](slice []T, idx int, val T) []T {
 	return slice
 }
 
-// Produce a new slice by applying function fn to items of the slice s.
+// FnMap returns a slice produced by applying fn to each item in s.
 func FnMap[I, O any](s []I, fn func(I) O) []O {
 	if s == nil {
 		return nil
@@ -39,7 +39,7 @@ func FnMap[I, O any](s []I, fn func(I) O) []O {
 	return out
 }
 
-// Produce a new slice by applying (possibly erroring) function fn to items of the slice s.
+// FnMapErr returns a slice produced by applying a possibly failing function to each item.
 // Returns on the first error with nil slice.
 func FnMapErr[I, O any](s []I, fn func(I) (O, error)) (out []O, err error) {
 	if s == nil {
@@ -56,7 +56,7 @@ func FnMapErr[I, O any](s []I, fn func(I) (O, error)) (out []O, err error) {
 	return out, err
 }
 
-// Produce a new slice by applying function fn to items of the slice s.
+// FnMapDiags returns a slice produced by applying a diagnostic-producing function to each item.
 // Collects slice-like errors from the second return value (diagnostics in our case)
 func FnMapDiags[I, O any](diags *diagnostics.Diag, s []I, fn func(I) (O, diagnostics.Diag)) []O {
 	if s == nil {

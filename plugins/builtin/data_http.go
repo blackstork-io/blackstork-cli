@@ -135,7 +135,7 @@ func StringPtr(s string) *string {
 }
 
 type Request struct {
-	Url               string
+	URL               string
 	Method            string
 	Timeout           time.Duration
 	SkipVerify        bool
@@ -154,7 +154,7 @@ func SendRequest(ctx context.Context, log *slog.Logger, r *Request) (*Response, 
 	var u *url.URL
 	var err error
 
-	u, err = url.Parse(r.Url)
+	u, err = url.Parse(r.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -181,14 +181,14 @@ func SendRequest(ctx context.Context, log *slog.Logger, r *Request) (*Response, 
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: r.SkipVerify, //nolint:gosec,G402
+		InsecureSkipVerify: r.SkipVerify, //nolint:gosec // User explicitly controls TLS verification.
 	}
 	client := &http.Client{Transport: transport, Timeout: r.Timeout}
 
 	log.DebugContext(
 		ctx,
 		"Sending HTTP request",
-		"url", r.Url,
+		"url", r.URL,
 		"method", r.Method,
 		"insecure", r.SkipVerify,
 		"timeout", r.Timeout,
@@ -264,7 +264,7 @@ func fetchHTTPData(
 	}
 
 	req := Request{
-		Url:        url,
+		URL:        url,
 		Method:     method,
 		Timeout:    timeout,
 		SkipVerify: insecure,

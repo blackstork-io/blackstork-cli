@@ -15,7 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Non-generic Encoder interface
+// EncoderI is the non-generic encoder interface.
 type EncoderI interface {
 	CtyType() cty.Type
 	CtyTypeEqual(ty cty.Type) bool

@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package pluginapiv1 implements version 1 of the BlackStork plugin protocol.
 package pluginapiv1
 
 import (
@@ -52,12 +53,12 @@ func NewClient(name, binaryPath string, log *slog.Logger) (a *plugin.Schema, clo
 	}
 	raw, err := rpcClient.Dispense(name)
 	if err != nil {
-		rpcClient.Close()
+		_ = rpcClient.Close() // Best-effort cleanup after a failed handshake.
 		return nil, nil, fmt.Errorf("failed to dispense plugin: %w", err)
 	}
 	plg, ok := raw.(*plugin.Schema)
 	if !ok {
-		rpcClient.Close()
+		_ = rpcClient.Close() // Best-effort cleanup after receiving an unexpected plugin type.
 		return nil, nil, fmt.Errorf("unexpected plugin type: %T", raw)
 	}
 	return plg, rpcClient.Close, nil

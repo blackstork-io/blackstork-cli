@@ -7,6 +7,7 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
+// Package elastic implements the BlackStork Elastic plugin.
 package elastic
 
 import (
@@ -250,11 +251,7 @@ func searchWithScrollConfigurable(
 	allHits := make(plugindata.List, 0, len(hits))
 	allHits = append(allHits, hits...)
 
-	for {
-		if len(allHits) >= size {
-			break
-		}
-
+	for len(allHits) < size {
 		// just in case the leftover size is smaller than the step size
 		reqSize := min((size - len(allHits)), stepSize)
 		if reqSize <= 0 {

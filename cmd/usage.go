@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-// Default usage template with added section for Args description
+// UsageTemplate returns the default usage template with argument descriptions.
 func UsageTemplate(argsDesc ...[2]string) string {
 	var sb strings.Builder
 	sb.WriteString(`Usage:{{if .Runnable}}

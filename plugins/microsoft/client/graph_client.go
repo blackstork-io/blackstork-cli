@@ -45,13 +45,13 @@ func (client *graphClient) prepare(r *http.Request) {
 	r.Header.Set("ConsistencyLevel", "eventual")
 }
 
-func (client *graphClient) fetchURL(ctx context.Context, requestUrl *url.URL) (result plugindata.Data, err error) {
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestUrl.String(), nil)
+func (client *graphClient) fetchURL(ctx context.Context, requestURL *url.URL) (result plugindata.Data, err error) {
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
 	if err != nil {
 		return result, err
 	}
 	client.prepare(r)
-	slog.DebugContext(ctx, "Fetching an URL from API", "url", requestUrl.String())
+	slog.DebugContext(ctx, "Fetching an URL from API", "url", requestURL.String())
 	res, err := client.client.Do(r)
 	if err != nil {
 		return result, err
@@ -63,7 +63,7 @@ func (client *graphClient) fetchURL(ctx context.Context, requestUrl *url.URL) (r
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		slog.ErrorContext(ctx, "Error received from Microsoft Graph API", "status_code", res.StatusCode, "body", string(raw))
-		err = fmt.Errorf("Microsoft Graph client returned status code: %d", res.StatusCode)
+		err = fmt.Errorf("microsoft Graph client returned status code: %d", res.StatusCode)
 		return result, err
 	}
 
@@ -83,7 +83,7 @@ func (client *graphClient) QueryObjects(
 	objects := make(plugindata.List, 0)
 
 	urlStr := baseURLGraph + fmt.Sprintf("/%s%s", client.apiVersion, endpoint)
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -96,7 +96,7 @@ func (client *graphClient) QueryObjects(
 	// $top doesn't work for managedDevices
 	// queryParams.Set("$top", strconv.Itoa(limit))
 	// queryParams.Set("$count", "true")
-	requestUrl.RawQuery = queryParams.Encode()
+	requestURL.RawQuery = queryParams.Encode()
 
 	totalCount := -1
 	var response plugindata.Data
@@ -105,13 +105,13 @@ func (client *graphClient) QueryObjects(
 
 		if totalCount > 0 {
 			queryParams.Set("$skip", strconv.Itoa(len(objects)))
-			requestUrl.RawQuery = queryParams.Encode()
+			requestURL.RawQuery = queryParams.Encode()
 		}
 
-		slog.DebugContext(ctx, "Fetching a page from Microsoft Graph API", "url", requestUrl.String())
-		response, err = client.fetchURL(ctx, requestUrl)
+		slog.DebugContext(ctx, "Fetching a page from Microsoft Graph API", "url", requestURL.String())
+		response, err = client.fetchURL(ctx, requestURL)
 		if err != nil {
-			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestUrl.String(), "error", err)
+			slog.ErrorContext(ctx, "Error while fetching objects", "url", requestURL.String(), "error", err)
 			return nil, err
 		}
 
@@ -168,13 +168,13 @@ func (client *graphClient) QueryObjects(
 			}
 
 		} else {
-			requestUrlRaw, ok := nextLink.(plugindata.String)
+			requestURLRaw, ok := nextLink.(plugindata.String)
 			if !ok {
-				return nil, fmt.Errorf("unexpected value type for `@odata.nextLink`: %T", requestUrlRaw)
+				return nil, fmt.Errorf("unexpected value type for `@odata.nextLink`: %T", requestURLRaw)
 			}
-			requestUrl, err = url.Parse(string(requestUrlRaw))
+			requestURL, err = url.Parse(string(requestURLRaw))
 			if err != nil {
-				slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestUrlRaw)
+				slog.DebugContext(ctx, "Can't parse the next link in Microsoft Graph API response", "value", requestURLRaw)
 				return nil, err
 			}
 		}
@@ -190,7 +190,7 @@ func (client *graphClient) QueryObject(
 	queryParams url.Values,
 ) (result plugindata.Data, err error) {
 	urlStr := baseURLGraph + fmt.Sprintf("/%s%s", client.apiVersion, endpoint)
-	requestUrl, err := url.Parse(urlStr)
+	requestURL, err := url.Parse(urlStr)
 	if err != nil {
 		return result, err
 	}
@@ -198,11 +198,11 @@ func (client *graphClient) QueryObject(
 	if queryParams == nil {
 		queryParams = url.Values{}
 	}
-	requestUrl.RawQuery = queryParams.Encode()
+	requestURL.RawQuery = queryParams.Encode()
 
-	response, err := client.fetchURL(ctx, requestUrl)
+	response, err := client.fetchURL(ctx, requestURL)
 	if err != nil {
-		slog.ErrorContext(ctx, "Error while fetching an object", "url", requestUrl.String(), "error", err)
+		slog.ErrorContext(ctx, "Error while fetching an object", "url", requestURL.String(), "error", err)
 		return nil, err
 	}
 

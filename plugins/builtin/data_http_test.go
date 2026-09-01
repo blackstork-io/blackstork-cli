@@ -62,7 +62,7 @@ func (s *HTTPClientTestSuite) TestErrors() {
 	defer srv.Close()
 
 	req := Request{
-		Url:        srv.URL,
+		URL:        srv.URL,
 		Method:     "GET",
 		Timeout:    time.Duration(1) * time.Second,
 		SkipVerify: true,
@@ -91,7 +91,7 @@ func (s *HTTPClientTestSuite) TestBasicAuth() {
 	defer srv.Close()
 
 	req := Request{
-		Url:               srv.URL,
+		URL:               srv.URL,
 		Method:            "GET",
 		Timeout:           time.Duration(1) * time.Second,
 		SkipVerify:        true,
@@ -126,7 +126,7 @@ func (s *HTTPClientTestSuite) TestHeadersBody() {
 	defer srv.Close()
 
 	req := Request{
-		Url:               srv.URL,
+		URL:               srv.URL,
 		Method:            method,
 		Timeout:           time.Duration(1) * time.Second,
 		SkipVerify:        true,

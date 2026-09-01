@@ -70,7 +70,7 @@ func verifyRequiredVars(docDataCtx plugindata.Map, requiredVars []string) (diag 
 	vars, varsPresent := docDataCtx["vars"].(plugindata.Map)
 	for _, reqVar := range requiredVars {
 		if !varsPresent || vars[reqVar] == nil {
-			return diagnostics.FromHcl(&hcl.Diagnostic{
+			return diagnostics.FromHCL(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing a required variable",
 				Detail:   "The block requires `" + reqVar + "` var which is not set.",

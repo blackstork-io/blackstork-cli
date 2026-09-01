@@ -23,7 +23,7 @@ var (
 	ErrWrongType  = errors.New("wrong type")
 )
 
-// Non-generic decoder interface
+// DecoderI is the non-generic decoder interface.
 type DecoderI interface {
 	Decodable(ty cty.Type) bool
 	GoType() reflect.Type

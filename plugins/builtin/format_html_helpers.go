@@ -62,7 +62,7 @@ func prerenderSectionComponents(
 		if err != nil {
 			return nil, err
 		}
-		data["title"] = template.HTML(titleBuf.String())
+		data["title"] = template.HTML(titleBuf.String()) //nolint:gosec // This is formatter-produced document HTML.
 
 		if el, ok := section.Title.(*plugin.ContentElement); ok {
 			data["title_value"] = el.Attr("value")
@@ -79,7 +79,7 @@ func prerenderSectionComponents(
 			return nil, err
 		}
 	}
-	data["content"] = template.HTML(contentBuf.String())
+	data["content"] = template.HTML(contentBuf.String()) //nolint:gosec // This is formatter-produced document HTML.
 
 	return data, nil
 }
@@ -113,8 +113,7 @@ func prepareElementContext(el plugin.Content) map[string]any {
 		}
 	}
 
-	switch el := el.(type) {
-	case *plugin.ContentElement:
+	if el, ok := el.(*plugin.ContentElement); ok {
 		for k, val := range el.Attrs() {
 			data[k] = val.Any()
 		}
@@ -132,13 +131,13 @@ func getBlockIdentity(c plugin.Content) (TypedBlock, NamedBlock) {
 		runner = execDetails.Runner
 	}
 	return TypedBlock{
-			kind:   blockDetails.Kind,
-			runner: runner,
-		}, NamedBlock{
-			kind:   blockDetails.Kind,
-			runner: runner,
-			name:   blockDetails.Name,
-		}
+		kind:   blockDetails.Kind,
+		runner: runner,
+	}, NamedBlock{
+		kind:   blockDetails.Kind,
+		runner: runner,
+		name:   blockDetails.Name,
+	}
 }
 
 func getOverrideTemplateForBlock(

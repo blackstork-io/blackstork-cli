@@ -39,7 +39,7 @@ func TestPlugin_Schema(t *testing.T) {
 }
 
 func TestMakeDefaultGraphClientLoader(t *testing.T) {
-	loader := MakeDefaultMicrosoftGraphClientLoader(func(ctx context.Context, tenantId, clientId string, cred confidential.Credential, scopes []string) (string, error) {
+	loader := MakeDefaultMicrosoftGraphClientLoader(func(ctx context.Context, tenantID, clientID string, cred confidential.Credential, scopes []string) (string, error) {
 		return "test-token", nil
 	})
 	assert.NotNil(t, loader)

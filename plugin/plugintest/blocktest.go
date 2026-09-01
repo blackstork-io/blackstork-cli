@@ -135,7 +135,7 @@ func (td *TestDecoder) Decode(asserts ...[]diagtest.Assert) (val *dataspec.Block
 	return val
 }
 
-// Decodes the block and returns diagnostics.
+// DecodeDiag decodes the block and returns diagnostics.
 func (td *TestDecoder) DecodeDiag() (val *dataspec.Block, diags diagnostics.Diag) {
 	td.t.Helper()
 	val, _, diags = td.DecodeDiagFiles()

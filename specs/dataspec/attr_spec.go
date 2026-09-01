@@ -219,7 +219,7 @@ func (a *AttrSpec) ValidateValue(val cty.Value) (diags diagnostics.Diag) {
 			if !min.IsNull() && !max.IsNull() {
 				min := ctyToInt(min)
 				max := ctyToInt(max)
-				if !(min <= length && length <= max) {
+				if min > length || length > max {
 					if min == max {
 						diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
@@ -348,7 +348,7 @@ func (a *AttrSpec) ValidateSpec() (diags diagnostics.Diag) {
 			skipMinMaxRelativeCheck = true
 			continue
 		}
-		if !(v.val.Type().IsPrimitiveType() && v.val.Type() == cty.Number) {
+		if !v.val.Type().IsPrimitiveType() || v.val.Type() != cty.Number {
 			diags.Add(
 				fmt.Sprintf(
 					"%s specified for %q must be a number, not %s",

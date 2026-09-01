@@ -30,7 +30,7 @@ type Block struct {
 	ContentsRange hcl.Range
 }
 
-// Quickly create a new block without spec (no ranges will be assigned)
+// NewBlock creates a block without a spec or source ranges.
 func NewBlock(headers []string, attrs map[string]cty.Value, blocks ...*Block) *Block {
 	attrib := make(Attributes, len(attrs))
 	for k, v := range attrs {
@@ -70,7 +70,7 @@ func (b *Block) HasAttr(name string) bool {
 	return found
 }
 
-// Attempts to get attribute value, returns cty.NilVal if it's missing
+// GetAttrVal returns an attribute value or cty.NilVal when it is missing.
 func (b *Block) GetAttrVal(name string) cty.Value {
 	if b == nil || b.Attrs == nil {
 		return cty.NilVal

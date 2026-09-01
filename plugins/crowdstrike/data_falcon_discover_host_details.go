@@ -50,7 +50,7 @@ func makeFalconDiscoverHostDetailsDataSource(loader ClientLoaderFn) *plugin.Data
 
 func fetchFalconDiscoverHostDetails(loader ClientLoaderFn) plugin.RetrieveDataFunc {
 	return func(ctx context.Context, params *plugin.RetrieveDataParams) (plugindata.Data, diagnostics.Diag) {
-		cli, err := loader(makeApiConfig(ctx, params.Config))
+		cli, err := loader(makeAPIConfig(ctx, params.Config))
 		if err != nil {
 			return nil, diagnostics.Diag{{
 				Severity: hcl.DiagError,

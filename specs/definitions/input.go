@@ -56,6 +56,53 @@ func (b *InputBlock) getJSONSchemaLoader() (gojsonschema.JSONLoader, error) {
 	return loader, nil
 }
 
+func (b *InputBlock) validateJSON(value any) error {
+	if b.Schema.IsNull() {
+		return nil
+	}
+
+	schemaLoader, err := b.getJSONSchemaLoader()
+	if err != nil {
+		return err
+	}
+
+	result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(value))
+	if err != nil {
+		return err
+	}
+	if result.Valid() {
+		return nil
+	}
+
+	errs := strings.Join(
+		utils.FnMap(result.Errors(), func(e gojsonschema.ResultError) string {
+			return e.String()
+		}),
+		"; ",
+	)
+	return fmt.Errorf("validation failed: %s", errs)
+}
+
+// ParseDefaultValue converts and validates the input's HCL default value.
+func (b *InputBlock) ParseDefaultValue() (plugindata.Data, error) {
+	if b.DefaultValue.IsNull() || !b.DefaultValue.IsKnown() {
+		return nil, nil
+	}
+
+	if b.Type != "json" {
+		return plugindata.CtyToPluginDataWithType(b.DefaultValue, b.Type)
+	}
+
+	value, err := plugindata.CtyToPluginData(b.DefaultValue)
+	if err != nil {
+		return nil, err
+	}
+	if err := b.validateJSON(value.Any()); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
 func (b *InputBlock) ParseValue(value string) (plugindata.Data, error) {
 	// Trim whitespace to avoid common parsing errors
 	value = strings.TrimSpace(value)
@@ -96,26 +143,8 @@ func (b *InputBlock) ParseValue(value string) (plugindata.Data, error) {
 			return nil, err
 		}
 
-		if !b.Schema.IsNull() {
-			schemaLoader, err := b.getJSONSchemaLoader()
-			if err != nil {
-				return nil, err
-			}
-
-			loader := gojsonschema.NewGoLoader(v)
-			result, err := gojsonschema.Validate(schemaLoader, loader)
-			if err != nil {
-				return nil, err
-			}
-			if !result.Valid() {
-				errs := strings.Join(
-					utils.FnMap(result.Errors(), func(e gojsonschema.ResultError) string {
-						return e.String()
-					}),
-					"; ",
-				)
-				return nil, fmt.Errorf("validation failed: %s", errs)
-			}
+		if err := b.validateJSON(v); err != nil {
+			return nil, err
 		}
 		return plugindata.ParseAny(v)
 	default:

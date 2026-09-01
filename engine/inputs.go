@@ -73,7 +73,7 @@ func LoadInputs(ctx context.Context, doc *definitions.Document) (plugindata.Map,
 		if !input.DefaultValue.IsNull() {
 			_log.InfoContext(ctx, "Default value found for input")
 			var err error
-			val, err := plugindata.CtyToPluginDataWithType(input.DefaultValue, input.Type)
+			val, err := input.ParseDefaultValue()
 			if err != nil {
 				_log.ErrorContext(ctx, "Error while parsing default value for input", "err", err)
 				return nil, diagnostics.Diag{

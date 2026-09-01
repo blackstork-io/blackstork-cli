@@ -90,15 +90,18 @@ func EncodeContent(src plugin.Content) *Content {
 
 func encodeBlockDetails(src *plugin.BlockDetails) BlockDetails {
 	depth := max(src.Depth, 0)
+	var encodedDepth uint32
 	if uint64(depth) > uint64(math.MaxUint32) {
-		depth = math.MaxUint32
+		encodedDepth = math.MaxUint32
+	} else {
+		encodedDepth = uint32(depth)
 	}
 	return BlockDetails{
 		Kind:   src.Kind,
 		Runner: src.Runner,
 		Name:   src.Name,
 		Id:     src.ID,
-		Depth:  uint32(depth),
+		Depth:  encodedDepth,
 	}
 }
 

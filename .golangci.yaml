@@ -73,6 +73,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - (^|/)tmp($|/)
 severity:
   default: error
   rules:
@@ -89,10 +90,10 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/blackstork-io/fabric)
+        - prefix(github.com/blackstork-io/blackstork-cli)
     goimports:
       local-prefixes:
-        - github.com/blackstork-io/fabric
+        - github.com/blackstork-io/blackstork-cli
   exclusions:
     generated: lax
     paths:
@@ -104,3 +105,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - (^|/)tmp($|/)

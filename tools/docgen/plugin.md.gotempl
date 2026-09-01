@@ -7,9 +7,9 @@ plugin:
   tags: {{ formatTags .Tags }}
   version: "{{ .Version }}"
   {{- if eq (shortname .Name) "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ shortname .Name }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/{{ shortname .Name }}/"
   {{- end }}
 type: docs
 hideInMenu: true

@@ -4,8 +4,8 @@ plugin:
   name: blackstork/graphql
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/graphql/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/graphql/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/graphql" "graphql" "v0.4.2" "graphql" "data source" >}}
+{{< plugin-resource-header "blackstork/graphql" "graphql" "v1.0.0-rc1" "graphql" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `graphql` data source locally via `blackstork-cli`, you must declare 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/graphql" = ">= v0.4.2"
+    "blackstork/graphql" = ">= v1.0.0-rc1"
   }
 }
 ```

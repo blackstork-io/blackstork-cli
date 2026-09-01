@@ -4,8 +4,8 @@ plugin:
   name: blackstork/postgresql
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/postgresql/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/postgresql/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/postgresql" "postgresql" "v0.4.2" "postgresql" "data source" >}}
+{{< plugin-resource-header "blackstork/postgresql" "postgresql" "v1.0.0-rc1" "postgresql" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `postgresql` data source locally via `blackstork-cli`, you must decla
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/postgresql" = ">= v0.4.2"
+    "blackstork/postgresql" = ">= v1.0.0-rc1"
   }
 }
 ```

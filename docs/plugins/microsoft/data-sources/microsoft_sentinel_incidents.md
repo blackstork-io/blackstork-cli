@@ -4,8 +4,8 @@ plugin:
   name: blackstork/microsoft
   description: "The `microsoft_sentinel_incidents` data source fetches incidents from Microsoft Sentinel"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/microsoft/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v0.4.2" "microsoft_sentinel_incidents" "data source" >}}
+{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_sentinel_incidents" "data source" >}}
 
 ## Description
 The `microsoft_sentinel_incidents` data source fetches incidents from Microsoft Sentinel.
@@ -29,7 +29,7 @@ To use the `microsoft_sentinel_incidents` data source locally via `blackstork-cl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/microsoft" = ">= v0.4.2"
+    "blackstork/microsoft" = ">= v1.0.0-rc1"
   }
 }
 ```

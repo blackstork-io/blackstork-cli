@@ -4,8 +4,8 @@ plugin:
   name: blackstork/eclecticiq
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/eclecticiq/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/eclecticiq/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/eclecticiq" "eclecticiq" "v0.4.2" "eclecticiq_entities" "data source" >}}
+{{< plugin-resource-header "blackstork/eclecticiq" "eclecticiq" "v1.0.0-rc1" "eclecticiq_entities" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `eclecticiq_entities` data source locally via `blackstork-cli`, you m
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/eclecticiq" = ">= v0.4.2"
+    "blackstork/eclecticiq" = ">= v1.0.0-rc1"
   }
 }
 ```

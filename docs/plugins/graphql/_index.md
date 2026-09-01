@@ -5,13 +5,13 @@ plugin:
   name: blackstork/graphql
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/graphql/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/graphql/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/graphql" "graphql" "v0.4.2" >}}
+{{< plugin-header "blackstork/graphql" "graphql" "v1.0.0-rc1" >}}
 
 ## Installation
 
@@ -24,7 +24,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/graphql" = ">= v0.4.2"
+    "blackstork/graphql" = ">= v1.0.0-rc1"
   }
 }
 ```

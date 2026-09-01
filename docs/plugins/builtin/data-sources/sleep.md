@@ -4,8 +4,8 @@ plugin:
   name: blackstork/builtin
   description: "Sleeps for the specified duration. Useful for testing and debugging"
   tags: ["debug"]
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "sleep" "data source" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "sleep" "data source" >}}
 
 ## Description
 

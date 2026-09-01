@@ -4,8 +4,8 @@ plugin:
   name: blackstork/openai
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/openai/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/openai/"
 resource:
   type: content-provider
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/openai" "openai" "v0.4.2" "openai_text" "content provider" >}}
+{{< plugin-resource-header "blackstork/openai" "openai" "v1.0.0-rc1" "openai_text" "content provider" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `openai_text` content provider locally via `blackstork-cli`, you must
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/openai" = ">= v0.4.2"
+    "blackstork/openai" = ">= v1.0.0-rc1"
   }
 }
 ```

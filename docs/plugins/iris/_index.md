@@ -5,13 +5,13 @@ plugin:
   name: blackstork/iris
   description: "The `iris` plugin for Iris Incident Response platform."
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/iris/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/iris/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/iris" "iris" "v0.4.2" >}}
+{{< plugin-header "blackstork/iris" "iris" "v1.0.0-rc1" >}}
 
 ## Description
 The `iris` plugin for Iris Incident Response platform.
@@ -27,7 +27,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/iris" = ">= v0.4.2"
+    "blackstork/iris" = ">= v1.0.0-rc1"
   }
 }
 ```

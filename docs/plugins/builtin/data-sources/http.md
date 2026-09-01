@@ -4,8 +4,8 @@ plugin:
   name: blackstork/builtin
   description: "Fetches HTTP response from URL, parses its body and loads it"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: data-source
 type: docs
@@ -13,14 +13,14 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "http" "data source" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "http" "data source" >}}
 
 ## Description
 
 Fetches HTTP response from URL, parses its body and loads it.
 
 If the format of the response is not supported, data source will return response body as plain text.
-If format is supported, response body will be parsed and returned as a JSON object (fimilar to `file` data source).
+If the format is supported, the response body is parsed and returned as a JSON object, like the `file` data source.
 
 
 The `http` data source is built into the BlackStork engine. It is available out-of-the-box

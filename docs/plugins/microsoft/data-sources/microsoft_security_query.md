@@ -4,8 +4,8 @@ plugin:
   name: blackstork/microsoft
   description: "The `microsoft_defender_query` data source queries Microsoft Security API"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/microsoft/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v0.4.2" "microsoft_security_query" "data source" >}}
+{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_security_query" "data source" >}}
 
 ## Description
 The `microsoft_defender_query` data source queries Microsoft Security API.
@@ -29,7 +29,7 @@ To use the `microsoft_security_query` data source locally via `blackstork-cli`, 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/microsoft" = ">= v0.4.2"
+    "blackstork/microsoft" = ">= v1.0.0-rc1"
   }
 }
 ```

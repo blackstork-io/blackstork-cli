@@ -4,8 +4,8 @@ plugin:
   name: blackstork/builtin
   description: "Publishes content to local file"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: publisher
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "local_file" "publisher" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "local_file" "publisher" >}}
 
 The `local_file` publisher is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
@@ -27,7 +27,7 @@ This publisher does not accept any configuration arguments.
 This publisher accepts the following arguments within a `publish local_file` block:
 
 ```hcl
-# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+# The `publish` block also accepts the generic `format_ref` argument to link to a formatter.
 
 publish local_file {
   # Path to the file
@@ -39,5 +39,4 @@ publish local_file {
 }
 
 ```
-
 

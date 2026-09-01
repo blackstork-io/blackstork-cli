@@ -4,8 +4,8 @@ plugin:
   name: blackstork/splunk
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/splunk/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/splunk/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/splunk" "splunk" "v0.4.2" "splunk_search" "data source" >}}
+{{< plugin-resource-header "blackstork/splunk" "splunk" "v1.0.0-rc1" "splunk_search" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `splunk_search` data source locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/splunk" = ">= v0.4.2"
+    "blackstork/splunk" = ">= v1.0.0-rc1"
   }
 }
 ```

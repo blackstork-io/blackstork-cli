@@ -4,8 +4,8 @@ plugin:
   name: blackstork/stixview
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/stixview/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/stixview/"
 resource:
   type: content-provider
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/stixview" "stixview" "v0.4.2" "stixview" "content provider" >}}
+{{< plugin-resource-header "blackstork/stixview" "stixview" "v1.0.0-rc1" "stixview" "content provider" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `stixview` content provider locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/stixview" = ">= v0.4.2"
+    "blackstork/stixview" = ">= v1.0.0-rc1"
   }
 }
 ```

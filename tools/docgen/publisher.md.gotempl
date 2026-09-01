@@ -6,9 +6,9 @@ plugin:
   tags: {{ formatTags .publisher.Tags }}
   version: "{{ .plugin.Version }}"
   {{- if eq .plugin_shortname "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ .plugin_shortname }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/{{ .plugin_shortname }}/"
   {{- end }}
 resource:
   type: publisher
@@ -55,7 +55,7 @@ This publisher supports the delivery of documents formatted by the following for
 - `{{ . }}`
 {{- end }}
 
-To specify the format, use the `format_ref` argument inside the `publish` block to reference a specific standalone `format` block  or a format block defined inside the current document (requires `document.` prefix)
+Use `format_ref` in the `publish` block to reference a root-level `format` block or a format block in the current document. References to in-document blocks require the `document.` prefix.
 {{ end }}
 
 ## Configuration
@@ -76,11 +76,10 @@ This publisher does not accept any configuration arguments.
 This publisher accepts the following arguments within a `publish {{ $ctx.name }}` block:
 
 ```hcl
-# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+# The `publish` block also accepts the generic `format_ref` argument to link to a formatter.
 
 {{ renderDoc . "publish" $ctx.name }}
 ```
 {{ else }}
 This publisher does not accept any execution arguments.
 {{ end }}
-

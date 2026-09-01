@@ -4,8 +4,8 @@ plugin:
   name: blackstork/builtin
   description: "Publish documents to BlackStork cloud"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: publisher
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "hub" "publisher" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "hub" "publisher" >}}
 
 The `hub` publisher is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 
@@ -48,11 +48,10 @@ config publish hub {
 This publisher accepts the following arguments within a `publish hub` block:
 
 ```hcl
-# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+# The `publish` block also accepts the generic `format_ref` argument to link to a formatter.
 
 publish hub {
 }
 
 ```
-
 

@@ -4,8 +4,8 @@ plugin:
   name: blackstork/iris
   description: "Retrieve cases from Iris API"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/iris/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/iris/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/iris" "iris" "v0.4.2" "iris_cases" "data source" >}}
+{{< plugin-resource-header "blackstork/iris" "iris" "v1.0.0-rc1" "iris_cases" "data source" >}}
 
 ## Description
 Retrieve cases from Iris API
@@ -29,7 +29,7 @@ To use the `iris_cases` data source locally via `blackstork-cli`, you must decla
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/iris" = ">= v0.4.2"
+    "blackstork/iris" = ">= v1.0.0-rc1"
   }
 }
 ```

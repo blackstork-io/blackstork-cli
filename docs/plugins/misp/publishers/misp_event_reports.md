@@ -4,8 +4,8 @@ plugin:
   name: blackstork/misp
   description: "Publishes content to misp event reports"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/misp/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/misp/"
 resource:
   type: publisher
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/misp" "misp" "v0.4.2" "misp_event_reports" "publisher" >}}
+{{< plugin-resource-header "blackstork/misp" "misp" "v1.0.0-rc1" "misp_event_reports" "publisher" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `misp_event_reports` publisher locally via `blackstork-cli`, you must
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/misp" = ">= v0.4.2"
+    "blackstork/misp" = ">= v1.0.0-rc1"
   }
 }
 ```
@@ -39,7 +39,7 @@ This publisher supports the delivery of documents formatted by the following for
 
 - `md`
 
-To specify the format, use the `format_ref` argument inside the `publish` block to reference a specific standalone `format` block  or a format block defined inside the current document (requires `document.` prefix)
+Use `format_ref` in the `publish` block to reference a root-level `format` block or a format block in the current document. References to in-document blocks require the `document.` prefix.
 
 
 ## Configuration
@@ -78,7 +78,7 @@ config publish misp_event_reports {
 This publisher accepts the following arguments within a `publish misp_event_reports` block:
 
 ```hcl
-# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+# The `publish` block also accepts the generic `format_ref` argument to link to a formatter.
 
 publish misp_event_reports {
   # Required string.
@@ -104,5 +104,4 @@ publish misp_event_reports {
 }
 
 ```
-
 

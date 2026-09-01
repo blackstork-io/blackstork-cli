@@ -6,9 +6,9 @@ plugin:
   tags: {{ formatTags .content_provider.Tags }}
   version: "{{ .plugin.Version }}"
   {{- if eq .plugin_shortname "nist_nvd" }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/nistnvd/"
   {{- else }}
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/{{ .plugin_shortname }}/"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/{{ .plugin_shortname }}/"
   {{- end }}
 resource:
   type: content-provider

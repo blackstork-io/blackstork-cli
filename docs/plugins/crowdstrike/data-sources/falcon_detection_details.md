@@ -4,8 +4,8 @@ plugin:
   name: blackstork/crowdstrike
   description: "The `falcon_detection_details` data source fetches detection details from Falcon API"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/crowdstrike/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v0.4.2" "falcon_detection_details" "data source" >}}
+{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_detection_details" "data source" >}}
 
 ## Description
 The `falcon_detection_details` data source fetches detection details from Falcon API.
@@ -29,7 +29,7 @@ To use the `falcon_detection_details` data source locally via `blackstork-cli`, 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/crowdstrike" = ">= v0.4.2"
+    "blackstork/crowdstrike" = ">= v1.0.0-rc1"
   }
 }
 ```

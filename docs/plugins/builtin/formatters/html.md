@@ -3,8 +3,8 @@ title: "`html` formatter"
 plugin:
   name: blackstork/builtin
   description: "Formats content in HTML"
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: formatter
 type: docs
@@ -12,7 +12,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v0.4.2" "html" "formatter" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "html" "formatter" >}}
 
 The `html` formatter is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

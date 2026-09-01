@@ -4,8 +4,8 @@ plugin:
   name: blackstork/elastic
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/elastic/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/elastic/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/elastic" "elastic" "v0.4.2" "elastic_security_cases" "data source" >}}
+{{< plugin-resource-header "blackstork/elastic" "elastic" "v1.0.0-rc1" "elastic_security_cases" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `elastic_security_cases` data source locally via `blackstork-cli`, yo
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/elastic" = ">= v0.4.2"
+    "blackstork/elastic" = ">= v1.0.0-rc1"
   }
 }
 ```

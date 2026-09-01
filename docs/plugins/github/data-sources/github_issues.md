@@ -4,8 +4,8 @@ plugin:
   name: blackstork/github
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/github/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/github" "github" "v0.4.2" "github_issues" "data source" >}}
+{{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_issues" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `github_issues` data source locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/github" = ">= v0.4.2"
+    "blackstork/github" = ">= v1.0.0-rc1"
   }
 }
 ```

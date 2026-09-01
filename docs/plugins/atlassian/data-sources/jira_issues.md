@@ -4,8 +4,8 @@ plugin:
   name: blackstork/atlassian
   description: "Retrieve issues from Jira"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/atlassian/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/atlassian/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/atlassian" "atlassian" "v0.4.2" "jira_issues" "data source" >}}
+{{< plugin-resource-header "blackstork/atlassian" "atlassian" "v1.0.0-rc1" "jira_issues" "data source" >}}
 
 ## Description
 Retrieve issues from Jira.
@@ -29,7 +29,7 @@ To use the `jira_issues` data source locally via `blackstork-cli`, you must decl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/atlassian" = ">= v0.4.2"
+    "blackstork/atlassian" = ">= v1.0.0-rc1"
   }
 }
 ```

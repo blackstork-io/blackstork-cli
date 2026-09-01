@@ -4,8 +4,8 @@ plugin:
   name: blackstork/github
   description: "Publishes content to github gist"
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/github/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
 resource:
   type: publisher
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/github" "github" "v0.4.2" "github_gist" "publisher" >}}
+{{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_gist" "publisher" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `github_gist` publisher locally via `blackstork-cli`, you must declar
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/github" = ">= v0.4.2"
+    "blackstork/github" = ">= v1.0.0-rc1"
   }
 }
 ```
@@ -53,7 +53,7 @@ config publish github_gist {
 This publisher accepts the following arguments within a `publish github_gist` block:
 
 ```hcl
-# Note: The `publish` block also accepts the generic `format` argument to link to a formatter.
+# The `publish` block also accepts the generic `format_ref` argument to link to a formatter.
 
 publish github_gist {
   # Optional string.
@@ -74,5 +74,4 @@ publish github_gist {
 }
 
 ```
-
 

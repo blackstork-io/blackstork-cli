@@ -5,13 +5,13 @@ plugin:
   name: blackstork/snyk
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/snyk/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/snyk/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/snyk" "snyk" "v0.4.2" >}}
+{{< plugin-header "blackstork/snyk" "snyk" "v1.0.0-rc1" >}}
 
 ## Installation
 
@@ -24,7 +24,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/snyk" = ">= v0.4.2"
+    "blackstork/snyk" = ">= v1.0.0-rc1"
   }
 }
 ```

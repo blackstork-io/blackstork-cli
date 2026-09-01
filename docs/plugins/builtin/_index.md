@@ -5,13 +5,13 @@ plugin:
   name: blackstork/builtin
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/builtin/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/builtin" "builtin" "v0.4.2" >}}
+{{< plugin-header "blackstork/builtin" "builtin" "v1.0.0-rc1" >}}
 
 The `blackstork/builtin` plugin is built directly into the BlackStork engine. Its components are available out-of-the-box and require no installation or dependency declaration.
 

@@ -5,13 +5,13 @@ plugin:
   name: blackstork/nist_nvd
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/nistnvd/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/nistnvd/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/nist_nvd" "nist_nvd" "v0.4.2" >}}
+{{< plugin-header "blackstork/nist_nvd" "nist_nvd" "v1.0.0-rc1" >}}
 
 ## Installation
 
@@ -24,7 +24,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/nist_nvd" = ">= v0.4.2"
+    "blackstork/nist_nvd" = ">= v1.0.0-rc1"
   }
 }
 ```

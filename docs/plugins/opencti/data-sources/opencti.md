@@ -4,8 +4,8 @@ plugin:
   name: blackstork/opencti
   description: ""
   tags: []
-  version: "v0.4.2"
-  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/internal/opencti/"
+  version: "v1.0.0-rc1"
+  source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/opencti/"
 resource:
   type: data-source
 type: docs
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/opencti" "opencti" "v0.4.2" "opencti" "data source" >}}
+{{< plugin-resource-header "blackstork/opencti" "opencti" "v1.0.0-rc1" "opencti" "data source" >}}
 
 ## Installation
 
@@ -26,7 +26,7 @@ To use the `opencti` data source locally via `blackstork-cli`, you must declare 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/opencti" = ">= v0.4.2"
+    "blackstork/opencti" = ">= v1.0.0-rc1"
   }
 }
 ```

@@ -56,7 +56,7 @@ func (g *GlobalConfigDef) Parse(
 
 func (g *GlobalConfigDef) parseEnvVarPattern(
 	ctx context.Context,
-) (pat glob.Glob, diags diagnostics.Diag) {
+) (pat *glob.Pattern, diags diagnostics.Diag) {
 	attr, found := utils.Pop(g.block.Body.Attributes, patternName)
 	if !found {
 		return DefaultEnvVarsPattern, nil
@@ -113,7 +113,7 @@ type GlobalConfig struct {
 	CacheDir       string            `hcl:"cache_dir,optional"`
 	PluginRegistry *PluginRegistry   `hcl:"plugin_registry,block"`
 	PluginVersions map[string]string `hcl:"plugin_versions,optional"`
-	EnvVarsPattern glob.Glob
+	EnvVarsPattern *glob.Pattern
 }
 
 type PluginRegistry struct {

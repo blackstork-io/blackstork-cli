@@ -22,23 +22,24 @@ import (
 func TestAddIfMissing(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	m := map[string]*definitions_mocks.FabricBlock{}
+	m := map[string]*definitions_mocks.BlockDef{}
 
-	m1 := definitions_mocks.NewFabricBlock(t)
+	m1 := definitions_mocks.NewBlockDef(t)
+	m1.EXPECT().Kind().Return("content").Once()
 	m1.EXPECT().GetHCLBlock().Return(&hclsyntax.Block{})
 
 	diag := parser.AddIfMissing(m, "key_1", m1)
 	assert.Empty(diag)
 	assert.Same(m1, m["key_1"])
 
-	m2 := definitions_mocks.NewFabricBlock(t)
+	m2 := definitions_mocks.NewBlockDef(t)
 
 	diag = parser.AddIfMissing(m, "key_2", m2)
 	assert.Empty(diag)
 	assert.Same(m1, m["key_1"])
 	assert.Same(m2, m["key_2"])
 
-	m3 := definitions_mocks.NewFabricBlock(t)
+	m3 := definitions_mocks.NewBlockDef(t)
 	m3.EXPECT().GetHCLBlock().Return(&hclsyntax.Block{}).Once()
 
 	diag = parser.AddIfMissing(m, "key_1", m3)

@@ -12,6 +12,7 @@ package eval
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2"
@@ -50,6 +51,18 @@ func (a *PluginDataAction) ID() string {
 		a.id = uid.String()
 	}
 	return a.id
+}
+
+func (a *PluginDataAction) FullBlockName() string {
+	blocks := []string{
+		definitions.BlockKindData,
+		a.RunnerName,
+	}
+	if a.BlockName != "" {
+		blocks = append(blocks, a.BlockName)
+	}
+
+	return strings.Join(blocks, ".")
 }
 
 // func (a *PluginDataAction) GetDetails() plugin.BlockDetails {

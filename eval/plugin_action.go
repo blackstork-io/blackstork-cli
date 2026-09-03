@@ -10,8 +10,6 @@
 package eval
 
 import (
-	"strings"
-
 	"github.com/blackstork-io/blackstork-cli/specs/dataspec"
 	"github.com/blackstork-io/blackstork-cli/specs/definitions"
 )
@@ -25,22 +23,4 @@ type PluginAction struct {
 	meta   *definitions.MetaBlock
 	Config *dataspec.Block
 	Args   *dataspec.Block
-}
-
-func (a *PluginAction) FullBlockName() string {
-	blocks := []string{}
-
-	// Source can be nil for manually created actions
-	if a.Source != nil {
-		// block kind
-		blocks = append(blocks, a.Source.GetSourceKind())
-	}
-
-	blocks = append(blocks, a.RunnerName)
-
-	if a.BlockName != "" {
-		blocks = append(blocks, a.BlockName)
-	}
-
-	return strings.Join(blocks, ".")
 }

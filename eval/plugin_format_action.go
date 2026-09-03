@@ -12,6 +12,7 @@ package eval
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -49,6 +50,18 @@ func (a *PluginFormatAction) Execute(
 
 func (a *PluginFormatAction) Meta() *definitions.MetaBlock {
 	return a.meta
+}
+
+func (a *PluginFormatAction) FullBlockName() string {
+	blocks := []string{
+		definitions.BlockKindFormat,
+		a.RunnerName,
+	}
+	if a.BlockName != "" {
+		blocks = append(blocks, a.BlockName)
+	}
+
+	return strings.Join(blocks, ".")
 }
 
 func LoadPluginFormatAction(

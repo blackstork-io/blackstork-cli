@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Build fabric and plugins
+      - name: Build blackstork-cli and plugins
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser

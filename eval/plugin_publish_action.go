@@ -12,6 +12,7 @@ package eval
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -28,21 +29,33 @@ type PluginPublishAction struct {
 	Format    *PluginFormatAction
 }
 
-func (block *PluginPublishAction) Publish(
+func (a *PluginPublishAction) Publish(
 	ctx context.Context,
 	dataCtx plugindata.Map,
 	content plugin.Content,
 	formattedContent *plugin.FormattedContent,
 	documentName string,
 ) diagnostics.Diag {
-	return block.Publisher.Execute(ctx, &plugin.PublishParams{
-		Config:           block.Config,
-		Args:             block.Args,
+	return a.Publisher.Execute(ctx, &plugin.PublishParams{
+		Config:           a.Config,
+		Args:             a.Args,
 		DataContext:      dataCtx,
 		DocumentName:     documentName,
 		Content:          content,
 		FormattedContent: formattedContent,
 	})
+}
+
+func (a *PluginPublishAction) FullBlockName() string {
+	blocks := []string{
+		definitions.BlockKindPublish,
+		a.RunnerName,
+	}
+	if a.BlockName != "" {
+		blocks = append(blocks, a.BlockName)
+	}
+
+	return strings.Join(blocks, ".")
 }
 
 func LoadPluginPublishAction(

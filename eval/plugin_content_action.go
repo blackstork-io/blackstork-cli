@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2"
@@ -101,6 +102,18 @@ func (a *PluginContentAction) ID() string {
 		a.makeNewID()
 	}
 	return a.id
+}
+
+func (a *PluginContentAction) FullBlockName() string {
+	blocks := []string{
+		definitions.BlockKindContent,
+		a.RunnerName,
+	}
+	if a.BlockName != "" {
+		blocks = append(blocks, a.BlockName)
+	}
+
+	return strings.Join(blocks, ".")
 }
 
 func (a *PluginContentAction) RenderContent(

@@ -7,27 +7,24 @@
 // Source License, use of this software will be governed by the Apache License,
 // Version 2.0, included in the file .licenses/APACHE-2.0.txt.
 
-package parser_test
+package parser
 
 import (
 	"testing"
 	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/blackstork-io/blackstork-cli/parser"
 )
 
 func TestFindFiles(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	fs := fstest.MapFS{
-		"f1.fabric":            &fstest.MapFile{},
-		"f2.fAbRiC":            &fstest.MapFile{},
-		"f1.blackstork.hcl":    &fstest.MapFile{},
-		"f3.not_fabric":        &fstest.MapFile{},
-		"subdir/f4.fAbRiC":     &fstest.MapFile{},
-		"subdir/f5.not_fabric": &fstest.MapFile{},
+		"f1.blackstork.hcl":        &fstest.MapFile{},
+		"f2.BLACKSTORK.HCL":        &fstest.MapFile{},
+		"f3.not_blackstork":        &fstest.MapFile{},
+		"subdir/f4.blackstork.hcl": &fstest.MapFile{},
+		"subdir/f5.not_blackstork": &fstest.MapFile{},
 	}
 
 	type testCase struct {
@@ -41,17 +38,15 @@ func TestFindFiles(t *testing.T) {
 			name:      "Recursive",
 			recursive: true,
 			expected: []string{
-				"f1.fabric",
-				"f2.fAbRiC",
-				"subdir/f4.fAbRiC",
+				"f1.blackstork.hcl",
+				"subdir/f4.blackstork.hcl",
 			},
 		},
 		{
 			name:      "Non-recursive",
 			recursive: false,
 			expected: []string{
-				"f1.fabric",
-				"f2.fAbRiC",
+				"f1.blackstork.hcl",
 			},
 		},
 	}
@@ -62,9 +57,7 @@ func TestFindFiles(t *testing.T) {
 			t.Parallel()
 			var res []string
 
-			diags := parser.FindFabricFiles(fs, tc.recursive, func(path string) {
-				res = append(res, path)
-			})
+			res, diags := findTemplateFiles(fs, tc.recursive)
 
 			assert.Equal(
 				tc.expected,

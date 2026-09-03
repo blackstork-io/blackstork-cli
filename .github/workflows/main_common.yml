@@ -34,9 +34,9 @@ jobs:
           echo "SHA=$(git merge-base origin/main @)" >> $GITHUB_OUTPUT
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.60.2
+          version: v2.13.1
           only-new-issues: false
           args: "--new-from-rev ${{ steps.golangci-rev.outputs.SHA }}"
 

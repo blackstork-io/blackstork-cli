@@ -12,6 +12,15 @@ bin/*
 *.dylib
 .DS_Store
 
+# Local environment and credential files
+.env
+.env.*
+!.env.example
+*-creds.txt
+
+# Local backups
+*.bak
+
 # Vale will install modules in `.vale/style` and those should not be in version control
 .github/styles/*
 !.github/styles/config
@@ -33,3 +42,4 @@ dist/
 .fabric
 .fabric-lock.json
 todo.md
+tmp/

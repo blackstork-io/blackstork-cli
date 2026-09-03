@@ -67,7 +67,7 @@ func makeListContentProvider() *plugin.ContentProvider {
 				},
 			},
 		},
-		Doc: "Produces a list of items",
+		Doc: "Renders a list of data items as an ordered or unordered list. Use `item_template` to control how each item appears.",
 	}
 }
 

@@ -126,6 +126,7 @@ func (c *genkitClient) GenerateText(ctx context.Context, modelName, systemPrompt
 
 func makeLLMTextContentProvider() *plugin.ContentProvider {
 	return &plugin.ContentProvider{
+		Doc: "Generates text from a Go-templated prompt using the configured LLM vendor and model. Supports Google, OpenAI, Anthropic, Ollama, and xAI models.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

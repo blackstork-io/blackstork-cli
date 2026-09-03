@@ -2,7 +2,7 @@
 title: "`falcon_vulnerabilities` data source"
 plugin:
   name: blackstork/crowdstrike
-  description: "The `falcon_vulnerabilities` data source fetches environment vulnerabilities from Falcon Spotlight API"
+  description: "Retrieves vulnerabilities detected in the environment by CrowdStrike Falcon Spotlight. Supports Falcon Query Language (FQL) filtering and sorting"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_vulnerabilities" "data source" >}}
 
 ## Description
-The `falcon_vulnerabilities` data source fetches environment vulnerabilities from Falcon Spotlight API.
+Retrieves vulnerabilities detected in the environment by CrowdStrike Falcon Spotlight. Supports Falcon Query Language (FQL) filtering and sorting.
 
 ## Installation
 

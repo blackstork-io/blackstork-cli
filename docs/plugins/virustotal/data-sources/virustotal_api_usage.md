@@ -2,7 +2,7 @@
 title: "`virustotal_api_usage` data source"
 plugin:
   name: blackstork/virustotal
-  description: ""
+  description: "Retrieves VirusTotal API usage statistics for a user or group, optionally limited to a date range"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/virustotal/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/virustotal" "virustotal" "v1.0.0-rc1" "virustotal_api_usage" "data source" >}}
+
+## Description
+Retrieves VirusTotal API usage statistics for a user or group, optionally limited to a date range.
 
 ## Installation
 

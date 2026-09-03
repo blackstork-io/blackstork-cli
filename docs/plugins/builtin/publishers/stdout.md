@@ -2,7 +2,7 @@
 title: "`stdout` publisher"
 plugin:
   name: blackstork/builtin
-  description: "Publishes content to stdout"
+  description: "Writes the rendered document to standard output."
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "stdout" "publisher" >}}
+
+## Description
+Writes the rendered document to standard output.
 
 The `stdout` publisher is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

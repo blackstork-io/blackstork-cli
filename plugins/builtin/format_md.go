@@ -49,7 +49,7 @@ func makeMarkdownFormatter(log *slog.Logger, tracer trace.Tracer) *plugin.Format
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Formatter{
-		Doc:     "Formats content in Markdown",
+		Doc:     "Renders a document as Markdown, with optional YAML, TOML, or JSON front matter.",
 		Format:  formatMarkdown,
 		FileExt: "md",
 		Args: &dataspec.RootSpec{

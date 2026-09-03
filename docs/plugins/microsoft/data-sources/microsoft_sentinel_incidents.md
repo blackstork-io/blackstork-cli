@@ -2,7 +2,7 @@
 title: "`microsoft_sentinel_incidents` data source"
 plugin:
   name: blackstork/microsoft
-  description: "The `microsoft_sentinel_incidents` data source fetches incidents from Microsoft Sentinel"
+  description: "Retrieves incidents from a Microsoft Sentinel workspace. Supports OData filtering, ordering, and result limits"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_sentinel_incidents" "data source" >}}
 
 ## Description
-The `microsoft_sentinel_incidents` data source fetches incidents from Microsoft Sentinel.
+Retrieves incidents from a Microsoft Sentinel workspace. Supports OData filtering, ordering, and result limits.
 
 ## Installation
 

@@ -2,7 +2,7 @@
 title: "`falcon_discover_host_details` data source"
 plugin:
   name: blackstork/crowdstrike
-  description: "The `falcon_discover_host_details` data source fetches host details from Falcon Discover Host API"
+  description: "Retrieves host details from CrowdStrike Falcon Discover, optionally filtered with Falcon Query Language (FQL). Returns a list of host records"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_discover_host_details" "data source" >}}
 
 ## Description
-The `falcon_discover_host_details` data source fetches host details from Falcon Discover Host API.
+Retrieves host details from CrowdStrike Falcon Discover, optionally filtered with Falcon Query Language (FQL). Returns a list of host records.
 
 ## Installation
 

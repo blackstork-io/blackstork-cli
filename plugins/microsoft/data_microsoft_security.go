@@ -25,7 +25,7 @@ import (
 
 func makeMicrosoftSecurityDataSource(loader MicrosoftSecurityClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `microsoft_security` data source queries Microsoft Security API.",
+		Doc:      "Sends a GET request to a Microsoft Security API endpoint and returns one object or a paginated list of objects.",
 		DataFunc: fetchMicrosoftSecurity(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

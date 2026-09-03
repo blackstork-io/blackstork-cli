@@ -30,6 +30,7 @@ import (
 
 func makeGraphQLDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Executes a GraphQL query against an HTTP endpoint and returns the decoded JSON response. Supports bearer-token authentication.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

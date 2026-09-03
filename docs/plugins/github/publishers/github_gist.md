@@ -2,7 +2,7 @@
 title: "`github_gist` publisher"
 plugin:
   name: blackstork/github
-  description: "Publishes content to github gist"
+  description: "Creates a GitHub Gist from the rendered document or updates an existing Gist when `gist_id` is provided."
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_gist" "publisher" >}}
+
+## Description
+Creates a GitHub Gist from the rendered document or updates an existing Gist when `gist_id` is provided.
 
 ## Installation
 

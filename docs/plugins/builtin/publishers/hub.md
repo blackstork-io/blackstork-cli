@@ -2,7 +2,7 @@
 title: "`hub` publisher"
 plugin:
   name: blackstork/builtin
-  description: "Publish documents to BlackStork cloud"
+  description: "Publishes the rendered document to BlackStork SaaS."
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "hub" "publisher" >}}
+
+## Description
+Publishes the rendered document to BlackStork SaaS.
 
 The `hub` publisher is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

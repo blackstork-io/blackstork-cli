@@ -2,7 +2,7 @@
 title: "`title` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Produces a heading block"
+  description: "Renders a Go-templated string as a heading"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -17,10 +17,10 @@ type: docs
 
 ## Description
 
-Produces a heading block.
+Renders a Go-templated string as a heading.
 
-The title size after calculations must be in an interval [1; 6] inclusive, where 1
-corresponds to the largest size (`<h1>`) and 6 corresponds to (`<h6>`)
+The final heading level must be from 1 through 6. Level 1 is the largest heading
+(`<h1>` in HTML), and level 6 is the smallest (`<h6>`).
 
 
 The `title` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.

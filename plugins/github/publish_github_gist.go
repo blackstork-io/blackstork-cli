@@ -26,7 +26,7 @@ import (
 
 func makeGithubGistPublisher(loader ClientLoaderFn) *plugin.Publisher {
 	return &plugin.Publisher{
-		Doc:  "Publishes content to github gist",
+		Doc:  "Creates a GitHub Gist from the rendered document or updates an existing Gist when `gist_id` is provided.",
 		Tags: []string{},
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{{

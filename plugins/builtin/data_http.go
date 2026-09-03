@@ -117,15 +117,16 @@ func makeHTTPDataSource(version string) *plugin.DataSource {
 					Type:       cty.String,
 					OneOf:      constraint.OneOf(supportedResponseFormats),
 					DefaultVal: cty.NullVal(cty.String),
-					Doc:        `If provided, overrides response MIME type. If not provided, the format is deduced from response MIME type.`,
+					Doc:        `Response format. If omitted, the format is inferred from the response Content-Type header.`,
 				},
 			},
 		},
 		Doc: u.Dedent(`
-			Fetches HTTP response from URL, parses its body and loads it.
+			Sends an HTTP request and returns the response body as template data.
 
-			If the format of the response is not supported, data source will return response body as plain text.
-			If the format is supported, the response body is parsed and returned as a JSON object, like the ` + "`file`" + ` data source.
+			The response format is inferred from the Content-Type header unless ` + "`format`" + ` is set.
+			Supported structured formats are decoded into lists, objects, or scalar values. Other responses
+			are returned as plain text.
 		`),
 	}
 }

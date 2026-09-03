@@ -31,7 +31,7 @@ func makeBlockQuoteContentProvider() *plugin.ContentProvider {
 				Constraints: constraint.RequiredNonNull,
 			}},
 		},
-		Doc: "Formats text as a blockquote",
+		Doc: "Renders a Go-templated string as a block quote.",
 	}
 }
 

@@ -2,7 +2,7 @@
 title: "`blockquote` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Formats text as a blockquote"
+  description: "Renders a Go-templated string as a block quote"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "blockquote" "content provider" >}}
 
 ## Description
-Formats text as a blockquote
+Renders a Go-templated string as a block quote.
 
 The `blockquote` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

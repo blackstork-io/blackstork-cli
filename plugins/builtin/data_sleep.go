@@ -28,9 +28,7 @@ func makeSleepDataSource(log *slog.Logger) *plugin.DataSource {
 	log = log.With("data_source", "sleep")
 
 	return &plugin.DataSource{
-		Doc: `
-			Sleeps for the specified duration. Useful for testing and debugging.
-		`,
+		Doc:  "Pauses data retrieval for the specified duration and returns the start time, end time, and elapsed duration. Intended for testing and debugging.",
 		Tags: []string{"debug"},
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

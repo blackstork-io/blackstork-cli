@@ -25,7 +25,7 @@ import (
 
 func makeJiraIssuesDataSource(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "Retrieve issues from Jira.",
+		Doc:      "Retrieves Jira Cloud issues that match the supplied JQL and field-selection options. Returns a list of issue objects.",
 		DataFunc: searchJiraIssuesData(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

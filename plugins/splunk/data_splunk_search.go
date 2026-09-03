@@ -29,6 +29,7 @@ import (
 
 func makeSplunkSearchDataSchema(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Runs a blocking Splunk search job and returns its results. Supports time bounds, result limits, status buckets, and required fields.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

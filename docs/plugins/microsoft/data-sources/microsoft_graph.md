@@ -2,7 +2,7 @@
 title: "`microsoft_graph` data source"
 plugin:
   name: blackstork/microsoft
-  description: "The `microsoft_graph` data source queries Microsoft Graph API"
+  description: "Sends a GET request to a Microsoft Graph endpoint and returns one object or a paginated list of objects"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_graph" "data source" >}}
 
 ## Description
-The `microsoft_graph` data source queries Microsoft Graph API.
+Sends a GET request to a Microsoft Graph endpoint and returns one object or a paginated list of objects.
 
 ## Installation
 

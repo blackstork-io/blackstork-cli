@@ -26,7 +26,7 @@ import (
 
 func makeFalconIntelIndicatorsDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `falcon_intel_indicators` data source fetches intel indicators from Falcon API.",
+		Doc:      "Retrieves threat intelligence indicators from CrowdStrike Falcon Intelligence. Supports Falcon Query Language (FQL) filtering and sorting.",
 		DataFunc: fetchFalconIntelIndicatorsData(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

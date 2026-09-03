@@ -42,6 +42,7 @@ type ExtendedEntity struct {
 
 func makeEIQEntitiesDataSource(log *slog.Logger, loader EIQClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves EclecticIQ Intelligence Center entities by ID or Lucene query. Results can include related entities of selected types and associated observables.",
 		DataFunc: fetchEIQEntities(log, loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

@@ -2,7 +2,7 @@
 title: "`github_issues` data source"
 plugin:
   name: blackstork/github
-  description: ""
+  description: "Retrieves issues from a GitHub repository. Supports filtering by milestone, assignee, creator, mentioned user, labels, state, and an updated-since timestamp"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_issues" "data source" >}}
+
+## Description
+Retrieves issues from a GitHub repository. Supports filtering by milestone, assignee, creator, mentioned user, labels, state, and an updated-since timestamp.
 
 ## Installation
 

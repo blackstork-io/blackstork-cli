@@ -2,7 +2,7 @@
 title: "`graphql` data source"
 plugin:
   name: blackstork/graphql
-  description: ""
+  description: "Executes a GraphQL query against an HTTP endpoint and returns the decoded JSON response. Supports bearer-token authentication"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/graphql/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/graphql" "graphql" "v1.0.0-rc1" "graphql" "data source" >}}
+
+## Description
+Executes a GraphQL query against an HTTP endpoint and returns the decoded JSON response. Supports bearer-token authentication.
 
 ## Installation
 

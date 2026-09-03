@@ -26,7 +26,7 @@ import (
 
 func makeMispEventsDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `misp_events` data source fetches MISP events",
+		Doc:      "Retrieves events from MISP using the events REST search endpoint. Returns the matching event records.",
 		DataFunc: fetchMispEventsData(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

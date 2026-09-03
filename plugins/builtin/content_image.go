@@ -40,7 +40,7 @@ func makeImageContentProvider() *plugin.ContentProvider {
 				},
 			},
 		},
-		Doc: "Renders an image",
+		Doc: "Renders an image from a Go-templated source URL or path, with optional alternative text.",
 	}
 }
 

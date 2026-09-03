@@ -29,6 +29,7 @@ import (
 
 func makePostgreSQLDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Runs a parameterized SQL query against PostgreSQL and returns the result rows as a list of objects keyed by column name.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

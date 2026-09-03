@@ -83,50 +83,24 @@ func makeFileDataSource(log *slog.Logger) *plugin.DataSource {
 		},
 		Doc: u.Dedent(
 			`
-			Loads files with the names that match provided ` + "`glob`" + ` pattern or a single file from provided ` + "`path`" + `value.
+			Reads local JSON, YAML, CSV, or text files and returns their contents as template data.
 
-			Either ` + "`glob`" + ` or ` + "`path`" + ` must be set.
-
-			When ` + "`path`" + ` argument is specified, the data source returns only the content of a file.
-			When ` + "`glob`" + ` argument is specified, the data source returns a list of dicts that contain the content of a file and file's metadata. For example:
+			Set either ` + "`path`" + ` to read one file or ` + "`glob`" + ` to read every matching file.
+			With ` + "`path`" + `, the data source returns the decoded file contents directly. With ` + "`glob`" + `,
+			it returns a list containing each file's path, name, and decoded contents:
 
 			` + "```json" + `
 			[
 			  {
 			    "file_path": "path/file-a.json",
 			    "file_name": "file-a.json",
-			    "content": {
-			      "foo": "bar"
-			  }
-			  },
-			  {
-			    "file_path": "path/file-b.json",
-			    "file_name": "file-b.json",
-			    "content": [
-			      {"x": "y"}
-			    ]
+			    "content": {"foo": "bar"}
 			  }
 			]
 			` + "```" + `
 
-			If multiple files are matched, all files must have the same file format.
-
-			For CSV files, the data source assumes that CSV file has a header: each line of the file is turned into a map with the column titles as keys.
-
-			For example, CSV file with the following data:
-
-			| column_A | column_B | column_C |
-			| -------- | -------- | -------- |
-			| Foo      | true     | 42       |
-			| Bar      | false    | 4.2      |
-
-			will be represented as the following data structure:
-			` + "```json" + `
-			[
-			  {"column_A": "Foo", "column_B": true, "column_C": 42},
-			  {"column_A": "Bar", "column_B": false, "column_C": 4.2}
-			]
-			` + "```" + `
+			All files matched by a glob are decoded using the selected ` + "`format`" + `. CSV input must
+			include a header row; each subsequent row is returned as an object keyed by the column names.
 			`,
 		),
 	}

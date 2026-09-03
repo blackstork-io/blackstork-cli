@@ -26,7 +26,7 @@ import (
 
 func makeMicrosoftSecurityQueryDataSource(loader MicrosoftSecurityClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `microsoft_defender_query` data source queries Microsoft Security API.",
+		Doc:      "Runs a Microsoft Defender XDR advanced hunting query and returns the query results.",
 		DataFunc: fetchMicrosoftSecurityQuery(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

@@ -2,7 +2,7 @@
 title: "`splunk_search` data source"
 plugin:
   name: blackstork/splunk
-  description: ""
+  description: "Runs a blocking Splunk search job and returns its results. Supports time bounds, result limits, status buckets, and required fields"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/splunk/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/splunk" "splunk" "v1.0.0-rc1" "splunk_search" "data source" >}}
+
+## Description
+Runs a blocking Splunk search job and returns its results. Supports time bounds, result limits, status buckets, and required fields.
 
 ## Installation
 

@@ -32,6 +32,7 @@ const (
 
 func makeElasticSecurityCasesDataSource(loader KibanaClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves Elastic Security cases from Kibana. Supports filtering, searching, sorting, and limiting the returned cases.",
 		DataFunc: fetchElasticSecurityCases(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

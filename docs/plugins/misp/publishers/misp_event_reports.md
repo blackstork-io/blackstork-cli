@@ -2,7 +2,7 @@
 title: "`misp_event_reports` publisher"
 plugin:
   name: blackstork/misp
-  description: "Publishes content to misp event reports"
+  description: "Publishes a Markdown document as an Event Report attached to an existing MISP event."
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/misp/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/misp" "misp" "v1.0.0-rc1" "misp_event_reports" "publisher" >}}
+
+## Description
+Publishes a Markdown document as an Event Report attached to an existing MISP event.
 
 ## Installation
 

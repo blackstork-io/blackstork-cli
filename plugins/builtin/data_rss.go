@@ -159,9 +159,10 @@ func makeRSSDataSource() *plugin.DataSource {
 			},
 		},
 		Doc: utils.Dedent(`
-		Fetches RSS / Atom / JSON feed from a provided URL.
+		Retrieves and parses an RSS, Atom, or JSON Feed from a URL.
 
-		The full content of the items can be fetched and added to the feed. The data source supports basic authentication.
+		Results can be filtered by publication date and item count. The data source can also fetch
+		and sanitize each item's linked page, and it supports HTTP basic authentication.
 		`),
 	}
 }

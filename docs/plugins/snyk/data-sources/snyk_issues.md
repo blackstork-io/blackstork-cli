@@ -2,7 +2,7 @@
 title: "`snyk_issues` data source"
 plugin:
   name: blackstork/snyk
-  description: "The `snyk_issues` data source fetches issues from Snyk"
+  description: "Retrieves issues from Snyk. Supports group, organization, scan item, issue type, severity, status, ignored state, and date filters"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/snyk/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/snyk" "snyk" "v1.0.0-rc1" "snyk_issues" "data source" >}}
 
 ## Description
-The `snyk_issues` data source fetches issues from Snyk.
+Retrieves issues from Snyk. Supports group, organization, scan item, issue type, severity, status, ignored state, and date filters.
 
 ## Installation
 

@@ -2,7 +2,7 @@
 title: "`postgresql` data source"
 plugin:
   name: blackstork/postgresql
-  description: ""
+  description: "Runs a parameterized SQL query against PostgreSQL and returns the result rows as a list of objects keyed by column name"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/postgresql/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/postgresql" "postgresql" "v1.0.0-rc1" "postgresql" "data source" >}}
+
+## Description
+Runs a parameterized SQL query against PostgreSQL and returns the result rows as a list of objects keyed by column name.
 
 ## Installation
 

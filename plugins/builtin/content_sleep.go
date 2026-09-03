@@ -26,9 +26,7 @@ import (
 
 func makeSleepContentProvider(log *slog.Logger) *plugin.ContentProvider {
 	return &plugin.ContentProvider{
-		Doc: `
-			Sleeps for the specified duration. Useful for testing and debugging.
-		`,
+		Doc:  "Pauses content generation for the specified duration, then renders a confirmation message. Intended for testing and debugging.",
 		Tags: []string{"debug"},
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

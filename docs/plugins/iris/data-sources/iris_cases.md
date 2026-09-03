@@ -2,7 +2,7 @@
 title: "`iris_cases` data source"
 plugin:
   name: blackstork/iris
-  description: "Retrieve cases from Iris API"
+  description: "Retrieves cases from DFIR-IRIS. Supports filtering by case, customer, owner, severity, state, SOC, and opening date"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/iris/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/iris" "iris" "v1.0.0-rc1" "iris_cases" "data source" >}}
 
 ## Description
-Retrieve cases from Iris API
+Retrieves cases from DFIR-IRIS. Supports filtering by case, customer, owner, severity, state, SOC, and opening date.
 
 ## Installation
 

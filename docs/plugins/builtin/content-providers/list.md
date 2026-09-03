@@ -2,7 +2,7 @@
 title: "`list` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Produces a list of items"
+  description: "Renders a list of data items as an ordered or unordered list. Use `item_template` to control how each item appears"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "list" "content provider" >}}
 
 ## Description
-Produces a list of items
+Renders a list of data items as an ordered or unordered list. Use `item_template` to control how each item appears.
 
 The `list` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

@@ -2,7 +2,7 @@
 title: "`opencti` data source"
 plugin:
   name: blackstork/opencti
-  description: ""
+  description: "Executes a validated GraphQL query against an OpenCTI instance and returns the decoded response data"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/opencti/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/opencti" "opencti" "v1.0.0-rc1" "opencti" "data source" >}}
+
+## Description
+Executes a validated GraphQL query against an OpenCTI instance and returns the decoded response data.
 
 ## Installation
 

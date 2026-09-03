@@ -34,6 +34,7 @@ var stixViewTmpl = template.Must(template.New("stixview").Parse(stixViewTmplStr)
 
 func makeStixViewContentProvider() *plugin.ContentProvider {
 	return &plugin.ContentProvider{
+		Doc: "Embeds an interactive Stixview graph for STIX objects loaded from template data, a URL, or a GitHub Gist. This provider produces HTML content.",
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

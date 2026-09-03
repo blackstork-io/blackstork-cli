@@ -2,7 +2,7 @@
 title: "`misp_events` data source"
 plugin:
   name: blackstork/misp
-  description: "The `misp_events` data source fetches MISP events"
+  description: "Retrieves events from MISP using the events REST search endpoint. Returns the matching event records"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/misp/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/misp" "misp" "v1.0.0-rc1" "misp_events" "data source" >}}
 
 ## Description
-The `misp_events` data source fetches MISP events
+Retrieves events from MISP using the events REST search endpoint. Returns the matching event records.
 
 ## Installation
 

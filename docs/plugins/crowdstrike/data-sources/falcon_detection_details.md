@@ -2,7 +2,7 @@
 title: "`falcon_detection_details` data source"
 plugin:
   name: blackstork/crowdstrike
-  description: "The `falcon_detection_details` data source fetches detection details from Falcon API"
+  description: "Retrieves detection details from CrowdStrike Falcon, optionally filtered with Falcon Query Language (FQL). Returns a list of detection records"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_detection_details" "data source" >}}
 
 ## Description
-The `falcon_detection_details` data source fetches detection details from Falcon API.
+Retrieves detection details from CrowdStrike Falcon, optionally filtered with Falcon Query Language (FQL). Returns a list of detection records.
 
 ## Installation
 

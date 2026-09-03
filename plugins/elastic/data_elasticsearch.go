@@ -27,6 +27,7 @@ const maxSimpleSearchResultsSize = 10000
 
 func makeElasticSearchDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves documents and aggregations from Elasticsearch by document ID, query string, or Query DSL query.",
 		DataFunc: fetchElasticSearchData,
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

@@ -27,7 +27,7 @@ import (
 func makeIrisAlertsDataSource(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
 		DataFunc: fetchIrisAlertsData(loader),
-		Doc:      "Retrieve alerts from Iris API",
+		Doc:      "Retrieves alerts from DFIR-IRIS. Supports filtering by alert, case, customer, owner, severity, classification, state, source, tags, and date range.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

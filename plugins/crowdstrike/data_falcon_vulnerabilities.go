@@ -26,7 +26,7 @@ import (
 
 func makeFalconVulnerabilitiesDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `falcon_vulnerabilities` data source fetches environment vulnerabilities from Falcon Spotlight API.",
+		Doc:      "Retrieves vulnerabilities detected in the environment by CrowdStrike Falcon Spotlight. Supports Falcon Query Language (FQL) filtering and sorting.",
 		DataFunc: fetchFalconVulnerabilitiesData(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

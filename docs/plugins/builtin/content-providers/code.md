@@ -2,7 +2,7 @@
 title: "`code` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Formats text as a code snippet"
+  description: "Renders a Go-templated string as a code block with an optional language for syntax highlighting"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "code" "content provider" >}}
 
 ## Description
-Formats text as a code snippet
+Renders a Go-templated string as a code block with an optional language for syntax highlighting.
 
 The `code` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

@@ -30,6 +30,7 @@ import (
 
 func makeGithubIssuesDataSchema(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves issues from a GitHub repository. Supports filtering by milestone, assignee, creator, mentioned user, labels, state, and an updated-since timestamp.",
 		DataFunc: fetchGithubIssuesData(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

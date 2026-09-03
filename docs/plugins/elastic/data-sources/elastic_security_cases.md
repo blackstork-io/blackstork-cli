@@ -2,7 +2,7 @@
 title: "`elastic_security_cases` data source"
 plugin:
   name: blackstork/elastic
-  description: ""
+  description: "Retrieves Elastic Security cases from Kibana. Supports filtering, searching, sorting, and limiting the returned cases"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/elastic/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/elastic" "elastic" "v1.0.0-rc1" "elastic_security_cases" "data source" >}}
+
+## Description
+Retrieves Elastic Security cases from Kibana. Supports filtering, searching, sorting, and limiting the returned cases.
 
 ## Installation
 

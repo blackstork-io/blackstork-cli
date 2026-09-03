@@ -26,7 +26,7 @@ import (
 
 func makeIrisCasesDataSource(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "Retrieve cases from Iris API",
+		Doc:      "Retrieves cases from DFIR-IRIS. Supports filtering by case, customer, owner, severity, state, SOC, and opening date.",
 		DataFunc: fetchIrisCasesData(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

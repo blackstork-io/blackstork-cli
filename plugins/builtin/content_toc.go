@@ -78,7 +78,7 @@ func makeTOCContentProvider(log *slog.Logger) *plugin.ContentProvider {
 		ContentFunc: func(ctx context.Context, params *plugin.ProvideContentParams) (*plugin.ContentProviderResult, error) {
 			return genTOC(ctx, log, params)
 		},
-		Doc: `Renders a list of contents (TOC) from the headers found in a defined scope.`,
+		Doc: "Builds a table of contents from headings in the selected document scope. The result can be ordered or unordered and limited by heading level.",
 	}
 }
 

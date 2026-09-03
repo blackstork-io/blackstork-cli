@@ -27,6 +27,7 @@ import (
 
 func makeHackerOneReportsDataSchema(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Retrieves HackerOne reports available to the configured API account. Supports report, program, state, severity, assignee, reporter, and date filters.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

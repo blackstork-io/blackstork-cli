@@ -2,7 +2,7 @@
 title: "`sleep` data source"
 plugin:
   name: blackstork/builtin
-  description: "Sleeps for the specified duration. Useful for testing and debugging"
+  description: "Pauses data retrieval for the specified duration and returns the start time, end time, and elapsed duration. Intended for testing and debugging"
   tags: ["debug"]
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,9 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "sleep" "data source" >}}
 
 ## Description
-
-Sleeps for the specified duration. Useful for testing and debugging.
-
+Pauses data retrieval for the specified duration and returns the start time, end time, and elapsed duration. Intended for testing and debugging.
 
 The `sleep` data source is built into the BlackStork engine. It is available out-of-the-box
 and requires no installation or dependency declaration.

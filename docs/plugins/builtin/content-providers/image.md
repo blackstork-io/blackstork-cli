@@ -2,7 +2,7 @@
 title: "`image` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Renders an image"
+  description: "Renders an image from a Go-templated source URL or path, with optional alternative text"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "image" "content provider" >}}
 
 ## Description
-Renders an image
+Renders an image from a Go-templated source URL or path, with optional alternative text.
 
 The `image` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

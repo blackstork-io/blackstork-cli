@@ -29,7 +29,7 @@ import (
 
 func makeMispEventReportsPublisher(loader ClientLoaderFn) *plugin.Publisher {
 	return &plugin.Publisher{
-		Doc:    "Publishes content to misp event reports",
+		Doc:    "Publishes a Markdown document as an Event Report attached to an existing MISP event.",
 		Tags:   []string{},
 		Config: makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

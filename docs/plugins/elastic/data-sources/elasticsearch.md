@@ -2,7 +2,7 @@
 title: "`elasticsearch` data source"
 plugin:
   name: blackstork/elastic
-  description: ""
+  description: "Retrieves documents and aggregations from Elasticsearch by document ID, query string, or Query DSL query"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/elastic/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/elastic" "elastic" "v1.0.0-rc1" "elasticsearch" "data source" >}}
+
+## Description
+Retrieves documents and aggregations from Elasticsearch by document ID, query string, or Query DSL query.
 
 ## Installation
 

@@ -26,7 +26,7 @@ import (
 
 func makeFalconDiscoverHostDetailsDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `falcon_discover_host_details` data source fetches host details from Falcon Discover Host API.",
+		Doc:      "Retrieves host details from CrowdStrike Falcon Discover, optionally filtered with Falcon Query Language (FQL). Returns a list of host records.",
 		DataFunc: fetchFalconDiscoverHostDetails(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

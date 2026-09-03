@@ -66,7 +66,7 @@ func makeHTMLFormatter(logger *slog.Logger, tracer trace.Tracer) *plugin.Formatt
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Formatter{
-		Doc:     "Formats content in HTML",
+		Doc:     "Renders a document as HTML using configurable templates, inline styles and scripts, and external CSS or JavaScript resources.",
 		Format:  "html",
 		FileExt: "html",
 		Config: &dataspec.RootSpec{

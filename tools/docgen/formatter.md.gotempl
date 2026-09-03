@@ -18,9 +18,9 @@ type: docs
 
 {{"{{"}}< plugin-resource-header "{{ .plugin.Name }}" "{{ .plugin_shortname }}" "{{ .plugin.Version }}" "{{ .name }}" "formatter" >{{"}}"}}
 
-{{if .plugin.Doc -}}
+{{if .formatter.Doc -}}
 ## Description
-{{ .plugin.Doc }}
+{{ .formatter.Doc }}
 
 {{end -}}
 

@@ -27,7 +27,7 @@ import (
 
 func makeFalconDetectionDetailsDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `falcon_detection_details` data source fetches detection details from Falcon API.",
+		Doc:      "Retrieves detection details from CrowdStrike Falcon, optionally filtered with Falcon Query Language (FQL). Returns a list of detection records.",
 		DataFunc: fetchFalconDetectionDetailsData(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

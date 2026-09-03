@@ -2,7 +2,7 @@
 title: "`toc` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Renders a list of contents (TOC) from the headers found in a defined scope"
+  description: "Builds a table of contents from headings in the selected document scope. The result can be ordered or unordered and limited by heading level"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "toc" "content provider" >}}
 
 ## Description
-Renders a list of contents (TOC) from the headers found in a defined scope.
+Builds a table of contents from headings in the selected document scope. The result can be ordered or unordered and limited by heading level.
 
 The `toc` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

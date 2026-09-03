@@ -25,6 +25,7 @@ import (
 
 func makeTerraformStateLocalDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:    "Reads a local Terraform state file and returns its decoded JSON data.",
 		Config: nil,
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

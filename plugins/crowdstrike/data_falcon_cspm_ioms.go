@@ -26,7 +26,7 @@ import (
 
 func makeFalconCspmIomsDataSource(loader ClientLoaderFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `falcon_cspm_ioms` data source fetches cloud indicators of misconfigurations (IOMs) from the Falcon security posture management (CSPM) feature",
+		Doc:      "Retrieves cloud indicators of misconfiguration (IOMs) from CrowdStrike Falcon Cloud Security. Returns a list of IOM records.",
 		DataFunc: fetchFalconCspmIomsData(loader),
 		Config:   makeDataSourceConfig(),
 		Args: &dataspec.RootSpec{

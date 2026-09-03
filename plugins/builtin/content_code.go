@@ -40,7 +40,7 @@ func makeCodeContentProvider() *plugin.ContentProvider {
 				},
 			},
 		},
-		Doc: "Formats text as a code snippet",
+		Doc: "Renders a Go-templated string as a code block with an optional language for syntax highlighting.",
 	}
 }
 

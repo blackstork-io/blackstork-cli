@@ -2,7 +2,7 @@
 title: "`falcon_cspm_ioms` data source"
 plugin:
   name: blackstork/crowdstrike
-  description: "The `falcon_cspm_ioms` data source fetches cloud indicators of misconfigurations (IOMs) from the Falcon security posture management (CSPM) feature"
+  description: "Retrieves cloud indicators of misconfiguration (IOMs) from CrowdStrike Falcon Cloud Security. Returns a list of IOM records"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_cspm_ioms" "data source" >}}
 
 ## Description
-The `falcon_cspm_ioms` data source fetches cloud indicators of misconfigurations (IOMs) from the Falcon security posture management (CSPM) feature
+Retrieves cloud indicators of misconfiguration (IOMs) from CrowdStrike Falcon Cloud Security. Returns a list of IOM records.
 
 ## Installation
 

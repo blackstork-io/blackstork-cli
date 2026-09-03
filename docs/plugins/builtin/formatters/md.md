@@ -2,7 +2,7 @@
 title: "`md` formatter"
 plugin:
   name: blackstork/builtin
-  description: "Formats content in Markdown"
+  description: "Renders a document as Markdown, with optional YAML, TOML, or JSON front matter."
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
@@ -13,6 +13,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "md" "formatter" >}}
+
+## Description
+Renders a document as Markdown, with optional YAML, TOML, or JSON front matter.
 
 The `md` formatter is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

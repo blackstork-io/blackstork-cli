@@ -37,7 +37,7 @@ func makeHubPublisher(
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Publisher{
-		Doc:  "Publish documents to BlackStork cloud",
+		Doc:  "Publishes the rendered document to BlackStork SaaS.",
 		Tags: []string{},
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

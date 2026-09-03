@@ -28,6 +28,7 @@ import (
 
 func makeVirusTotalAPIUsageDataSchema(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves VirusTotal API usage statistics for a user or group, optionally limited to a date range.",
 		DataFunc: fetchVirusTotalAPIUsageData(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

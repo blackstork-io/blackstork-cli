@@ -32,7 +32,7 @@ func makeStdoutPublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publishe
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Publisher{
-		Doc:  "Publishes content to stdout",
+		Doc:  "Writes the rendered document to standard output.",
 		Tags: []string{},
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{},

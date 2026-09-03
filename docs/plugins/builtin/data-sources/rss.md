@@ -2,7 +2,7 @@
 title: "`rss` data source"
 plugin:
   name: blackstork/builtin
-  description: "Fetches RSS / Atom / JSON feed from a provided URL"
+  description: "Retrieves and parses an RSS, Atom, or JSON Feed from a URL"
   tags: ["rss","http"]
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -17,9 +17,10 @@ type: docs
 
 ## Description
 
-Fetches RSS / Atom / JSON feed from a provided URL.
+Retrieves and parses an RSS, Atom, or JSON Feed from a URL.
 
-The full content of the items can be fetched and added to the feed. The data source supports basic authentication.
+Results can be filtered by publication date and item count. The data source can also fetch
+and sanitize each item's linked page, and it supports HTTP basic authentication.
 
 
 The `rss` data source is built into the BlackStork engine. It is available out-of-the-box

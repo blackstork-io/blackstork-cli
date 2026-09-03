@@ -2,7 +2,7 @@
 title: "`microsoft_security` data source"
 plugin:
   name: blackstork/microsoft
-  description: "The `microsoft_security` data source queries Microsoft Security API"
+  description: "Sends a GET request to a Microsoft Security API endpoint and returns one object or a paginated list of objects"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_security" "data source" >}}
 
 ## Description
-The `microsoft_security` data source queries Microsoft Security API.
+Sends a GET request to a Microsoft Security API endpoint and returns one object or a paginated list of objects.
 
 ## Installation
 

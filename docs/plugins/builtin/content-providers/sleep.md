@@ -2,7 +2,7 @@
 title: "`sleep` content provider"
 plugin:
   name: blackstork/builtin
-  description: "Sleeps for the specified duration. Useful for testing and debugging"
+  description: "Pauses content generation for the specified duration, then renders a confirmation message. Intended for testing and debugging"
   tags: ["debug"]
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -16,9 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "sleep" "content provider" >}}
 
 ## Description
-
-Sleeps for the specified duration. Useful for testing and debugging.
-
+Pauses content generation for the specified duration, then renders a confirmation message. Intended for testing and debugging.
 
 The `sleep` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

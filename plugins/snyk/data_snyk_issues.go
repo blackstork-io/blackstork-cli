@@ -26,7 +26,7 @@ import (
 
 func makeSnykIssuesDataSource(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `snyk_issues` data source fetches issues from Snyk.",
+		Doc:      "Retrieves issues from Snyk. Supports group, organization, scan item, issue type, severity, status, ignored state, and date filters.",
 		DataFunc: fetchSnykIssues(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

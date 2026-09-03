@@ -2,7 +2,7 @@
 title: "`html` formatter"
 plugin:
   name: blackstork/builtin
-  description: "Formats content in HTML"
+  description: "Renders a document as HTML using configurable templates, inline styles and scripts, and external CSS or JavaScript resources."
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
@@ -13,6 +13,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "html" "formatter" >}}
+
+## Description
+Renders a document as HTML using configurable templates, inline styles and scripts, and external CSS or JavaScript resources.
 
 The `html` formatter is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

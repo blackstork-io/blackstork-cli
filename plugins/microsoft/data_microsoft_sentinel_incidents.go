@@ -43,7 +43,7 @@ func StringRef(val string) *string {
 
 func makeMicrosoftSentinelIncidentsDataSource(clientLoader AzureClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `microsoft_sentinel_incidents` data source fetches incidents from Microsoft Sentinel.",
+		Doc:      "Retrieves incidents from a Microsoft Sentinel workspace. Supports OData filtering, ordering, and result limits.",
 		DataFunc: fetchMicrosoftSentinelIncidents(clientLoader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

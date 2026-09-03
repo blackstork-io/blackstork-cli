@@ -2,7 +2,7 @@
 title: "`microsoft_security_query` data source"
 plugin:
   name: blackstork/microsoft
-  description: "The `microsoft_defender_query` data source queries Microsoft Security API"
+  description: "Runs a Microsoft Defender XDR advanced hunting query and returns the query results"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_security_query" "data source" >}}
 
 ## Description
-The `microsoft_defender_query` data source queries Microsoft Security API.
+Runs a Microsoft Defender XDR advanced hunting query and returns the query results.
 
 ## Installation
 

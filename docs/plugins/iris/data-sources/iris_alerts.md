@@ -2,7 +2,7 @@
 title: "`iris_alerts` data source"
 plugin:
   name: blackstork/iris
-  description: "Retrieve alerts from Iris API"
+  description: "Retrieves alerts from DFIR-IRIS. Supports filtering by alert, case, customer, owner, severity, classification, state, source, tags, and date range"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/iris/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/iris" "iris" "v1.0.0-rc1" "iris_alerts" "data source" >}}
 
 ## Description
-Retrieve alerts from Iris API
+Retrieves alerts from DFIR-IRIS. Supports filtering by alert, case, customer, owner, severity, classification, state, source, tags, and date range.
 
 ## Installation
 

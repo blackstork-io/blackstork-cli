@@ -41,7 +41,7 @@ func makeLocalFilePublisher(log *slog.Logger, tracer trace.Tracer) *plugin.Publi
 		tracer = nooptrace.Tracer{}
 	}
 	return &plugin.Publisher{
-		Doc:  "Publishes content to local file",
+		Doc:  "Writes the rendered document to a local file.",
 		Tags: []string{},
 		Args: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

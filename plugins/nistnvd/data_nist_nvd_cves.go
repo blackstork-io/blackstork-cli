@@ -31,6 +31,7 @@ const (
 
 func makeNistNvdCvesDataSource(loader ClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc:      "Retrieves CVE records from the NIST National Vulnerability Database. Supports CVE, CPE, CVSS, CWE, keyword, source, publication date, modification date, and rejected-record filters.",
 		DataFunc: fetchNistNvdCvesData(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

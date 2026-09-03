@@ -25,7 +25,7 @@ import (
 
 func makeMicrosoftGraphDataSource(loader MicrosoftGraphClientLoadFn) *plugin.DataSource {
 	return &plugin.DataSource{
-		Doc:      "The `microsoft_graph` data source queries Microsoft Graph API.",
+		Doc:      "Sends a GET request to a Microsoft Graph endpoint and returns one object or a paginated list of objects.",
 		DataFunc: fetchMicrosoftGraph(loader),
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{

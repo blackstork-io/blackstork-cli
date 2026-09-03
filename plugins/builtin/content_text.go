@@ -35,7 +35,7 @@ func makeTextContentProvider() *plugin.ContentProvider {
 				},
 			},
 		},
-		Doc: `Renders text block`,
+		Doc: "Renders a Go-templated string as document text.",
 	}
 }
 

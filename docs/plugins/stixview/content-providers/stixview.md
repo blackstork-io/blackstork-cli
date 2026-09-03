@@ -2,7 +2,7 @@
 title: "`stixview` content provider"
 plugin:
   name: blackstork/stixview
-  description: ""
+  description: "Embeds an interactive Stixview graph for STIX objects loaded from template data, a URL, or a GitHub Gist. This provider produces HTML content"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/stixview/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/stixview" "stixview" "v1.0.0-rc1" "stixview" "content provider" >}}
+
+## Description
+Embeds an interactive Stixview graph for STIX objects loaded from template data, a URL, or a GitHub Gist. This provider produces HTML content.
 
 ## Installation
 

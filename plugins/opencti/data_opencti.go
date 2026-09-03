@@ -24,6 +24,7 @@ import (
 
 func makeOpenCTIDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Executes a validated GraphQL query against an OpenCTI instance and returns the decoded response data.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

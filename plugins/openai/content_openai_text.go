@@ -30,6 +30,7 @@ import (
 
 func makeOpenAITextContentSchema(loader ClientLoadFn) *plugin.ContentProvider {
 	return &plugin.ContentProvider{
+		Doc: "Generates text with an OpenAI chat-completion model from a Go-templated prompt and an optional system prompt.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

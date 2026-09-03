@@ -2,7 +2,7 @@
 title: "`llm_text` content provider"
 plugin:
   name: blackstork/builtin
-  description: ""
+  description: "Generates text from a Go-templated prompt using the configured LLM vendor and model. Supports Google, OpenAI, Anthropic, Ollama, and xAI models"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "llm_text" "content provider" >}}
+
+## Description
+Generates text from a Go-templated prompt using the configured LLM vendor and model. Supports Google, OpenAI, Anthropic, Ollama, and xAI models.
 
 The `llm_text` content provider is built into the BlackStork engine. It is available out-of-the-box and requires no installation or dependency declaration.
 

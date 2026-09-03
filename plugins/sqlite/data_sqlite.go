@@ -29,6 +29,7 @@ import (
 
 func makeSqliteDataSource() *plugin.DataSource {
 	return &plugin.DataSource{
+		Doc: "Runs a parameterized SQL query against a SQLite database and returns the result rows as a list of objects keyed by column name.",
 		Config: &dataspec.RootSpec{
 			Attrs: []*dataspec.AttrSpec{
 				{

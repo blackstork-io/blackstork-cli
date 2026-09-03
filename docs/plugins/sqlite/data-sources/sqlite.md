@@ -2,7 +2,7 @@
 title: "`sqlite` data source"
 plugin:
   name: blackstork/sqlite
-  description: ""
+  description: "Runs a parameterized SQL query against a SQLite database and returns the result rows as a list of objects keyed by column name"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/sqlite/"
@@ -14,6 +14,9 @@ type: docs
 {{< breadcrumbs 2 >}}
 
 {{< plugin-resource-header "blackstork/sqlite" "sqlite" "v1.0.0-rc1" "sqlite" "data source" >}}
+
+## Description
+Runs a parameterized SQL query against a SQLite database and returns the result rows as a list of objects keyed by column name.
 
 ## Installation
 

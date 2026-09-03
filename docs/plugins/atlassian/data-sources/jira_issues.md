@@ -2,7 +2,7 @@
 title: "`jira_issues` data source"
 plugin:
   name: blackstork/atlassian
-  description: "Retrieve issues from Jira"
+  description: "Retrieves Jira Cloud issues that match the supplied JQL and field-selection options. Returns a list of issue objects"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/atlassian/"
@@ -16,7 +16,7 @@ type: docs
 {{< plugin-resource-header "blackstork/atlassian" "atlassian" "v1.0.0-rc1" "jira_issues" "data source" >}}
 
 ## Description
-Retrieve issues from Jira.
+Retrieves Jira Cloud issues that match the supplied JQL and field-selection options. Returns a list of issue objects.
 
 ## Installation
 

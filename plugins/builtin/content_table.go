@@ -60,16 +60,17 @@ func makeTableContentProvider() *plugin.ContentProvider {
 			},
 		},
 		Doc: `
-			Renders a table.
+			Renders data as a table using a Go template for each column header and cell.
 
-			Each cell template has access to the data context and the following variables:
+			Each cell template has access to the document data context and these variables:
+
 			* ` + "`.rows` – the value of `rows` argument" + `
 			* ` + "`.row.value` – the current row from `.rows` list" + `
 			* ` + "`.row.index` – the current row index" + `
 			* ` + "`.col.index` – the current column index" + `
 
-			Header templates have access to the same variables as value templates,
-			except for ` + "`.row.value` and `.row.index`",
+			Header templates have access to the document data context, ` + "`.rows`" + `, and ` + "`.col.index`" + `,
+			but not ` + "`.row.value` or `.row.index`" + `.`,
 	}
 }
 

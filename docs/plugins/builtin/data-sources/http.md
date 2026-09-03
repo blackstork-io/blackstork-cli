@@ -2,7 +2,7 @@
 title: "`http` data source"
 plugin:
   name: blackstork/builtin
-  description: "Fetches HTTP response from URL, parses its body and loads it"
+  description: "Sends an HTTP request and returns the response body as template data"
   tags: []
   version: "v1.0.0-rc1"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
@@ -17,10 +17,11 @@ type: docs
 
 ## Description
 
-Fetches HTTP response from URL, parses its body and loads it.
+Sends an HTTP request and returns the response body as template data.
 
-If the format of the response is not supported, data source will return response body as plain text.
-If the format is supported, the response body is parsed and returned as a JSON object, like the `file` data source.
+The response format is inferred from the Content-Type header unless `format` is set.
+Supported structured formats are decoded into lists, objects, or scalar values. Other responses
+are returned as plain text.
 
 
 The `http` data source is built into the BlackStork engine. It is available out-of-the-box
@@ -93,7 +94,7 @@ data http {
   # Default value:
   body = null
 
-  # If provided, overrides response MIME type. If not provided, the format is deduced from response MIME type.
+  # Response format. If omitted, the format is inferred from the response Content-Type header.
   #
   # Optional string.
   # Must be one of: "json", "yaml", "csv", "text", null

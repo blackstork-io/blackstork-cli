@@ -29,6 +29,7 @@ func ParseFormatBlock(
 	execBlockDef *definitions.ExecBlockDef,
 	refHist *utils.RefHistory,
 ) (parsed *definitions.FormatBlock, diags diagnostics.Diag) {
+	execBlockDef = cloneExecBlockDef(execBlockDef)
 	log := appctx.Log(ctx)
 	log.DebugContext(
 		ctx, "Parsing format block",
@@ -182,6 +183,9 @@ func ParseFormatBlock(
 
 	if targetBlock != nil && targetBlock.Config != nil {
 		res.Config = targetBlock.Config
+	}
+	if res.Meta == nil && targetBlock != nil {
+		res.Meta = targetBlock.Meta
 	}
 
 	// Collect `config` attr and pop it to avoid validation errors when

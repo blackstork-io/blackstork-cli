@@ -28,6 +28,7 @@ func parseDynamic(
 	block *hclsyntax.Block,
 	refHist *utils.RefHistory,
 ) (parsed *definitions.Dynamic, diags diagnostics.Diag) {
+	block = cloneHCLBlock(block)
 	log := appctx.Log(ctx)
 	log.DebugContext(
 		ctx, "Parsing a dynamic block",

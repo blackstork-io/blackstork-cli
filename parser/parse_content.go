@@ -29,6 +29,7 @@ func parseContentBlock(
 	execBlockDef *definitions.ExecBlockDef,
 	refHist *utils.RefHistory,
 ) (res *definitions.ContentBlock, diags diagnostics.Diag) {
+	execBlockDef = cloneExecBlockDef(execBlockDef)
 	log := appctx.Log(ctx)
 	log = log.With(
 		"block_name", execBlockDef.Name(),
@@ -226,6 +227,9 @@ func parseContentBlock(
 
 	if targetBlock != nil && targetBlock.Config != nil {
 		res.Config = targetBlock.Config
+	}
+	if res.Meta == nil && targetBlock != nil {
+		res.Meta = targetBlock.Meta
 	}
 
 	// Collect `config` attr and pop it to avoid validation errors when

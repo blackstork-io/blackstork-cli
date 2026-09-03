@@ -30,7 +30,7 @@ func ParseDocument(
 	log := appctx.Log(ctx)
 	log = log.With("document", docDef.Name)
 
-	hclBlock := docDef.GetHCLBlock()
+	hclBlock := cloneHCLBlock(docDef.GetHCLBlock())
 	body := hclBlock.Body
 
 	log.DebugContext(

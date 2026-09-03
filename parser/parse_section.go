@@ -29,6 +29,7 @@ func ParseSection(
 	sectionDef *definitions.SectionDef,
 	refHist *utils.RefHistory,
 ) (res *definitions.Section, diags diagnostics.Diag) {
+	sectionDef = cloneSectionDef(sectionDef)
 	log := appctx.Log(ctx)
 	log = log.With("section", sectionDef.Name())
 	log.DebugContext(

@@ -37,23 +37,23 @@ var (
 
 func init() {
 	rootCmd.AddCommand(renderCmd)
-	renderCmd.Flags().BoolVar(&publish, "publish", false, "publish the rendered document")
+	renderCmd.Flags().BoolVar(&publish, "publish", false, "execute document publishers instead of writing to standard output")
 	renderCmd.Flags().
-		StringVar(&requestedFormat, "format", "", "formatter to use for the document. Supported formats are `format.<formatter>` (for example, `format.html`) for a default instance of the formatter, `format.<formatter>.<name>` for a specific formatter config, or `document.format.<formatter>.<name>` for a formatter defined in the document.")
+		StringVar(&requestedFormat, "format", "", "formatter traversal: format.<formatter>, format.<formatter>.<name>, or document.format.<formatter>.<name>")
 	renderCmd.Flags().
-		StringVar(&tags, "only-with-tags", "", "comma separated list of meta tags. Only content blocks matching these tags will be rendered")
+		StringVar(&tags, "only-with-tags", "", "render only content whose metadata includes every comma-separated tag")
 	renderCmd.Flags().
-		StringVar(&dataFile, "replace-data-with", "", "JSON file to replace data layer in the template")
+		StringVar(&dataFile, "replace-data-with", "", "read the document data layer from a JSON object instead of executing data blocks")
 
 	renderCmd.SetUsageTemplate(UsageTemplate(
-		[2]string{"TARGET", "name of the document to be rendered as 'document.<name>'"},
+		[2]string{"TARGET", "document target in the form 'document.<name>'"},
 	))
 }
 
 var renderCmd = &cobra.Command{
 	Use:   "render TARGET",
-	Short: "Render the document",
-	Long:  `Render the specified document and either publish it or output it to stdout.`,
+	Short: "Render a document",
+	Long:  "Evaluate and format the selected document, then write it to standard output or execute its publishers.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		target := strings.TrimSpace(args[0])

@@ -23,13 +23,13 @@ var installUpgrade bool
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().BoolVarP(&installUpgrade, "upgrade", "u", false, "Upgrade plugin versions")
+	installCmd.Flags().BoolVarP(&installUpgrade, "upgrade", "u", false, "upgrade installed plugins within configured version constraints")
 }
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install plugins",
-	Long:  "Install Fabric plugins",
+	Short: "Install required plugins",
+	Long:  "Resolve and install the plugin versions required by templates in the source directory.",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		ctx := cmd.Context()
 		var diags diagnostics.Diag

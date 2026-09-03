@@ -15,9 +15,9 @@ See the [license details]({{< ref "license.md" >}}) before integrating the CLI i
 
 The CLI provides four subcommands for working with templates:
 
-- `install` — Downloads and caches plugin dependencies declared in the global `blackstork` block. Use `--upgrade` to upgrade within configured version constraints.
-- `lint` — Checks all templates for syntax and structural errors without executing plugins. Use `--full` to validate plugin bodies; installed plugins are required.
-- `data TARGET` — Executes all data blocks matching `document.<document-name>.data[.<data-source>[.<block-name>]]` and writes formatted JSON to standard output.
+- `install` — Resolves, downloads, and caches plugin dependencies declared in the global `blackstork` block. Use `--upgrade` to upgrade within configured version constraints.
+- `lint` — Checks all templates for syntax and structural errors without executing plugins. Use `--full` to validate plugin block bodies against installed runner schemas.
+- `data TARGET` — Executes a standalone target in the form `data.<source>.<name>` or document data blocks matching `document.<document>.data[.<source>[.<name>]]`, then writes formatted JSON to standard output.
 - `render TARGET` — Renders a target in the form `document.<name>`. It writes Markdown to standard output by default or executes the document's publishers when given `--publish`.
 
 To view the full list of available commands and global flags, run `blackstork-cli --help`:
@@ -29,20 +29,20 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
-  data        Execute the data blocks that match the path
+  data        Execute data blocks and print their results
   help        Help about any command
-  install     Install plugins
-  lint        Evaluate *.blackstork.hcl files for syntax mistakes
-  render      Render the document
+  install     Install required plugins
+  lint        Validate BlackStork templates
+  render      Render a document
 
 Flags:
-      --debug               enables debug mode
+      --debug               enable debug mode and write telemetry to .blackstork/debug
   -h, --help                help for blackstork-cli
-      --log-format string   format of the logs (plain or json) (default "plain")
-  -i, --input stringArray   template inputs in the format <name>=<value>; repeat the flag for multiple inputs
-      --log-level string    logging level (debug, info, warn, error) (default "warn")
-      --source-dir string   a path to a directory with *.blackstork.hcl files (default ".")
-  -v, --verbose             a shortcut to --log-level debug
+      --log-format string   log output format: plain or json (default "plain")
+  -i, --input stringArray   set a document input as <name>=<value>; repeat for multiple inputs
+      --log-level string    minimum logging level: debug, info, warn, error (default "warn")
+      --source-dir string   directory to scan recursively for BlackStork template files (default ".")
+  -v, --verbose             enable debug-level logging
       --version             version for blackstork-cli
 
 Use "blackstork-cli [command] --help" for more information about a command.
@@ -50,7 +50,7 @@ Use "blackstork-cli [command] --help" for more information about a command.
 
 ## Source directory
 
-When executed, `blackstork-cli` recursively searches the target directory for `.blackstork.hcl` files and legacy `.fabric` files, merges their definitions, and parses the configuration.
+When executed, `blackstork-cli` recursively searches the target directory for `.blackstork.hcl` files, merges their definitions, and parses the configuration.
 
 By default, the CLI targets the current working directory (`.`). You can instruct the engine to load files from a different location by using the global `--source-dir` flag:
 

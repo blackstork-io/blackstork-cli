@@ -63,16 +63,16 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().
-		StringVar(&rawArgs.sourceDir, "source-dir", ".", "a path to a directory with *.blackstork.hcl files")
-	rootCmd.PersistentFlags().StringVar(&rawArgs.logOutput, "log-format", "plain", "format of the logs (plain or json)")
+		StringVar(&rawArgs.sourceDir, "source-dir", ".", "directory to scan recursively for BlackStork template files")
+	rootCmd.PersistentFlags().StringVar(&rawArgs.logOutput, "log-format", "plain", "log output format: plain or json")
 	rootCmd.PersistentFlags().StringVar(
 		&rawArgs.logLevel, "log-level", "warn",
-		fmt.Sprintf("logging level (%s)", utils.GetLogLevelsString()),
+		fmt.Sprintf("minimum logging level: %s", utils.GetLogLevelsString()),
 	)
-	rootCmd.PersistentFlags().BoolVarP(&rawArgs.verbose, "verbose", "v", false, "a shortcut to --log-level debug")
-	rootCmd.PersistentFlags().BoolVar(&rawArgs.debug, "debug", false, "enables debug mode")
+	rootCmd.PersistentFlags().BoolVarP(&rawArgs.verbose, "verbose", "v", false, "enable debug-level logging")
+	rootCmd.PersistentFlags().BoolVar(&rawArgs.debug, "debug", false, "enable debug mode and write telemetry to .blackstork/debug")
 	rootCmd.PersistentFlags().
-		StringArrayVarP(&rawArgs.inputs, "input", "i", []string{}, "template inputs in the format of <name>=<value>. The flag can be repeated")
+		StringArrayVarP(&rawArgs.inputs, "input", "i", []string{}, "set a document input as <name>=<value>; repeat for multiple inputs")
 
 	if otelpURL := os.Getenv("BLACKSTORK_OTELP_URL"); otelpURL != "" {
 		env.otelpURL = otelpURL
@@ -84,7 +84,9 @@ func init() {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use: "blackstork-cli",
+	Use:   "blackstork-cli",
+	Short: "Render data-driven documents from BlackStork templates",
+	Long:  "Parse, validate, and render BlackStork templates; retrieve data through plugins; and publish formatted documents.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		ctx := cmd.Context()
 		if rawArgs.debug {

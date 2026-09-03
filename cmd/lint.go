@@ -22,14 +22,14 @@ import (
 var fullLint bool
 
 func init() {
-	lintCmd.Flags().BoolVar(&fullLint, "full", false, "Lint plugin bodies (requires plugins to be installed)")
+	lintCmd.Flags().BoolVar(&fullLint, "full", false, "validate plugin block bodies against installed runner schemas")
 	rootCmd.AddCommand(lintCmd)
 }
 
 var lintCmd = &cobra.Command{
 	Use:   "lint",
-	Short: "Evaluate *.blackstork.hcl files for syntax mistakes",
-	Long:  `Doesn't call plugins, only checks the *.fabric templates for correctness`,
+	Short: "Validate BlackStork templates",
+	Long:  "Check BlackStork templates for syntax and structural errors without executing plugins. Use --full to also validate plugin block bodies against installed runner schemas.",
 	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		ctx := cmd.Context()
 		var diags diagnostics.Diag

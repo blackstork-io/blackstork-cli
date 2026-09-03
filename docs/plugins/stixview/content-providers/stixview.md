@@ -4,7 +4,7 @@ plugin:
   name: blackstork/stixview
   description: "Embeds an interactive Stixview graph for STIX objects loaded from template data, a URL, or a GitHub Gist. This provider produces HTML content"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/stixview/"
 resource:
   type: content-provider
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/stixview" "stixview" "v1.0.0-rc1" "stixview" "content provider" >}}
+{{< plugin-resource-header "blackstork/stixview" "stixview" "v1.0.0" "stixview" "content provider" >}}
 
 ## Description
 Embeds an interactive Stixview graph for STIX objects loaded from template data, a URL, or a GitHub Gist. This provider produces HTML content.
@@ -29,7 +29,7 @@ To use the `stixview` content provider locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/stixview" = ">= v1.0.0-rc1"
+    "blackstork/stixview" = ">= v1.0.0"
   }
 }
 ```

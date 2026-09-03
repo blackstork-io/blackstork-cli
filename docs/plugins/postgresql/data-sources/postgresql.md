@@ -4,7 +4,7 @@ plugin:
   name: blackstork/postgresql
   description: "Runs a parameterized SQL query against PostgreSQL and returns the result rows as a list of objects keyed by column name"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/postgresql/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/postgresql" "postgresql" "v1.0.0-rc1" "postgresql" "data source" >}}
+{{< plugin-resource-header "blackstork/postgresql" "postgresql" "v1.0.0" "postgresql" "data source" >}}
 
 ## Description
 Runs a parameterized SQL query against PostgreSQL and returns the result rows as a list of objects keyed by column name.
@@ -29,7 +29,7 @@ To use the `postgresql` data source locally via `blackstork-cli`, you must decla
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/postgresql" = ">= v1.0.0-rc1"
+    "blackstork/postgresql" = ">= v1.0.0"
   }
 }
 ```

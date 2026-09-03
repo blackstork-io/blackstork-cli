@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Reads local JSON, YAML, CSV, or text files and returns their contents as template data"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "file" "data source" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "file" "data source" >}}
 
 ## Description
 

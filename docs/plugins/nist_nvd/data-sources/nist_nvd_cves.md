@@ -4,7 +4,7 @@ plugin:
   name: blackstork/nist_nvd
   description: "Retrieves CVE records from the NIST National Vulnerability Database. Supports CVE, CPE, CVSS, CWE, keyword, source, publication date, modification date, and rejected-record filters"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/nistnvd/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/nist_nvd" "nist_nvd" "v1.0.0-rc1" "nist_nvd_cves" "data source" >}}
+{{< plugin-resource-header "blackstork/nist_nvd" "nist_nvd" "v1.0.0" "nist_nvd_cves" "data source" >}}
 
 ## Description
 Retrieves CVE records from the NIST National Vulnerability Database. Supports CVE, CPE, CVSS, CWE, keyword, source, publication date, modification date, and rejected-record filters.
@@ -29,7 +29,7 @@ To use the `nist_nvd_cves` data source locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/nist_nvd" = ">= v1.0.0-rc1"
+    "blackstork/nist_nvd" = ">= v1.0.0"
   }
 }
 ```

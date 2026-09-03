@@ -4,7 +4,7 @@ plugin:
   name: blackstork/elastic
   description: "Retrieves documents and aggregations from Elasticsearch by document ID, query string, or Query DSL query"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/elastic/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/elastic" "elastic" "v1.0.0-rc1" "elasticsearch" "data source" >}}
+{{< plugin-resource-header "blackstork/elastic" "elastic" "v1.0.0" "elasticsearch" "data source" >}}
 
 ## Description
 Retrieves documents and aggregations from Elasticsearch by document ID, query string, or Query DSL query.
@@ -29,7 +29,7 @@ To use the `elasticsearch` data source locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/elastic" = ">= v1.0.0-rc1"
+    "blackstork/elastic" = ">= v1.0.0"
   }
 }
 ```

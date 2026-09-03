@@ -5,13 +5,13 @@ plugin:
   name: blackstork/atlassian
   description: "The `atlassian` plugin for Atlassian Cloud."
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/atlassian/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/atlassian" "atlassian" "v1.0.0-rc1" >}}
+{{< plugin-header "blackstork/atlassian" "atlassian" "v1.0.0" >}}
 
 ## Description
 The `atlassian` plugin for Atlassian Cloud.
@@ -27,7 +27,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/atlassian" = ">= v1.0.0-rc1"
+    "blackstork/atlassian" = ">= v1.0.0"
   }
 }
 ```

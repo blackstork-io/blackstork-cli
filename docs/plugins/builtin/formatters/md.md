@@ -3,7 +3,7 @@ title: "`md` formatter"
 plugin:
   name: blackstork/builtin
   description: "Renders a document as Markdown, with optional YAML, TOML, or JSON front matter."
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: formatter
@@ -12,7 +12,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "md" "formatter" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "md" "formatter" >}}
 
 ## Description
 Renders a document as Markdown, with optional YAML, TOML, or JSON front matter.

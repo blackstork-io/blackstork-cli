@@ -4,7 +4,7 @@ plugin:
   name: blackstork/hackerone
   description: "Retrieves HackerOne reports available to the configured API account. Supports report, program, state, severity, assignee, reporter, and date filters"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/hackerone/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/hackerone" "hackerone" "v1.0.0-rc1" "hackerone_reports" "data source" >}}
+{{< plugin-resource-header "blackstork/hackerone" "hackerone" "v1.0.0" "hackerone_reports" "data source" >}}
 
 ## Description
 Retrieves HackerOne reports available to the configured API account. Supports report, program, state, severity, assignee, reporter, and date filters.
@@ -29,7 +29,7 @@ To use the `hackerone_reports` data source locally via `blackstork-cli`, you mus
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/hackerone" = ">= v1.0.0-rc1"
+    "blackstork/hackerone" = ">= v1.0.0"
   }
 }
 ```

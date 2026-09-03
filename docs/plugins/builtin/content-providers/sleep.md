@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Pauses content generation for the specified duration, then renders a confirmation message. Intended for testing and debugging"
   tags: ["debug"]
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: content-provider
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "sleep" "content provider" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "sleep" "content provider" >}}
 
 ## Description
 Pauses content generation for the specified duration, then renders a confirmation message. Intended for testing and debugging.

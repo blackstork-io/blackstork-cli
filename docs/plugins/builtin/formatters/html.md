@@ -3,7 +3,7 @@ title: "`html` formatter"
 plugin:
   name: blackstork/builtin
   description: "Renders a document as HTML using configurable templates, inline styles and scripts, and external CSS or JavaScript resources."
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: formatter
@@ -12,7 +12,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "html" "formatter" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "html" "formatter" >}}
 
 ## Description
 Renders a document as HTML using configurable templates, inline styles and scripts, and external CSS or JavaScript resources.

@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Pauses data retrieval for the specified duration and returns the start time, end time, and elapsed duration. Intended for testing and debugging"
   tags: ["debug"]
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "sleep" "data source" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "sleep" "data source" >}}
 
 ## Description
 Pauses data retrieval for the specified duration and returns the start time, end time, and elapsed duration. Intended for testing and debugging.

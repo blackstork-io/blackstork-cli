@@ -4,7 +4,7 @@ plugin:
   name: blackstork/misp
   description: "Retrieves events from MISP using the events REST search endpoint. Returns the matching event records"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/misp/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/misp" "misp" "v1.0.0-rc1" "misp_events" "data source" >}}
+{{< plugin-resource-header "blackstork/misp" "misp" "v1.0.0" "misp_events" "data source" >}}
 
 ## Description
 Retrieves events from MISP using the events REST search endpoint. Returns the matching event records.
@@ -29,7 +29,7 @@ To use the `misp_events` data source locally via `blackstork-cli`, you must decl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/misp" = ">= v1.0.0-rc1"
+    "blackstork/misp" = ">= v1.0.0"
   }
 }
 ```

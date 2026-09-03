@@ -4,7 +4,7 @@ plugin:
   name: blackstork/atlassian
   description: "Retrieves Jira Cloud issues that match the supplied JQL and field-selection options. Returns a list of issue objects"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/atlassian/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/atlassian" "atlassian" "v1.0.0-rc1" "jira_issues" "data source" >}}
+{{< plugin-resource-header "blackstork/atlassian" "atlassian" "v1.0.0" "jira_issues" "data source" >}}
 
 ## Description
 Retrieves Jira Cloud issues that match the supplied JQL and field-selection options. Returns a list of issue objects.
@@ -29,7 +29,7 @@ To use the `jira_issues` data source locally via `blackstork-cli`, you must decl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/atlassian" = ">= v1.0.0-rc1"
+    "blackstork/atlassian" = ">= v1.0.0"
   }
 }
 ```

@@ -4,7 +4,7 @@ plugin:
   name: blackstork/graphql
   description: "Executes a GraphQL query against an HTTP endpoint and returns the decoded JSON response. Supports bearer-token authentication"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/graphql/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/graphql" "graphql" "v1.0.0-rc1" "graphql" "data source" >}}
+{{< plugin-resource-header "blackstork/graphql" "graphql" "v1.0.0" "graphql" "data source" >}}
 
 ## Description
 Executes a GraphQL query against an HTTP endpoint and returns the decoded JSON response. Supports bearer-token authentication.
@@ -29,7 +29,7 @@ To use the `graphql` data source locally via `blackstork-cli`, you must declare 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/graphql" = ">= v1.0.0-rc1"
+    "blackstork/graphql" = ">= v1.0.0"
   }
 }
 ```

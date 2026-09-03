@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Publishes the rendered document to BlackStork SaaS."
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: publisher
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "hub" "publisher" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "hub" "publisher" >}}
 
 ## Description
 Publishes the rendered document to BlackStork SaaS.

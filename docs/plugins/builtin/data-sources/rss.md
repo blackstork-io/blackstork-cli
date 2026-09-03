@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Retrieves and parses an RSS, Atom, or JSON Feed from a URL"
   tags: ["rss","http"]
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "rss" "data source" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "rss" "data source" >}}
 
 ## Description
 

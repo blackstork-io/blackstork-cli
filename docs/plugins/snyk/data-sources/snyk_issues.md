@@ -4,7 +4,7 @@ plugin:
   name: blackstork/snyk
   description: "Retrieves issues from Snyk. Supports group, organization, scan item, issue type, severity, status, ignored state, and date filters"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/snyk/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/snyk" "snyk" "v1.0.0-rc1" "snyk_issues" "data source" >}}
+{{< plugin-resource-header "blackstork/snyk" "snyk" "v1.0.0" "snyk_issues" "data source" >}}
 
 ## Description
 Retrieves issues from Snyk. Supports group, organization, scan item, issue type, severity, status, ignored state, and date filters.
@@ -29,7 +29,7 @@ To use the `snyk_issues` data source locally via `blackstork-cli`, you must decl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/snyk" = ">= v1.0.0-rc1"
+    "blackstork/snyk" = ">= v1.0.0"
   }
 }
 ```

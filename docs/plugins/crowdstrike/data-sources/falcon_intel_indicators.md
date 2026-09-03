@@ -4,7 +4,7 @@ plugin:
   name: blackstork/crowdstrike
   description: "Retrieves threat intelligence indicators from CrowdStrike Falcon Intelligence. Supports Falcon Query Language (FQL) filtering and sorting"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_intel_indicators" "data source" >}}
+{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0" "falcon_intel_indicators" "data source" >}}
 
 ## Description
 Retrieves threat intelligence indicators from CrowdStrike Falcon Intelligence. Supports Falcon Query Language (FQL) filtering and sorting.
@@ -29,7 +29,7 @@ To use the `falcon_intel_indicators` data source locally via `blackstork-cli`, y
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/crowdstrike" = ">= v1.0.0-rc1"
+    "blackstork/crowdstrike" = ">= v1.0.0"
   }
 }
 ```

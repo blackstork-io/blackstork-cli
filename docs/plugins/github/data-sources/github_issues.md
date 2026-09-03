@@ -4,7 +4,7 @@ plugin:
   name: blackstork/github
   description: "Retrieves issues from a GitHub repository. Supports filtering by milestone, assignee, creator, mentioned user, labels, state, and an updated-since timestamp"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_issues" "data source" >}}
+{{< plugin-resource-header "blackstork/github" "github" "v1.0.0" "github_issues" "data source" >}}
 
 ## Description
 Retrieves issues from a GitHub repository. Supports filtering by milestone, assignee, creator, mentioned user, labels, state, and an updated-since timestamp.
@@ -29,7 +29,7 @@ To use the `github_issues` data source locally via `blackstork-cli`, you must de
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/github" = ">= v1.0.0-rc1"
+    "blackstork/github" = ">= v1.0.0"
   }
 }
 ```

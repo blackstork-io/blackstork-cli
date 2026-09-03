@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Writes the rendered document to a local file."
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: publisher
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "local_file" "publisher" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "local_file" "publisher" >}}
 
 ## Description
 Writes the rendered document to a local file.

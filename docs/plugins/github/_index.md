@@ -5,13 +5,13 @@ plugin:
   name: blackstork/github
   description: ""
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/github" "github" "v1.0.0-rc1" >}}
+{{< plugin-header "blackstork/github" "github" "v1.0.0" >}}
 
 ## Installation
 
@@ -24,7 +24,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/github" = ">= v1.0.0-rc1"
+    "blackstork/github" = ">= v1.0.0"
   }
 }
 ```

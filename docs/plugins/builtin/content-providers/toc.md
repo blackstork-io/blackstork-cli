@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Builds a table of contents from headings in the selected document scope. The result can be ordered or unordered and limited by heading level"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: content-provider
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "toc" "content provider" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "toc" "content provider" >}}
 
 ## Description
 Builds a table of contents from headings in the selected document scope. The result can be ordered or unordered and limited by heading level.

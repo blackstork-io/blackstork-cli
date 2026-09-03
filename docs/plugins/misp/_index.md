@@ -5,13 +5,13 @@ plugin:
   name: blackstork/misp
   description: ""
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/misp/"
 type: docs
 hideInMenu: true
 ---
 
-{{< plugin-header "blackstork/misp" "misp" "v1.0.0-rc1" >}}
+{{< plugin-header "blackstork/misp" "misp" "v1.0.0" >}}
 
 ## Installation
 
@@ -24,7 +24,7 @@ To use this plugin locally via `blackstork-cli`, you must declare it as a depend
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/misp" = ">= v1.0.0-rc1"
+    "blackstork/misp" = ">= v1.0.0"
   }
 }
 ```

@@ -4,7 +4,7 @@ plugin:
   name: blackstork/github
   description: "Creates a GitHub Gist from the rendered document or updates an existing Gist when `gist_id` is provided."
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/github/"
 resource:
   type: publisher
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/github" "github" "v1.0.0-rc1" "github_gist" "publisher" >}}
+{{< plugin-resource-header "blackstork/github" "github" "v1.0.0" "github_gist" "publisher" >}}
 
 ## Description
 Creates a GitHub Gist from the rendered document or updates an existing Gist when `gist_id` is provided.
@@ -29,7 +29,7 @@ To use the `github_gist` publisher locally via `blackstork-cli`, you must declar
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/github" = ">= v1.0.0-rc1"
+    "blackstork/github" = ">= v1.0.0"
   }
 }
 ```

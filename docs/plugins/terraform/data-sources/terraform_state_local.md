@@ -4,7 +4,7 @@ plugin:
   name: blackstork/terraform
   description: "Reads a local Terraform state file and returns its decoded JSON data"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/terraform/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/terraform" "terraform" "v1.0.0-rc1" "terraform_state_local" "data source" >}}
+{{< plugin-resource-header "blackstork/terraform" "terraform" "v1.0.0" "terraform_state_local" "data source" >}}
 
 ## Description
 Reads a local Terraform state file and returns its decoded JSON data.
@@ -29,7 +29,7 @@ To use the `terraform_state_local` data source locally via `blackstork-cli`, you
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/terraform" = ">= v1.0.0-rc1"
+    "blackstork/terraform" = ">= v1.0.0"
   }
 }
 ```

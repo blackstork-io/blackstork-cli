@@ -4,7 +4,7 @@ plugin:
   name: blackstork/openai
   description: "Generates text with an OpenAI chat-completion model from a Go-templated prompt and an optional system prompt"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/openai/"
 resource:
   type: content-provider
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/openai" "openai" "v1.0.0-rc1" "openai_text" "content provider" >}}
+{{< plugin-resource-header "blackstork/openai" "openai" "v1.0.0" "openai_text" "content provider" >}}
 
 ## Description
 Generates text with an OpenAI chat-completion model from a Go-templated prompt and an optional system prompt.
@@ -29,7 +29,7 @@ To use the `openai_text` content provider locally via `blackstork-cli`, you must
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/openai" = ">= v1.0.0-rc1"
+    "blackstork/openai" = ">= v1.0.0"
   }
 }
 ```

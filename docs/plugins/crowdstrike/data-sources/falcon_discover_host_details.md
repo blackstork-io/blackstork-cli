@@ -4,7 +4,7 @@ plugin:
   name: blackstork/crowdstrike
   description: "Retrieves host details from CrowdStrike Falcon Discover, optionally filtered with Falcon Query Language (FQL). Returns a list of host records"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/crowdstrike/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0-rc1" "falcon_discover_host_details" "data source" >}}
+{{< plugin-resource-header "blackstork/crowdstrike" "crowdstrike" "v1.0.0" "falcon_discover_host_details" "data source" >}}
 
 ## Description
 Retrieves host details from CrowdStrike Falcon Discover, optionally filtered with Falcon Query Language (FQL). Returns a list of host records.
@@ -29,7 +29,7 @@ To use the `falcon_discover_host_details` data source locally via `blackstork-cl
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/crowdstrike" = ">= v1.0.0-rc1"
+    "blackstork/crowdstrike" = ">= v1.0.0"
   }
 }
 ```

@@ -4,7 +4,7 @@ plugin:
   name: blackstork/opencti
   description: "Executes a validated GraphQL query against an OpenCTI instance and returns the decoded response data"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/opencti/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/opencti" "opencti" "v1.0.0-rc1" "opencti" "data source" >}}
+{{< plugin-resource-header "blackstork/opencti" "opencti" "v1.0.0" "opencti" "data source" >}}
 
 ## Description
 Executes a validated GraphQL query against an OpenCTI instance and returns the decoded response data.
@@ -29,7 +29,7 @@ To use the `opencti` data source locally via `blackstork-cli`, you must declare 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/opencti" = ">= v1.0.0-rc1"
+    "blackstork/opencti" = ">= v1.0.0"
   }
 }
 ```

@@ -4,7 +4,7 @@ plugin:
   name: blackstork/iris
   description: "Retrieves cases from DFIR-IRIS. Supports filtering by case, customer, owner, severity, state, SOC, and opening date"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/iris/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/iris" "iris" "v1.0.0-rc1" "iris_cases" "data source" >}}
+{{< plugin-resource-header "blackstork/iris" "iris" "v1.0.0" "iris_cases" "data source" >}}
 
 ## Description
 Retrieves cases from DFIR-IRIS. Supports filtering by case, customer, owner, severity, state, SOC, and opening date.
@@ -29,7 +29,7 @@ To use the `iris_cases` data source locally via `blackstork-cli`, you must decla
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/iris" = ">= v1.0.0-rc1"
+    "blackstork/iris" = ">= v1.0.0"
   }
 }
 ```

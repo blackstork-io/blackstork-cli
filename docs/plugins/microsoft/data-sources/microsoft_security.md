@@ -4,7 +4,7 @@ plugin:
   name: blackstork/microsoft
   description: "Sends a GET request to a Microsoft Security API endpoint and returns one object or a paginated list of objects"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/microsoft/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0-rc1" "microsoft_security" "data source" >}}
+{{< plugin-resource-header "blackstork/microsoft" "microsoft" "v1.0.0" "microsoft_security" "data source" >}}
 
 ## Description
 Sends a GET request to a Microsoft Security API endpoint and returns one object or a paginated list of objects.
@@ -29,7 +29,7 @@ To use the `microsoft_security` data source locally via `blackstork-cli`, you mu
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/microsoft" = ">= v1.0.0-rc1"
+    "blackstork/microsoft" = ">= v1.0.0"
   }
 }
 ```

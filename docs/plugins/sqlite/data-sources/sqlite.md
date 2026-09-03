@@ -4,7 +4,7 @@ plugin:
   name: blackstork/sqlite
   description: "Runs a parameterized SQL query against a SQLite database and returns the result rows as a list of objects keyed by column name"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/sqlite/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/sqlite" "sqlite" "v1.0.0-rc1" "sqlite" "data source" >}}
+{{< plugin-resource-header "blackstork/sqlite" "sqlite" "v1.0.0" "sqlite" "data source" >}}
 
 ## Description
 Runs a parameterized SQL query against a SQLite database and returns the result rows as a list of objects keyed by column name.
@@ -29,7 +29,7 @@ To use the `sqlite` data source locally via `blackstork-cli`, you must declare t
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/sqlite" = ">= v1.0.0-rc1"
+    "blackstork/sqlite" = ">= v1.0.0"
   }
 }
 ```

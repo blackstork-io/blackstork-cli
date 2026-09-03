@@ -4,7 +4,7 @@ plugin:
   name: blackstork/eclecticiq
   description: "Retrieves EclecticIQ Intelligence Center entities by ID or Lucene query. Results can include related entities of selected types and associated observables"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/eclecticiq/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/eclecticiq" "eclecticiq" "v1.0.0-rc1" "eclecticiq_entities" "data source" >}}
+{{< plugin-resource-header "blackstork/eclecticiq" "eclecticiq" "v1.0.0" "eclecticiq_entities" "data source" >}}
 
 ## Description
 Retrieves EclecticIQ Intelligence Center entities by ID or Lucene query. Results can include related entities of selected types and associated observables.
@@ -29,7 +29,7 @@ To use the `eclecticiq_entities` data source locally via `blackstork-cli`, you m
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/eclecticiq" = ">= v1.0.0-rc1"
+    "blackstork/eclecticiq" = ">= v1.0.0"
   }
 }
 ```

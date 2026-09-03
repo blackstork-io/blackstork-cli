@@ -4,7 +4,7 @@ plugin:
   name: blackstork/builtin
   description: "Renders a Go-templated string as a code block with an optional language for syntax highlighting"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/builtin/"
 resource:
   type: content-provider
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0-rc1" "code" "content provider" >}}
+{{< plugin-resource-header "blackstork/builtin" "builtin" "v1.0.0" "code" "content provider" >}}
 
 ## Description
 Renders a Go-templated string as a code block with an optional language for syntax highlighting.

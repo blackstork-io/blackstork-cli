@@ -4,7 +4,7 @@ plugin:
   name: blackstork/virustotal
   description: "Retrieves VirusTotal API usage statistics for a user or group, optionally limited to a date range"
   tags: []
-  version: "v1.0.0-rc1"
+  version: "v1.0.0"
   source_github: "https://github.com/blackstork-io/blackstork-cli/tree/main/plugins/virustotal/"
 resource:
   type: data-source
@@ -13,7 +13,7 @@ type: docs
 
 {{< breadcrumbs 2 >}}
 
-{{< plugin-resource-header "blackstork/virustotal" "virustotal" "v1.0.0-rc1" "virustotal_api_usage" "data source" >}}
+{{< plugin-resource-header "blackstork/virustotal" "virustotal" "v1.0.0" "virustotal_api_usage" "data source" >}}
 
 ## Description
 Retrieves VirusTotal API usage statistics for a user or group, optionally limited to a date range.
@@ -29,7 +29,7 @@ To use the `virustotal_api_usage` data source locally via `blackstork-cli`, you 
 ```hcl
 blackstork {
   plugin_versions = {
-    "blackstork/virustotal" = ">= v1.0.0-rc1"
+    "blackstork/virustotal" = ">= v1.0.0"
   }
 }
 ```

@@ -273,7 +273,7 @@ type PublisherSchema struct {
 	Config             *BlockSpec             `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 	Doc                string                 `protobuf:"bytes,3,opt,name=doc,proto3" json:"doc,omitempty"`
 	Tags               []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	AcceptedFormatters []string               `protobuf:"bytes,5,rep,name=acceptedFormatters,proto3" json:"acceptedFormatters,omitempty"`
+	AcceptedFormatters []string               `protobuf:"bytes,5,rep,name=accepted_formatters,json=acceptedFormatters,proto3" json:"accepted_formatters,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -458,13 +458,13 @@ const file_pluginapi_v1_schema_proto_rawDesc = "" +
 	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
 	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\"\xc5\x01\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\"\xc6\x01\n" +
 	"\x0fPublisherSchema\x12+\n" +
 	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +
 	"\x03doc\x18\x03 \x01(\tR\x03doc\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\x12.\n" +
-	"\x12acceptedFormatters\x18\x05 \x03(\tR\x12acceptedFormatters\"\xb4\x01\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12/\n" +
+	"\x13accepted_formatters\x18\x05 \x03(\tR\x12acceptedFormatters\"\xb4\x01\n" +
 	"\x0fFormatterSchema\x12+\n" +
 	"\x04args\x18\x01 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x04args\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.pluginapi.v1.BlockSpecR\x06config\x12\x10\n" +

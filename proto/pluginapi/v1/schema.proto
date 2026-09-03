@@ -44,7 +44,7 @@ message PublisherSchema {
     BlockSpec             config             = 2;
     string                doc                = 3;
     repeated string       tags               = 4;
-    repeated string       acceptedFormatters = 5;
+    repeated string       accepted_formatters = 5;
 }
 
 message FormatterSchema {

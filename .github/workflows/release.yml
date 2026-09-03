@@ -22,13 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       # - name: Login to Docker Hub
       #   uses: docker/login-action@v3
       #   with:
@@ -36,12 +37,11 @@ jobs:
       #     username: "${{ secrets.DOCKERHUB_USERNAME }}"
       #     password: "${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
           distribution: goreleaser
-          version: '~> v2'
+          version: v2.18.0
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CONTAINER_REPO_NAME: "blackstorkio/fabric"
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

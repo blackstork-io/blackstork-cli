@@ -16,22 +16,24 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - run: go test -race -v -timeout 10s -short ./...
 
   builds:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Build blackstork-cli and plugins
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
           distribution: goreleaser
-          version: '~> v2'
+          version: v2.18.0
           args: build --snapshot --clean --single-target

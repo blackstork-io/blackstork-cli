@@ -21,36 +21,47 @@ jobs:
       checks: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
-          go-version: "1.23"
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - id: golangci-rev
         name: Get the rev to compare against
+        if: github.event_name == 'pull_request'
         run: |
           git fetch origin main
           echo "SHA=$(git merge-base origin/main @)" >> $GITHUB_OUTPUT
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+      - name: Lint pull request changes
+        if: github.event_name == 'pull_request'
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7
         with:
           version: v2.13.1
           only-new-issues: false
           args: "--new-from-rev ${{ steps.golangci-rev.outputs.SHA }}"
 
+      - name: Lint repository
+        if: github.event_name != 'pull_request'
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7
+        with:
+          version: v2.13.1
+          only-new-issues: false
+
   codegen-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch all tags
         # checkout only gets the latest commit, so it has no tag info
         run: git fetch --depth=1 --tags
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - uses: ./.github/workflows/install_tools
 
@@ -58,61 +69,51 @@ jobs:
         run: |
           ./codegen/rm_gen.sh
           ./codegen/gen.sh
-      - name: Get changed files
-        uses: tj-actions/verify-changed-files@v20
-        id: codegen-changed-files
-
+      - name: Record generated changes
+        run: git status --porcelain > "$RUNNER_TEMP/codegen-changes"
       - name: Format code
         run: |
-          git reset --hard HEAD
+          git restore --source=HEAD --staged --worktree .
+          git clean -fd
           ./codegen/format.sh
-      - name: Get changed files
-        uses: tj-actions/verify-changed-files@v20
-        id: format-changed-files
 
       - name: Verify that code is correctly generated and formatted
-        if: steps.codegen-changed-files.outputs.files_changed == 'true' || steps.format-changed-files.outputs.files_changed == 'true'
-        env:
-          CODEGEN_CHANGED_FILES: ${{ steps.codegen-changed-files.outputs.changed_files }}
-          FORMAT_CHANGED_FILES: ${{ steps.format-changed-files.outputs.changed_files }}
         run: |
-          if [ -n "$CODEGEN_CHANGED_FILES" ]; then
-            echo "Attempted to commit non up-to-date generated files:" >> $GITHUB_STEP_SUMMARY
-            for file in $CODEGEN_CHANGED_FILES; do
-              echo "* $file" >> $GITHUB_STEP_SUMMARY
-            done
-
-            cat <<"EOF" >> $GITHUB_STEP_SUMMARY
-
-          Regenerate the files by running `./codegen/gen.sh` (`./codegen/rm_gen.sh` will remove all generated files)
-
-          EOF
-            echo "::error title=Need to regenerate code::Stale generated files: $CODEGEN_CHANGED_FILES"
+          codegen_changes=$(cat "$RUNNER_TEMP/codegen-changes")
+          format_changes=$(git status --porcelain)
+          if [ -n "$codegen_changes" ] || [ -n "$format_changes" ]; then
+            echo "Generated or formatted files are not up to date:" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$codegen_changes" ]; then
+              printf '%s\n' "$codegen_changes" | sed 's/^/* generated: /' >> "$GITHUB_STEP_SUMMARY"
+            fi
+            if [ -n "$format_changes" ]; then
+              printf '%s\n' "$format_changes" | sed 's/^/* formatted: /' >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "::error title=Generated files are stale::Run ./codegen/gen.sh and ./codegen/format.sh"
+            exit 1
           fi
-
-          if [ -n "$FORMAT_CHANGED_FILES" ]; then
-            echo "Attempted to commit non-formatted files:" >> $GITHUB_STEP_SUMMARY
-            for file in $FORMAT_CHANGED_FILES; do
-              echo "* $file" >> $GITHUB_STEP_SUMMARY
-            done
-
-            cat <<"EOF" >> $GITHUB_STEP_SUMMARY
-
-          Format the code by running `./codegen/format.sh`
-          EOF
-            echo "::error title=Incorrect formatting::Badly formatted files: $FORMAT_CHANGED_FILES"
-          fi
-          exit 1
 
   lint-protobuf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - uses: ./.github/workflows/install_tools
 
       - name: Lint protobuf files
         run: ./codegen/lint_protobuf.sh
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Validate GitHub Actions workflows
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 .github/workflows/*.yml

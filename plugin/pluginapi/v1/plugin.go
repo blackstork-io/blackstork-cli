@@ -254,6 +254,7 @@ func (p *grpcPlugin) clientPublishFunc(name string, client PluginServiceClient) 
 			Args:             argsEncoded,
 			DataContext:      &datactx,
 			FormattedContent: content,
+			Content:          EncodeContent(params.Content),
 			DocumentName:     params.DocumentName,
 		}, p.callOptions()...)
 

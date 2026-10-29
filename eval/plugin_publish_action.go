@@ -73,6 +73,17 @@ func LoadPluginPublishAction(
 			Detail:   fmt.Sprintf("'%s' not found in any plugin", blockDef.RunnerName),
 		}}
 	}
+	if blockDef.Format == nil {
+		return nil, diagnostics.Diag{{
+			Severity: hcl.DiagError,
+			Summary:  "Missing formatter reference",
+			Detail: fmt.Sprintf(
+				"Publish block for publisher `%s` requires a `format_ref`.",
+				blockDef.RunnerName,
+			),
+			Context: blockDef.Source.Block.Range().Ptr(),
+		}}
+	}
 	var cfg *dataspec.Block
 	if publisher.Config != nil && blockDef.Config != nil {
 		cfg, diags = blockDef.Config.ParseConfig(ctx, publisher.Config)
@@ -106,14 +117,23 @@ func LoadPluginPublishAction(
 		return nil, diags
 	}
 
-	var publishFormat *PluginFormatAction
-
-	if blockDef.Format != nil {
-		format, diag := LoadPluginFormatAction(ctx, formatters, blockDef.Format, dataCtx)
-		if diags.Extend(diag) {
-			return nil, diags
-		}
-		publishFormat = format
+	publishFormat, diag := LoadPluginFormatAction(ctx, formatters, blockDef.Format, dataCtx)
+	if diags.Extend(diag) {
+		return nil, diags
+	}
+	if !publisher.Accepts(publishFormat.Formatter.Format) {
+		diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported publisher format",
+			Detail: fmt.Sprintf(
+				"Publisher `%s` does not accept format `%s`; accepted formats: %s.",
+				blockDef.RunnerName,
+				publishFormat.Formatter.Format,
+				strings.Join(publisher.AcceptedFormatters, ", "),
+			),
+			Context: blockDef.Source.Block.Range().Ptr(),
+		})
+		return nil, diags
 	}
 
 	return &PluginPublishAction{
